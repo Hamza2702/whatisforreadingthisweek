@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
-<body class="z-50 bg-blue-200 flex flex-col min-h-screen">
+<body class="z-50 flex flex-col min-h-screen">
 
   <!-- Navigation Bar -->
   <nav class="z-50 justify-between items-center bg-white px-7 desktop-nav hidden md:flex border-b-4 border-blue-300 p-1">
@@ -53,7 +53,7 @@
         <img src="/images/home/wormMovement1.png" alt="Worm" class="h-8">
     </div>
   </nav>  
-  <main class="flex-grow p-4 text-white">
+  <main class="p-4 text-white">
       {{ $slot }}
   </main>
 
