@@ -16,7 +16,9 @@
 
       <!-- Info w/ lvl and fav genre, need more. -->
       <div class="flex items-center text-center space-x-2">
-        <span class="px-2 py-1 bg-red-900 rounded-md text-sm font-semibold text-white">Level 20</span>
+        <span class="px-2 py-1 rounded-md text-sm font-semibold bg-level-20 text-level-20">
+          Level 20
+        </span>
         <span class="px-2 py-1 rounded-md text-sm text-white font-semibold flex flex-col leading-tight">
         <span>Favourite genre:</span>
         <span class="text-base font-bold">Horror</span>
@@ -38,6 +40,9 @@
           <div class="w-1/5 h-3 bg-orange-300 rounded-full"></div>
         </div>
       </div>
+
+      
     </div>
+    
   </div>
 </x-layout>
