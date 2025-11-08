@@ -67,5 +67,34 @@
         </a>
       </div>
     </div>
+
+      
+    <!-- Reading progress -->
+    <div class="w-full max-w-4xl bg-blue-300 rounded-lg mt-4 py-4 space-y-4">
+      <!-- Header -->
+      <div class="font-semibold px-4">
+        <span>
+          Your Reading Progress
+        </span>
+      </div>
+      <!-- Statistics -->
+      <div class="flex flex-row justify-around px-4 text-center">
+        <div>
+          <div class="text-2xl font-bold">15</div>
+          <div class="text-sm font-medium">Books read</div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold">3.5</div>
+          <div class="text-sm font-medium">Average rating</div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold">6</div>
+          <div class="text-sm font-medium">Genres explored</div>
+        </div>
+        <div>
+          <div class="text-2xl font-bold">7</div>
+          <div class="text-sm font-medium">Phonics topics covered</div>
+        </div>
+    </div>
   </div>
 </x-layout>
