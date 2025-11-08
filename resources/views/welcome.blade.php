@@ -1,7 +1,7 @@
 <x-layout title="Home">
- <div class="flex justify-center items-center">
+ <div class="flex flex-col justify-center items-center">
     <!-- Welcome -->
-    <div class="w-full max-w-4xl bg-blue-300 rounded-2xl p-4 space-y-4">
+    <div class="w-full max-w-4xl bg-blue-300 rounded-lg p-4 space-y-4">
       <!-- Header -->
       <div class="flex items-center space-x-4">
         <!-- PFP -->
@@ -10,7 +10,7 @@
         </div>
         <!-- Name -->
         <div>
-          <h2 class="text-lg font-semibold">Welcome, John Doe!</h2>
+          <h2 class="text-xl font-bold">Welcome, John Doe!</h2>
         </div>
       </div>
 
@@ -40,9 +40,32 @@
           <div class="w-1/5 h-3 bg-orange-300 rounded-full"></div>
         </div>
       </div>
-
-      
     </div>
-    
+
+    <!-- Current book -->
+    <div class="w-full max-w-4xl bg-blue-300 rounded-lg mt-4 py-4 space-y-4">
+      <!-- This week's book -->
+      <div class=" font-semibold px-4">
+        <h1 class="font-bold text-xl">This Week's Book</h1>
+        <!-- Book title and author -->
+        <div class="font-bold text-purple">
+          South of the Border, West of the Sun by <span class="font-medium">Haruki Murakami</span>
+        </div>
+      </div>
+      <!-- Blurb/summary -->
+      <div class=" font-semibold px-4">
+        <p class="text-sm">
+          Hajime, a successful jazz bar owner in Tokyo, leads a seemingly perfect life with his wife and children.
+          However, his past resurfaces when he reunites with Shimamoto, his childhood friend and first love.
+          As their paths cross again, Hajime finds himself torn between the stability of his current life and the allure of a rekindled romance.
+          "South of the Border, West of the Sun" explores themes of memory, longing, and the choices that shape our lives.
+      </div>
+      <!-- Review button -->
+      <div class="px-4">
+        <a href="" class="bg-white text-blue-300 font-semibold px-4 py-2 rounded-md hover:bg-blue-100">
+          Write a Review
+        </a>
+      </div>
+    </div>
   </div>
 </x-layout>
