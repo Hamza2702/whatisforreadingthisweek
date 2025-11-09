@@ -1,7 +1,7 @@
 <x-layout title="Home">
  <div class="flex flex-col justify-center items-center">
     <!-- Welcome -->
-    <div class="w-full max-w-4xl bg-blue-300 rounded-lg p-4 space-y-4">
+    <div class="w-full max-w-4xl rounded-lg p-4 space-y-4 border-2 border-primary">
       <!-- Header -->
       <div class="flex items-center space-x-4">
         <!-- PFP -->
@@ -10,19 +10,19 @@
         </div>
         <!-- Name -->
         <div>
-          <h2 class="text-xl font-bold">Welcome, John Doe!</h2>
+          <h2 class="text-2xl text-secondary text-primary font-bold">Welcome, John Doe!</h2>
         </div>
       </div>
 
       <!-- Info w/ lvl and fav genre, need more. -->
-      <div class="flex items-center text-center space-x-2">
+      <div class="flex items-center text-center space-x-2 text-primary">
         <span class="px-2 py-1 rounded-md text-sm font-semibold bg-level-20 text-level-20">
           Level 20
         </span>
-        <span class="px-2 py-1 rounded-md text-sm text-white font-semibold flex flex-col leading-tight">
-        <span>Favourite genre:</span>
-        <span class="text-base font-bold">Horror</span>
-      </span>
+        <span class="px-2 py-1 rounded-md text-sm s font-semibold flex flex-col leading-tight bg-primary">
+          <span class="text-background">Favourite genre:</span>
+          <span class="text-background font-bold">Horror</span>
+        </span>
       </div>
 
       <!-- Streak -->
@@ -43,10 +43,10 @@
     </div>
 
     <!-- Current book -->
-    <div class="w-full max-w-4xl bg-blue-300 rounded-lg mt-4 py-4 space-y-4">
+    <div class="w-full font-sans text-primary max-w-4xl rounded-lg mt-4 py-4 space-y-4">
       <!-- This week's book -->
       <div class=" font-semibold px-4">
-        <h1 class="font-bold text-xl">This Week's Book</h1>
+        <h1 class="font-script text-2xl underline underline-offset-4 decoration-2">This Week's Book</h1>
         <!-- Book title and author -->
         <div class="font-bold text-purple">
           South of the Border, West of the Sun by <span class="font-medium">Haruki Murakami</span>
@@ -62,7 +62,7 @@
       </div>
       <!-- Review button -->
       <div class="px-4">
-        <a href="" class="bg-white text-blue-300 font-semibold px-4 py-2 rounded-md hover:bg-blue-100">
+        <a href="" class="bg-primary text-background font-semibold px-4 py-2 rounded-md hover:bg-secondary hover:text-white ">
           Write a Review
         </a>
       </div>
@@ -70,7 +70,7 @@
 
       
     <!-- Reading progress -->
-    <div class="w-full max-w-4xl bg-blue-300 rounded-lg mt-4 py-4 space-y-4">
+    <div class="w-full max-w-4xl bg-primary rounded-lg mt-4 py-4 space-y-4">
       <!-- Header -->
       <div class="font-semibold px-4">
         <span>

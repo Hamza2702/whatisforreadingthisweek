@@ -7,47 +7,47 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600&family=Fredoka+One&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
   @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
-<body class="z-50 flex flex-col min-h-screen">
+<body class="z-50 bg-background flex flex-col min-h-screen">
 
   <!-- Navigation Bar -->
-  <nav class="z-50 justify-between items-center bg-white px-7 desktop-nav hidden md:flex border-b-4 border-blue-300 p-1">
-    <div>
+  <nav class="z-50 justify-between items-center px-7 desktop-nav hidden md:flex border-b-4 border-orange-900 p-1">
+    <div class="flex-shrink-0">
       <a href="/"><img src="/images/Logo.jpeg" alt="Logo" class="bookwormLogo max-w-20"></a>
     </div>
     <!-- Navigation bar -->
-    <div class="flex justify-between space-x-3">
+    <div class="flex items-center space-x-5">
       <x-nav-link href='/'> Dashboard </x-nav-link>
       <x-nav-link href='/explore'> Explore </x-nav-link>
       <x-nav-link href='/assignments'> Assignments </x-nav-link>
       <x-nav-link href='/progress'> Progress </x-nav-link>
       <x-nav-link href='/leaderboard'> Leaderboard </x-nav-link>
-    </div>
+   
+      <!-- Navigation bar guest access -->
+      <div class=" flex items-center space-x-3">
+        @guest
+        <x-nav-link href='/login'> Login </x-nav-link>
+        @endguest
 
-    <!-- Navigation bar guest access -->
-    <div class=" flex items-center space-x-3">
-      @guest
-      <x-nav-link href='/login'> Login </x-nav-link>
-      @endguest
-
-      <!-- Navigation bar logged in user -->
-      @auth
-      <div class="group flex flex-col justify-start bg-white">
-        <!-- User Image (CHANGE PATH) -->
-        <x-nav-link href='/account/user'>
-          <a href='/account/user'><img src="{{ Auth::user()->pfp ?? '/images/Placeholder.jpeg' }}" alt="Pfp icon" class="h-6 md:h-8 hover:opacity-75 rounded-full"></a>
-        </x-nav-link>
-        <div class="group-hover:flex fixed top-[60px] right-[40px] flex-col z-10 p-4 space-y-2 hidden bg-white">
-          <x-nav-link href="/account/user">Manage</x-nav-link>
-          <form class=" m-0" method="POST" action="/logout">
-            @csrf
-            <button class="hover:text-primary">Log Out</button>
-          </form>
+        <!-- Navigation bar logged in user -->
+        @auth
+        <div class="group flex flex-col justify-start bg-white">
+          <!-- User Image (CHANGE PATH) -->
+          <x-nav-link href='/account/user'>
+            <a href='/account/user'><img src="{{ Auth::user()->pfp ?? '/images/Placeholder.jpeg' }}" alt="Pfp icon" class="h-6 md:h-8 hover:opacity-75 rounded-full"></a>
+          </x-nav-link>
+          <div class="group-hover:flex fixed top-[60px] right-[40px] flex-col z-10 p-4 space-y-2 hidden bg-white">
+            <x-nav-link href="/account/user">Manage</x-nav-link>
+            <form class=" m-0" method="POST" action="/logout">
+              @csrf
+              <button class="hover:text-primary">Log Out</button>
+            </form>
+          </div>
         </div>
+        @endauth
       </div>
-      @endauth
-      
     </div>
     <div class="worm hidden">
         <img src="/images/home/wormMovement1.png" alt="Worm" class="h-8">
@@ -57,7 +57,7 @@
       {{ $slot }}
   </main>
 
-  <footer class="mt-auto bg-blue-300 w-full p-6 text-white">
+  <footer class="mt-auto bg-primary w-full p-6 text-white">
     <div class="flex flex-wrap justify-center space-y-6 md:space-y-0 md:flex-nowrap">
       <div class="w-full md:w-1/3 text-center flex flex-col items-center">
         <ul class="space-y-1">

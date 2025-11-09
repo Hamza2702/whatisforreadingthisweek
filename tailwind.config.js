@@ -1,13 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [ 
-    "./**/**/*.blade.php",
-    "./**/**/*.js",
-    "./**/**/*.vue",
+  content: [
+        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+        './storage/framework/views/*.php',
+        './storage/framework/views/components/*.php',
+        './resources/**/*.blade.php',
+        './resources/**/*.js',
+        './resources/**/*.vue',
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['"Fredoka One"', 'cursive'], // Title 
+        script: ['"Dancing Script"', 'cursive'], // Stylish
+        sans: ['"Nunito"', 'sans-serif'], // Paragraphs
+      },
       colors: {
+        "primary": "#6D4423", // Brown
+        "secondary" : "#755F54", // Light Brown
+        "background": "#FFF9E7", // Beige?
         // Oxford book band colours
         "level-1": "#FF69B4",  // Pink
         "level-2": "#FF0000",  // Red
