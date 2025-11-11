@@ -14,12 +14,20 @@
 
   <!-- Navigation Bar -->
   <nav class="z-50 justify-between items-center px-7 desktop-nav hidden md:flex border-b-4 border-orange-900 p-1">
-    <div class="flex-shrink-0">
-      <a href="/"><img src="/images/Logo.jpeg" alt="Logo" class="bookwormLogo max-w-20"></a>
+    <div class="flex items-center gap-3">
+      <a href="/" class="flex-shrink-0">
+        <img src="/images/Logo.png" alt="Logo" class="bookwormLogo max-w-20">
+      </a>
+
+      <div class="flex flex-col">
+        <h1 class="font-display text-pink-400 text-2xl">Bookworms</h1>
+        <p class="font-script font-black text-primary text-sm md:text-base leading-tight">Book slogan phrase thing</p>
+      </div>
     </div>
+
     <!-- Navigation bar -->
     <div class="flex items-center space-x-5">
-      <x-nav-link href='/'> Dashboard </x-nav-link>
+      <x-nav-link href='/dashboard'> Dashboard </x-nav-link>
       <x-nav-link href='/explore'> Explore </x-nav-link>
       <x-nav-link href='/assignments'> Assignments </x-nav-link>
       <x-nav-link href='/progress'> Progress </x-nav-link>

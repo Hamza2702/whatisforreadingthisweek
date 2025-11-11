@@ -1,4 +1,4 @@
-<x-layout title="Home">
+<x-layout title="Dashboard">
  <div class="flex flex-col justify-center items-center">
     <!-- Welcome -->
     <div class="w-full max-w-4xl rounded-lg p-4 space-y-4 border-2 border-primary">
@@ -10,7 +10,7 @@
         </div>
         <!-- Name -->
         <div>
-          <h2 class="text-2xl text-secondary text-primary font-bold">Welcome, John Doe!</h2>
+          <h2 class="text-2xl text-primary font-bold">Welcome, John Doe!</h2>
         </div>
       </div>
 
@@ -21,7 +21,7 @@
         </span>
         <span class="px-2 py-1 rounded-md text-sm s font-semibold flex flex-col leading-tight bg-primary">
           <span class="text-background">Favourite genre:</span>
-          <span class="text-background font-bold">Horror</span>
+          <span class="text-background font-bold">Romance</span>
         </span>
       </div>
 
