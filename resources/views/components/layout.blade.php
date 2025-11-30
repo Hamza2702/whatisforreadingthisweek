@@ -36,7 +36,7 @@
       <!-- Navigation bar guest access -->
       <div class=" flex items-center space-x-3">
         @guest
-        <x-nav-link href='/login'> Login </x-nav-link>
+        <x-nav-link href="{{ route('login') }}"> Login </x-nav-link>
         @endguest
 
         <!-- Navigation bar logged in user -->
