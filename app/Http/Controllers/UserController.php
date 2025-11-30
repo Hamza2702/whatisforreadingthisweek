@@ -3,6 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\File;
+
 
 class UserController extends Controller
 {
@@ -15,6 +20,7 @@ class UserController extends Controller
     public function store(){
         $attributes = request()->validate(['name'=>['required'],
             'email'=>['required','email','unique:users,email','confirmed'],
+            'phone' => ['required', 'string', 'min:10', 'max:15'],
             'password'=>['confirmed','required',Password::min(8)->mixedCase()->numbers()->symbols()],
         ]);
         
