@@ -72,6 +72,22 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- School selection -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Your Primary School</label>
+                                <select name="school_id" class="w-full p-3 border border-gray-300 rounded-lg text-gray-800 focus:ring-primary">
+                                    <option value="" class="text-gray-800">Select a school</option>
+
+                                    <!-- Loop through schools -->
+                                    @foreach($schools as $school)
+                                        <option value="{{ $school->id }}" class="text-gray-800">
+                                            {{ $school->name }} ({{ $school->town }}, {{ $school->postcode }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             
                             <!-- Submit -->
                             <div class="pt-2">
