@@ -8,6 +8,17 @@ export default {
         './resources/**/*.js',
         './resources/**/*.vue',
   ],
+  safelist: [
+    // Levels 1-20
+    // Background colours
+    {
+      pattern: /bg-level-(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)/,
+    },
+    // Text colours
+    {
+      pattern: /text-level-(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)/,
+    },
+  ],
   theme: {
     extend: {
       fontFamily: {
@@ -65,6 +76,7 @@ export default {
         "level-20": "#ffffff",
       }),
     },
+    
   },
   plugins: [],
 };
