@@ -6,18 +6,18 @@
       <div class="flex items-center space-x-4">
         <!-- PFP -->
         <div class="w-12 h-12 bg-orange-200 rounded-full flex items-center justify-center text-xs font-semibold text-gray-600">
-          <img src="/images/pfp/dog.png" alt="Profile Picture" class="w-12 h-12 rounded-full">
+          <img src="{{ Auth::user()->pfp }}" alt="Profile Picture" class="w-12 h-12 rounded-full">
         </div>
         <!-- Name -->
         <div>
-          <h2 class="text-2xl text-primary font-bold">Welcome, John Doe!</h2>
+          <h2 class="text-2xl text-primary font-bold">Welcome, {{ Auth::user()->name }}</h2>
         </div>
       </div>
 
       <!-- Info w/ lvl and fav genre, need more. -->
       <div class="flex items-center text-center space-x-2 text-primary">
-        <span class="px-2 py-1 rounded-md text-sm font-semibold bg-level-20 text-level-20">
-          Level 20
+        <span class="px-2 py-1 rounded-md text-sm font-semibold bg-level-{{ Auth::user()->level }} text-level-{{ Auth::user()->level }}">
+          Level {{ Auth::user()->level }}
         </span>
         <span class="px-2 py-1 rounded-md text-sm s font-semibold flex flex-col leading-tight bg-primary">
           <span class="text-background">Favourite genre:</span>

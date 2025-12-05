@@ -10,7 +10,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-});
+})->middleware('auth');
 
 // Register
 Route::get('/register',[UserController::class,'create'])->middleware('guest');
