@@ -13,10 +13,13 @@ Route::get('/dashboard', function () {
 })->middleware('auth');
 
 // Register
-Route::get('/register',[UserController::class,'create'])->middleware('guest');
-Route::post('/register',[UserController::class,'store'])->middleware('guest');
-Route::patch('/user',[UserController::class,'update'])->middleware('auth');
-Route::post('/register', [UserController::class, 'store'])->name('register');
+Route::middleware(['auth', 'isAdmin'])->group(function () {
+    Route::get('/register', [UserController::class, 'create']);
+    Route::post('/register', [UserController::class, 'store'])->name('register');
+});
+
+Route::patch('/user', [UserController::class, 'update'])->middleware('auth');
+
 
 // Login
 Route::get('/login', [SessionController::class, 'show'])->name('login')->middleware('guest');

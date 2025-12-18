@@ -18,14 +18,14 @@ class SessionController extends Controller
 
         // Validate form
         $credentials = request()->validate([
-            'email'=>'required',
+            'username'=>'required',
             'password'=>'required',
         ]);
 
         // Try to authenticate
         if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
-                'email'=>'The provided credentials do not match',
+                'invalid'=>'The provided credentials do not match',
             ]);
         }
         // Regenerate session
