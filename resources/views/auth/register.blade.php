@@ -1,4 +1,4 @@
-<x-layout title="Register">
+<x-login-layout title="Register">
     <main class="w-full">
         <!-- Register -->
         <section class="container mx-auto px-4 py-20">
@@ -127,4 +127,4 @@
             });
         });
     </script>
-</x-layout>
+</x-login-layout>

@@ -1,4 +1,4 @@
-<x-layout title="Login">
+<x-login-layout title="Login">
     <main class="w-full">
         <section class="container mx-auto px-4 py-32">
             <div class="max-w-[600px] mx-auto">
@@ -47,28 +47,33 @@
                                 <a href="forgot-password" class="text-primary text-sm mt-1 inline-block hover:text-primary/80 transition">Forgot Password?</a>
                             </div>
 
-                            <!-- Student Sign-in -->
+                            <!-- Student Sign-in
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Sign in with:</label>
                                 <div class="flex flex-col">
-                                    <a id="emailBtn" href="#" class="w-[100%] text-black border-solid border-green-700 border-2 hover:bg-green-700 font-bold py-3 px-3 rounded-lg flex items-center justify-center transitions">Email</a>
-                                    <a id="userBtn" href="#" class="w-[100%] text-black border-solid border-green-700 border-2 hover:bg-green-700 font-bold py-3 px-3 rounded-lg flex items-center justify-center transitions hidden">Username</a>     
+                                    <a id="emailBtn" href="#" class="w-[100%] text-black border-solid border-green-700 border-2 hover:bg-green-700 font-bold py-3 px-3 rounded-lg flex items-center justify-center transition">Email</a>
+                                    <a id="userBtn" href="#" class="w-[100%] text-black border-solid border-green-700 border-2 hover:bg-green-700 font-bold py-3 px-3 rounded-lg flex items-center justify-center transition hidden">Username</a>     
                                 </div>
-                            </div>
-
+                            </div> -->
                             
                             <!-- Submit -->
-                            <div class="pt-2">
-                                <button type="submit" class="w-full bg-primary hover:bg-primary/90 font-bold py-3 px-6 rounded-lg transition flex items-center justify-center">
+                            <div>
+                                <!-- Invalid login error -->
+                                <x-form-error name="invalid"/>
+
+                                <button type="submit" class="w-full bg-primary text-white hover:bg-primary/90 font-bold py-3 px-6 rounded-lg transition flex items-center justify-center">
                                     Log In
                                 </button>
                             </div>
 
-
-                            <!-- Register -->
+                            <!-- Register
                             <div class="flex items-center justify-center mt-4">
                                 <p class="text-gray-600">Don't have an account?</p>
                                 <a href="register" class="ml-2 text-primary font-bold hover:text-primary/80 transition">Sign up</a>
+                            <!-- Visit the main site -->
+                            <div class="flex items-center justify-center mt-4">
+                                <p class="text-gray-600">About Bookworms:</p>
+                                <a href="/" class="ml-2 text-primary font-bold  hover:text-primary/80 transition">Discover</a>
                             </div>
                         </form>
                     </div>
@@ -99,7 +104,7 @@
         });
     </script>
 
-    <!-- Toggle between email and username logins -->
+    <!-- Toggle between email and username logins
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 
@@ -139,7 +144,7 @@
                 usernameField.classList.remove('hidden');
             });
         });
-    </script>
+    </script> -->
 
 
-</x-layout>
+</x-login-layout>

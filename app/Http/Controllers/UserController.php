@@ -25,6 +25,7 @@ class UserController extends Controller
     // Store new user
     public function store(){
         $attributes = request()->validate(['name'=>['required'],
+            'username'=>['required','string','unique:users,username','max:255'],
             'email'=>['required','email','unique:users,email','confirmed'],
             'phone' => ['required', 'string', 'min:10', 'max:15'],
             'password'=>['confirmed','required',Password::min(8)->mixedCase()->numbers()->symbols()],
