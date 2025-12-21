@@ -44,7 +44,7 @@
                                     </span>
                                 </div>
                                 <x-form-error name="password"/>
-                                <a href="forgot-password" class="text-primary text-sm mt-1 inline-block hover:text-primary/80 transition">Forgot Password?</a>
+                                <a href="forgot-password" class="text-primary text-sm mt-1 inline-block hover:text-primary/80 transition">Can't log in?</a>
                             </div>
 
                             <!-- Student Sign-in
@@ -70,6 +70,7 @@
                             <div class="flex items-center justify-center mt-4">
                                 <p class="text-gray-600">Don't have an account?</p>
                                 <a href="register" class="ml-2 text-primary font-bold hover:text-primary/80 transition">Sign up</a>
+                            </div> -->
                             <!-- Visit the main site -->
                             <div class="flex items-center justify-center mt-4">
                                 <p class="text-gray-600">About Bookworms:</p>
