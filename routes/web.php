@@ -5,7 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SessionController;
 
 Route::get('/', function () {
-    return view('index');
+    return view('Site/index');
 });
 
 Route::get('/dashboard', function () {
