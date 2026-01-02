@@ -18,12 +18,18 @@ class SessionController extends Controller
 
         // Validate form
         $credentials = request()->validate([
-            'username'=>'required',
+            'login'=>'required',
             'password'=>'required',
         ]);
 
+        // map login to username col in db
+        $attempt = [
+            'username' => $credentials['login'],
+            'password' => $credentials['password'],
+        ];
+
         // Try to authenticate
-        if (!Auth::attempt($credentials)) {
+        if (!Auth::attempt($attempt)) {
             throw ValidationException::withMessages([
                 'invalid'=>'The provided credentials do not match',
             ]);

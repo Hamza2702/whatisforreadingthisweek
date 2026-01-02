@@ -56,7 +56,7 @@ class ImportSchools extends Command
                 $phase = $data['PhaseOfEducation (name)'] ?? null;
                 
                 // If not primary, skip
-                if ($phase !== 'Primary') {
+                if ($phase !== 'Primary' && $phase !== 'Academy Converter' && $phase !== 'Academy Sponsor Led' && $phase !== 'Free schools') {
                     continue;
                 }
 
@@ -65,7 +65,6 @@ class ImportSchools extends Command
                     ['urn' => $data['URN']],
                     [
                         'name' => $data['EstablishmentName'] ?? null,
-                        'phase' => $phase,
                         'town' => $data['Town'] ?? null,
                         'postcode' => $data['Postcode'] ?? null,
                     ]

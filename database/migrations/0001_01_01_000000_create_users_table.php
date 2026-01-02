@@ -19,12 +19,11 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->integer('level')->default(1);
-            $table->foreignId('school_id')->constrained('schools');
+            $table->foreignId('school_id')->nullable()->constrained('schools')->nullOnDelete();
             $table->rememberToken();
             $table->timestamps();
             $table->boolean('isAdmin')->default(false);
-            $table->string('role')->default('student');
+            $table->string('role')->default('Student');
             $table->string('pfp')->nullable();
         });
 
@@ -49,6 +48,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropConstraintedForeignId('school_id');
+        Schema::dropColumn(['role', 'isAdmin']);
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');

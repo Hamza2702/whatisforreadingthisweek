@@ -18,9 +18,9 @@
                             <div id="loginFields">
                                 <!-- Username | DEFAULT-->
                                 <div id="usernameField">
-                                    <x-form-input name="username" id="username" type="text" label="Username"
+                                    <x-form-input name="login" id="login" type="text" label="Username"
                                         class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition"/>
-                                    <x-form-error name="username"/>
+                                    <x-form-error name="login"/>
                                 </div>
 
                                 <!-- Email | HIDDEN -->
