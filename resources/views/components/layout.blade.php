@@ -32,7 +32,11 @@
       <x-nav-link href='/assignments'> Assignments </x-nav-link>
       <x-nav-link href='/progress'> Progress </x-nav-link>
       <x-nav-link href='/leaderboard'> Leaderboard </x-nav-link>
-   
+      @if (Auth::check() && Auth::user()->isAdmin())
+        <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Admin </x-nav-link>
+      @elseif (Auth::check() && Auth::user()->role === 'Teacher')
+        <x-nav-link href="{{ route('teacher.index') }} " class="px-2 text-red-700 font-black"> Teacher </x-nav-link>
+      @endif
       <!-- Navigation bar guest access -->
       <div class=" flex items-center space-x-3">
         @guest

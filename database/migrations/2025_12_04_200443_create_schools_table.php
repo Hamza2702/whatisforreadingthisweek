@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('urn')->unique();
             $table->string('name');
-            $table->string('phase')->nullable();
             $table->string('town')->nullable();
             $table->string('postcode')->nullable();
             $table->timestamps();

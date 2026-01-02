@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\TeacherController;
 
 Route::get('/', function () {
     return view('Site/index');
@@ -31,3 +32,17 @@ Route::get('/forgot-password', function () {
     return view('auth/forgot-password');
 });
 Route::post('forgot-password', [UserController::class, 'forgotPassword']);
+
+// Teacher
+Route::middleware(['auth', 'isTeacher'])->group(function () {
+    Route::get('/teacher', [TeacherController::class, 'index'])->name('teacher.index');
+
+    Route::get('/teacher/classes/{classroom}/view', [TeacherController::class, 'classView'])
+        ->name('teacher.classes.view');
+
+    Route::get('/teacher/classes/{classroom}/students', [TeacherController::class, 'classStudents'])
+        ->name('teacher.classes.students');
+
+    Route::get('/teacher/classes/{classroom}/reading-list', [TeacherController::class, 'classReadingList'])
+        ->name('teacher.classes.readingList');
+});

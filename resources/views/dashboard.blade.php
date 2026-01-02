@@ -11,6 +11,10 @@
         <!-- Name -->
         <div>
           <h2 class="text-2xl text-primary font-bold">Welcome, {{ Auth::user()->name }}!</h2><span class="text-md text-primary font-medium">{{ '@' . Auth::user()->username }}</span>
+          <!-- User's school -->
+          <div class="text-sm text-secondary font-medium">
+            {{ Auth::user()->school?->name ?? 'No School Assigned' }}
+          </div>
         </div>
       </div>
 
