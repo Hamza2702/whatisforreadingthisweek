@@ -46,3 +46,7 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     Route::get('/teacher/classes/{classroom}/reading-list', [TeacherController::class, 'classReadingList'])
         ->name('teacher.classes.readingList');
 });
+
+// Export student list CSV
+Route::get('/teacher/classes/{classroom}/export-students', [TeacherController::class, 'exportStudents'])
+    ->name('teacher.classes.export');

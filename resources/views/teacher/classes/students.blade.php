@@ -8,7 +8,7 @@
     <div class="my-6 flex-col text-sm font-semibold text-gray-700">
       <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Add Students</a>
       <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Import Students</a>
-      <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Export Student List</a>
+      <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="{{ route('teacher.classes.export', $classroom->id) }}">Export Student List</a>
     </div>
     <!-- Students List -->
     <div class="mt-8 divide-y max-h-[500px] overflow-y-auto">
