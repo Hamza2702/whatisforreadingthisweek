@@ -17,6 +17,7 @@ class TeacherController extends Controller
             ->get()
             ->map(fn ($c) => [
                 'year'     => "Year {$c->year_group}",
+                'name'     => $c->name,
                 'students' => $c->students_count,
                 'slug'     => $c->id,
             ])
@@ -79,7 +80,7 @@ class TeacherController extends Controller
     // Export student list CSV
     public function exportStudents(Classroom $classroom)
     {
-        $fileName = $classroom->name . '_students.csv';
+        $fileName = "Year_" . $classroom->year_group . "_". $classroom->name . '_StudentsList.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -98,7 +99,7 @@ class TeacherController extends Controller
                 'Date of Birth',
                 'Active',
             ]);
-            
+
             // data rows
             foreach ($classroom->students as $student) {
                 fputcsv($handle, [

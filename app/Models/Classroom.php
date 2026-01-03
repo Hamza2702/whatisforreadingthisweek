@@ -13,6 +13,7 @@ class Classroom extends Model
         'teacher_id',
         'year_group',
         'name',
+        'stage',
         'academic_year',
         'active',
     ];

@@ -3,7 +3,7 @@
     @foreach(($yearGroups ?? []) as $group)
       <div class="grid grid-cols-12 gap-3 rounded-xl border-2 border-primary p-3">
         <div class="col-span-12 sm:col-span-3 flex flex-col justify-center px-2">
-          <div class="text-sm font-bold text-gray-800">{{ $group['year'] }}</div>
+          <div class="text-sm font-bold text-gray-800">{{ $group['year'] . " - " . $group['name'] }}</div>
           <div class="text-xs font-semibold text-gray-600">{{ $group['students'] }} students</div>
         </div>
 

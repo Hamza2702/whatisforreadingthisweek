@@ -1,6 +1,6 @@
 <x-teacher.layout :yearGroups="$yearGroups" title="Manage Students">
   <div class="rounded-xl border-2 border-primary p-4">
-    <div class="text-lg font-bold text-gray-800">{{ $classroom->name }}</div>
+    <div class="text-lg font-bold text-gray-800">Year {{ $classroom->year_group . " - " . $classroom->name}}</div>
     <div class="text-sm font-semibold text-gray-600">
       {{ $classroom->students->count() }} students
     </div>
