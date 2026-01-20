@@ -4,7 +4,14 @@
       <div class="text-lg font-bold text-gray-800">{{ $classroom->name }}</div>
     </div>
     <div class="text-sm font-semibold text-gray-600">
-      Year {{ $classroom->year_group }} - {{ $classroom->students_count ?? $classroom->students->count() }} students
+      @php 
+       if ($classroom->year_group == 0) {
+           $displayYear = 'Reception';
+       } else {
+           $displayYear = 'Year ' . $classroom->year_group;
+       }
+      @endphp
+      {{ $displayYear }} - {{ $classroom->students_count ?? $classroom->students->count() }} students
     </div>
   </div>
   <!-- Add stats of classroom -->
