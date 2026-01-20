@@ -37,12 +37,25 @@ Route::post('forgot-password', [UserController::class, 'forgotPassword']);
 Route::middleware(['auth', 'isTeacher'])->group(function () {
     Route::get('/teacher', [TeacherController::class, 'index'])->name('teacher.index');
 
+    // Classroom view
     Route::get('/teacher/classes/{classroom}/view', [TeacherController::class, 'classView'])
         ->name('teacher.classes.view');
 
+    // Students in classroom
     Route::get('/teacher/classes/{classroom}/students', [TeacherController::class, 'classStudents'])
         ->name('teacher.classes.students');
 
+    // Reading list
     Route::get('/teacher/classes/{classroom}/reading-list', [TeacherController::class, 'classReadingList'])
         ->name('teacher.classes.readingList');
+
+    // Create class
+    Route::get('/teacher/classes/create', [TeacherController::class, 'createClass'])
+        ->name('teacher.classes.create');
+    Route::post('/teacher/classes/create', [TeacherController::class, 'storeClass'])
+        ->name('teacher.classes.store');
 });
+
+// Export student list CSV
+Route::get('/teacher/classes/{classroom}/export-students', [TeacherController::class, 'exportStudents'])
+    ->name('teacher.classes.export');

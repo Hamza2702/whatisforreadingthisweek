@@ -1,6 +1,13 @@
 <x-teacher.layout :yearGroups="$yearGroups" title="Manage Students">
   <div class="rounded-xl border-2 border-primary p-4">
-    <div class="text-lg font-bold text-gray-800">{{ $classroom->name }}</div>
+    @php 
+      if ($classroom->year_group == 0) {
+          $displayYear = 'Reception';
+      } else {
+          $displayYear = 'Year ' . $classroom->year_group;
+      }
+    @endphp
+    <div class="text-lg font-bold text-gray-800">{{ $displayYear . " - " . $classroom->name}}</div>
     <div class="text-sm font-semibold text-gray-600">
       {{ $classroom->students->count() }} students
     </div>
@@ -8,7 +15,11 @@
     <div class="my-6 flex-col text-sm font-semibold text-gray-700">
       <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Add Students</a>
       <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Import Students</a>
-      <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Export Student List</a>
+      @if ($classroom->students_count > 0)
+        <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="{{ route('teacher.classes.export', $classroom->id) }}">Export CSV</a>
+      @else
+        <span>No students to export.</span>
+      @endif
     </div>
     <!-- Students List -->
     <div class="mt-8 divide-y max-h-[500px] overflow-y-auto">

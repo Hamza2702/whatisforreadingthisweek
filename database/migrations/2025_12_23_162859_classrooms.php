@@ -17,7 +17,10 @@ return new class extends Migration
             $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
             $table->string('name')->nullable();
             $table->unsignedTinyInteger('year_group');
+            $table->string('stage')->nullable();
             $table->string('academic_year')->nullable();
+            $table->integer('academic_start')->nullable();
+            $table->integer('academic_end')->nullable();
             $table->boolean('active')->default(true);
             $table->index(['school_id', 'teacher_id', 'active']);
             $table->timestamps();

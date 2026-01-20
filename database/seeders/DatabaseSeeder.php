@@ -25,6 +25,25 @@ class DatabaseSeeder extends Seeder
 
         // KS1 - reception to year 2 (animals)
         // KS2 - year 3 to year 6 (authors)
+
+        $KS1Names = [
+            'Ladybird', 'Bumblebee', 'Caterpillar', 'Butterfly', 'Dragonfly', 'Grasshopper', 'Snail', 'Frog', 'Toad',
+            'Turtle', 'Rabbit', 'Hedgehog', 'Squirrel', 'Mouse', 'Deer', 'Otter', 'Panda', 'Koala', 'Kangaroo', 'Elephant',
+            'Giraffe', 'Zebra', 'Lion'
+        ];
+
+        $KS2Names = [
+            'Shakespeare', 'Murakami', 'Wilde', 'Dostoevsky', 'Dickens', 'Austen', 'Tolkien', 'Rowling', 'Carroll', 'Woolf', 'Bronte', 'Huxley',
+            'Orwell', 'Salinger', 'Twain', 'Hemingway', 'Fitzgerald', 'Shelley', 'Verne', 'Wells', 'Bradbury',
+            'Cather', 'Faulkner', 'Steinbeck', 'Poe', 'Doyle'
+        ];
+
+        $classConfig = [
+            ['year' => 2, 'stage' => 'KS1'],
+            ['year' => 3, 'stage' => 'KS2'],
+        ];
+
+
                 
         $this->command->info('Importing schools');
         Artisan::call('schools:import');
@@ -62,17 +81,27 @@ class DatabaseSeeder extends Seeder
             'pfp' => '/images/pfp/owl.png',
         ]);
 
-        $classrooms = collect([3, 4, 5, 6])->map(fn ($year)
-            => Classroom::firstOrCreate([
-                'school_id' => $school->id,
-                'teacher_id' => $teacher->id,
-                'year_group' => $year,
-                'name' => "Year $year",
-                'academic_year' => '2025/2026',
-                'active' => true,
-            ])
-        );
-        
+        $classrooms = collect($classConfig)->map(function ($config) use ($school, $teacher, $KS1Names, $KS2Names) {
+            $year = $config['year'];
+            $stage = $config['stage'];
+
+            $baseName = $stage === 'KS1' ? $KS1Names[array_rand($KS1Names)] : $KS2Names[array_rand($KS2Names)];
+
+            return Classroom::firstOrCreate(
+                [
+                    'school_id' => $school->id,
+                    'teacher_id' => $teacher->id,
+                    'year_group' => $year,
+                ],
+                [
+                    'name' => $baseName,
+                    'stage' => $stage,
+                    'academic_year' => '2025/2026',
+                    'active' => true,
+                ]
+                );
+        });
+
         // Create students and assign to classrooms 
         foreach ($classrooms as $classroom){
             // Create students

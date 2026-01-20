@@ -11,8 +11,11 @@ class Classroom extends Model
     protected $fillable = [
         'school_id',
         'teacher_id',
-        'year_group',
         'name',
+        'year_group',
+        'academic_start',
+        'academic_end',
+        'stage',
         'academic_year',
         'active',
     ];
