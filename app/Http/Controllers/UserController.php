@@ -11,7 +11,7 @@ use App\Models\School;
 
 
 class UserController extends Controller
-{
+{ 
     // Create
     public function create(){
         // Get schools for registering
@@ -49,5 +49,15 @@ class UserController extends Controller
         Auth::login($user);
         
         return redirect('/');
+    }
+
+    public function show($id){
+        $user = User::with('school', 'student')->findOrFail($id);
+        return view ('user.show', compact('user'));
+    }
+
+    // Show own profile
+    public function profile(){
+        return redirect()->route('user.show', ['id' => Auth::id()]);
     }
 }

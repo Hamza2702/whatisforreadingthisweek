@@ -20,8 +20,8 @@
 
       <!-- Info w/ lvl and fav genre, need more. -->
       <div class="flex items-center text-center space-x-2 text-primary">
-        <span class="px-3 py-3 rounded-md text-sm font-semibold bg-level-{{ Auth::user()->level }} text-level-{{ Auth::user()->level }}">
-          Level {{ Auth::user()->level }}
+        <span class="px-3 py-3 rounded-md text-sm font-semibold bg-level-{{ Auth::user()->student->level ?? '0' }} text-level-{{ Auth::user()->student->level ?? '0' }}">
+          Level {{ Auth::user()->student->level ?? '0' }}
         </span>
         <span class="px-3 py-1 rounded-md text-sm font-semibold flex flex-col leading-tight bg-primary">
           <span class="text-background">Favourite genre:</span>

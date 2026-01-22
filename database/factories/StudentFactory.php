@@ -25,6 +25,7 @@ class StudentFactory extends Factory
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'active' => true,
+            'level' => fake()->numberBetween(0, 20),
             'date_of_birth' => fake()->date(),
             'pfp' => '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random(),
         ];

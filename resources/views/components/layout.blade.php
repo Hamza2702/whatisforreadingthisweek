@@ -47,11 +47,11 @@
         @auth
         <div class="group flex flex-col justify-start bg-white">
           <!-- User Image (CHANGE PATH) -->
-          <x-nav-link href='/account/user'>
-            <a href='/account/user'><img src="{{ Auth::user()->pfp ?? '/images/Placeholder.jpeg' }}" alt="Pfp icon" class="h-6 md:h-8 hover:opacity-75 rounded-full"></a>
+          <x-nav-link href='{{ route("user.show", ["id" => Auth::id()]) }}' class="p-0 m-0">
+            <a href='{{ route("user.show", ["id" => Auth::id()]) }}'><img src="{{ Auth::user()->pfp ?? '/images/Placeholder.jpeg' }}" alt="Pfp icon" class="h-6 md:h-8 hover:opacity-75 rounded-full"></a>
           </x-nav-link>
           <div class="group-hover:flex fixed top-[60px] right-[40px] flex-col z-10 p-4 space-y-2 hidden bg-white">
-            <x-nav-link href="/account/user">Manage</x-nav-link>
+            <x-nav-link href='{{ route("user.show", ["id" => Auth::id()]) }}'>Manage</x-nav-link>
             <form class=" m-0" method="POST" action="/logout">
               @csrf
               <button class="hover:text-primary">Log Out</button>
@@ -86,7 +86,7 @@
           <li><a href="/register" class="hover:underline">Register</a></li>
           @endguest
           @auth
-          <li><a href="/account/user" class="hover:underline">Manage Account</a></li>
+          <li><a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="hover:underline">Manage Account</a></li>
           <form method="POST" action="/logout">
             @csrf
             <li><button class="hover:underline">Log Out</button></li>

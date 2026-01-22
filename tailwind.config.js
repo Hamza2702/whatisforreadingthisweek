@@ -12,11 +12,11 @@ export default {
     // Levels 1-20
     // Background colours
     {
-      pattern: /bg-level-(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)/,
+      pattern: /bg-level-(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)/,
     },
     // Text colours
     {
-      pattern: /text-level-(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)/,
+      pattern: /text-level-(0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20)/,
     },
   ],
   theme: {
@@ -31,6 +31,7 @@ export default {
         "secondary" : "#755F54", // Light Brown
         "background": "#FFF9E7", // Beige?
         // Oxford book band colours
+        "level-0": "#6A5ACD",  // light purple
         "level-1": "#FF69B4",  // Pink
         "level-2": "#FF0000",  // Red
         "level-3": "#FFFF00",  // Yellow
@@ -53,6 +54,7 @@ export default {
         "level-20": "#B71C1C", // Dark Red
       },
       textColor: theme => ({
+        "level-0": "#ffffff",   // white text
         "level-1": "#ffffff",
         "level-1p": "#ffffff",
         "level-2": "#ffffff",

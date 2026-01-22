@@ -54,8 +54,21 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
         ->name('teacher.classes.create');
     Route::post('/teacher/classes/create', [TeacherController::class, 'storeClass'])
         ->name('teacher.classes.store');
+
+    // Add Students
+    Route::get('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'addStudents'])
+        ->name('teacher.classes.addStudents');
+    
+    // Create Students
+    Route::post('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'storeStudents'])
+        ->name('teacher.classes.storeStudents');
 });
 
 // Export student list CSV
 Route::get('/teacher/classes/{classroom}/export-students', [TeacherController::class, 'exportStudents'])
     ->name('teacher.classes.export');
+
+// user profile, anyone logged in can visit
+Route::get('/user/{id}', [UserController::class, 'show'])->name('user.show')->middleware('auth');
+// get own profile
+Route::get('/user/profile', [UserController::class, 'profile'])->name('user.profile')->middleware('auth');
