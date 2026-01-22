@@ -1,4 +1,4 @@
-<x-teacher.layout title="Teacher - Create Class">
+<x-teacher.layout :yearGroups="$yearGroups" title="Teacher - Create Class">
     <div class="rounded-xl border-2 border-primary p-4">
         <form action="{{ route('teacher.classes.store') }}" method="POST" class="space-y-4">
             @csrf
@@ -27,9 +27,9 @@
 
                 <div class="mt-1 flex gap-2">
                     <!-- Start date -->
-                    <input type="number" name="academic_start" id="academic_start" min="0" max="99" step="1" placeholder="Start Year {{ date('Y') }}" class="w-1/4 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
+                    <input type="number" name="academic_start" id="academic_start" min="0" max="99" step="1" required placeholder="Start Year {{ date('Y') }}" class="w-1/4 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
                     <!-- End date -->
-                    <input type="number" name="academic_end" id="academic_end" min="0" max="99" step="1" placeholder="End Year {{ date('Y') + 1 }}" class="w-1/4 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
+                    <input type="number" name="academic_end" id="academic_end" min="0" max="99" step="1" required placeholder="End Year {{ date('Y') + 1 }}" class="w-1/4 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
                 </div>
                 <input type="hidden" name="academic_year" id="academic_year">
             </div>

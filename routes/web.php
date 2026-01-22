@@ -54,6 +54,14 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
         ->name('teacher.classes.create');
     Route::post('/teacher/classes/create', [TeacherController::class, 'storeClass'])
         ->name('teacher.classes.store');
+
+    // Add Students
+    Route::get('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'addStudents'])
+        ->name('teacher.classes.addStudents');
+    
+    // Create Students
+    Route::post('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'storeStudents'])
+        ->name('teacher.classes.storeStudents');
 });
 
 // Export student list CSV

@@ -6,7 +6,8 @@ use App\Models\Classroom;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Response;
-
+use App\Models\User;
+use Illuminate\Support\Str;
 
 class TeacherController extends Controller
 {
@@ -85,6 +86,90 @@ class TeacherController extends Controller
         $yearGroups = $this->yearGroupsForTeacher(auth()->id());
 
         return view('teacher.classes.reading-list', compact('classroom', 'yearGroups'));
+    }
+
+    // Add Students
+    public function addStudents(Classroom $classroom)
+    {
+        $this->ensureOwnsClassroom($classroom);
+        $yearGroups = $this->yearGroupsForTeacher(auth()->id());
+
+        return view('teacher.classes.addStudents', compact('classroom', 'yearGroups'));
+    }
+
+    // Create student usernames
+    protected function createStudentUsername(): string
+    {
+        $colours = collect([
+            'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Black', 'White', 'Grey',
+            'Gold', 'Silver', 'Cyan', 'Magenta', 'Lime', 'Teal', 'Navy', 'Maroon', 'Olive', 'Coral', 'Turquoise',
+            'Violet', 'Indigo', 'Amber', 'Crimson', 'Azure', 'Beige', 'Lavender', 'Mint', 'Peach', 'Salmon', 'Tan',
+            'Chocolate', 'Plum', 'Rose', 'Sapphire', 'Emerald',
+        ]);
+
+        $animals = collect([
+            'Lion', 'Tiger', 'Bear', 'Wolf', 'Fox', 'Eagle', 'Hawk', 'Shark', 'Dolphin', 'Whale', 'Penguin',
+            'Kangaroo', 'Panda', 'Giraffe', 'Zebra', 'Elephant', 'Cheetah', 'Leopard', 'Rabbit', 'Deer',
+            'Otter', 'Raccoon', 'Squirrel', 'Badger', 'Hedgehog', 'Turtle', 'Frog', 'Toad', 'Snake', 'Lizard',
+            'Butterfly', 'Bee', 'Ant', 'Dragonfly', 'Ladybug', 'Cat', 'Dog', 'Mouse', 'Rat', 'Hamster', 'Raccoon',
+            'Owl', 'Parrot', 'Flamingo', 'Peacock',
+        ]);
+
+    $username = $colours->random() . $animals->random() . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+
+    return $username;
+    }
+
+    // Create Students
+    public function storeStudents(Request $request, Classroom $classroom)
+    {
+        $this->ensureOwnsClassroom($classroom);
+
+        // check validation
+        $validated = $request->validate([
+            'students' => 'required|array|min:1',
+            'students.*.first_name' => 'required|string|max:255',
+            'students.*.last_name'  => 'required|string|max:255',
+            'students.*.dob'        => 'nullable|date',
+            'students.*.level'      => 'nullable|integer',
+        ]);
+
+        foreach ($validated['students'] as $studentData) {
+
+            // username
+            $username = $this->createStudentUsername();
+
+            $normalpassword = Str::password(10);
+            $hashedpassword = bcrypt($normalpassword);
+
+            $user = \App\Models\User::create([
+                'name'      => $studentData['first_name'] . ' ' . $studentData['last_name'],
+                'username'  => $username,
+                'email'     => null,              
+                'phone'     => null,
+                'password'  => hashedpassword,
+                'role'      => 'Student',
+                'pfp'       => '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random(),
+                'school_id' => $classroom->school_id,
+            ]);
+
+            // create student linked to user and classroom
+            $classroom->students()->create([
+                'user_id'        => $user->id,
+                'school_id'      => $classroom->school_id,
+                'first_name'     => $studentData['first_name'],
+                'last_name'      => $studentData['last_name'],
+                'date_of_birth'  => $studentData['dob'] ?? null,
+                'level'          => $studentData['level'] ?? $classroom->year_group,
+                'pfp'            => '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random(),
+                'active'         => true,
+            ]);
+        }
+
+
+        return redirect()
+            ->route('teacher.classes.students', $classroom->id)
+            ->with('success', 'Students added successfully.');
     }
 
     // Export student list CSV

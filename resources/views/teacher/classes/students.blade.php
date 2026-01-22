@@ -13,7 +13,7 @@
     </div>
     <!-- Manage Students List -->
     <div class="my-6 flex-col text-sm font-semibold text-gray-700">
-      <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Add Students</a>
+      <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="{{ route('teacher.classes.addStudents', $classroom->id) }}">Add Students</a>
       <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="#">Import Students</a>
       @if ($classroom->students_count > 0)
         <a class="text-sm mr-4 font-bold bg-secondary rounded-md p-4 text-background hover:bg-primary" href="{{ route('teacher.classes.export', $classroom->id) }}">Export CSV</a>
@@ -32,7 +32,7 @@
             <div class="text-sm text-gray-600">Level {{ $s->level }}</div>
           </div>
           <div>
-            <a class="text-sm mx-4 font-bold text-secondary hover:text-primary" href="{{ route('user.show', $s->id) }}">
+            <a class="text-sm mx-4 font-bold text-secondary hover:text-primary" href="{{ route('user.show', $s->user->id) }}">
               View
             </a>
             <a class="text-sm mx-4 font-bold text-secondary hover:text-primary" href="#">
