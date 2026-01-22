@@ -131,6 +131,7 @@ class DatabaseSeeder extends Seeder
 
                 // create students
                 $student = $user->student()->create([
+                    'school_id' => $school->id,
                     'first_name' => fake()->firstName(),
                     'last_name' => fake()->lastName(),
                     'level' => fake()->numberBetween(0, 20),
