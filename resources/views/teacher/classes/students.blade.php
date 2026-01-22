@@ -32,7 +32,7 @@
             <div class="text-sm text-gray-600">Level {{ $s->level }}</div>
           </div>
           <div>
-            <a class="text-sm mx-4 font-bold text-secondary hover:text-primary" href="#">
+            <a class="text-sm mx-4 font-bold text-secondary hover:text-primary" href="{{ route('user.show', $s->id) }}">
               View
             </a>
             <a class="text-sm mx-4 font-bold text-secondary hover:text-primary" href="#">

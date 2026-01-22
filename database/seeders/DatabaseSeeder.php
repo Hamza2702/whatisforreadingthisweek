@@ -51,6 +51,7 @@ class DatabaseSeeder extends Seeder
 
         $school = School::inRandomOrder()->first();
 
+        // Testuser
         User::factory()->create([
             'username' => 'testuser',
             'name' => 'Test User',
@@ -62,6 +63,8 @@ class DatabaseSeeder extends Seeder
             'pfp' => '/images/pfp/cat.png',
         ]);
 
+
+        // Montgomery school
         $school = School::firstOrCreate([
             'urn' => '138864',
         ], [
@@ -70,6 +73,7 @@ class DatabaseSeeder extends Seeder
             'postcode' => 'B11 1EH',
         ]);
 
+        // Montgomery teacher
         $teacher = User::factory()->create([
             'username' => 'montgomery',
             'name' => 'Montgomery Teacher',
@@ -81,6 +85,8 @@ class DatabaseSeeder extends Seeder
             'pfp' => '/images/pfp/owl.png',
         ]);
 
+
+        // Classrooms
         $classrooms = collect($classConfig)->map(function ($config) use ($school, $teacher, $KS1Names, $KS2Names) {
             $year = $config['year'];
             $stage = $config['stage'];
@@ -102,20 +108,20 @@ class DatabaseSeeder extends Seeder
                 );
         });
 
-        // Create students and assign to classrooms 
-        foreach ($classrooms as $classroom){
-            // Create students
-            $students = Student::factory()->count(rand(20,30))->create([
-                'school_id' => $school->id,
-                'active' => true,
-            ]);
+        // Create students and assign to classrooms
+        foreach ($classrooms as $classroom) {
 
-            foreach ($students as $student) {
+            $students = collect();
+
+            // 20-30 students per class
+            foreach (range(1, rand(20, 30)) as $_) {
+
+                // create students as a user first
                 $username = $this->createStudentUsername();
-                
+
                 $user = User::factory()->create([
                     'username' => $username,
-                    'name' => $student->first_name . ' ' . $student->last_name,
+                    'name' => fake()->firstName() . ' ' . fake()->lastName(),
                     'email' => $username . '@example.com',
                     'password' => 'password',
                     'phone' => '07' . rand(100000000, 999999999),
@@ -123,17 +129,23 @@ class DatabaseSeeder extends Seeder
                     'school_id' => $school->id,
                 ]);
 
-                // Link student to user
-                $student->user_id = $user->id;
-                $student->save();
+                // create students
+                $student = $user->student()->create([
+                    'first_name' => fake()->firstName(),
+                    'last_name' => fake()->lastName(),
+                    'level' => fake()->numberBetween(0, 20),
+                    'date_of_birth' => now()->subYears(5 + $classroom->year_group)->subDays(rand(0, 365)),
+                    'pfp' => '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random(),
+                ]);
+
+                $students->push($student);
             }
 
             // assign students to classroom
             $classroom->students()->attach($students->pluck('id'));
-        }       
-
+        }
+        
         $this->command->info('Created test user');
-
     }
 
     // Create student usernames
