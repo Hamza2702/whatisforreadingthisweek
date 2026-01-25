@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('school_id')->constrained('schools')->cascadeOnDelete();
             $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
+            $table->foreignId('classroom_id')->nullable()->constrained('classrooms')->nullOnDelete();
             $table->string('first_name');
             $table->string('last_name');
             $table->integer('level')->default(1);
@@ -24,7 +25,6 @@ return new class extends Migration
             $table->timestamps();
             $table->index(['school_id', 'active']);
         });
-
     }
 
     /**

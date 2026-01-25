@@ -68,6 +68,7 @@ class TeacherController extends Controller
         $yearGroups = $this->yearGroupsForTeacher(auth()->id());
 
         $students = $classroom->students()
+            ->with('user')
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get();
@@ -115,7 +116,9 @@ class TeacherController extends Controller
             'Owl', 'Parrot', 'Flamingo', 'Peacock',
         ]);
 
-    $username = $colours->random() . $animals->random() . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+    do {
+        $username = $colours->random() . $animals->random() . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+    } while (User::where('username', $username)->exists());
 
     return $username;
     }
@@ -135,42 +138,222 @@ class TeacherController extends Controller
         ]);
 
         foreach ($validated['students'] as $studentData) {
-
-            // username
-            $username = $this->createStudentUsername();
-
-            $normalpassword = Str::password(10);
-            $hashedpassword = bcrypt($normalpassword);
-
-            $user = \App\Models\User::create([
-                'name'      => $studentData['first_name'] . ' ' . $studentData['last_name'],
-                'username'  => $username,
-                'email'     => null,              
-                'phone'     => null,
-                'password'  => hashedpassword,
-                'role'      => 'Student',
-                'pfp'       => '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random(),
-                'school_id' => $classroom->school_id,
-            ]);
-
-            // create student linked to user and classroom
-            $classroom->students()->create([
-                'user_id'        => $user->id,
-                'school_id'      => $classroom->school_id,
-                'first_name'     => $studentData['first_name'],
-                'last_name'      => $studentData['last_name'],
-                'date_of_birth'  => $studentData['dob'] ?? null,
-                'level'          => $studentData['level'] ?? $classroom->year_group,
-                'pfp'            => '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random(),
-                'active'         => true,
-            ]);
+            $this->createStudent($classroom, $studentData);
         }
-
 
         return redirect()
             ->route('teacher.classes.students', $classroom->id)
             ->with('success', 'Students added successfully.');
     }
+
+    // Show import form
+    public function showImportForm(Classroom $classroom)
+    {
+        $this->ensureOwnsClassroom($classroom);
+        $yearGroups = $this->yearGroupsForTeacher(auth()->id());
+
+        return view('teacher.classes.importStudents', compact('classroom', 'yearGroups'));
+    }
+
+    // Store imported students from CSV
+    public function importStudents(Request $request, Classroom $classroom)
+    {
+        // Longer time limit for larger file imports
+        set_time_limit(300);
+        ini_set('max_execution_time', 300);
+        
+        // Check if teacher owns classroom
+        $this->ensureOwnsClassroom($classroom);
+        
+        // validate file
+        $validated = $request->validate([
+            'students_csv' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
+        
+        // CSV file
+        try {
+            $file = $request->file('students_csv');
+            
+            // Check if file is valid
+            if (!$file) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'No file was uploaded.');
+            }
+            
+            // Open file
+            $handle = fopen($file->getRealPath(), 'r');
+            
+            // Check if file is successfully opened
+            if ($handle === false) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Could not open the CSV file.');
+            }
+            
+            // Read header row
+            $header = fgetcsv($handle, 1000, ',');
+            
+            // Validate header
+            if ($header === false) {
+                fclose($handle);
+                return redirect()
+                    ->back()
+                    ->with('error', 'CSV file is empty or invalid.');
+            }
+            
+            // Headers
+            $studentsData = [];
+            
+            // Collect all student data
+            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+                // Skip empty rows
+                if (empty(array_filter($data))) {
+                    continue;
+                }
+                
+                $row = array_combine($header, $data);
+                
+                // Parse DOB
+                $dob = null;
+                if (!empty($row['Date of Birth'])) {
+                    try {
+                        $dob = date('Y-m-d', strtotime($row['Date of Birth']));
+                    } catch (\Exception $e) {
+                        $dob = null;
+                    }
+                }
+                
+                // create student data array
+                $studentData = [
+                    'first_name' => trim($row['First Name'] ?? ''),
+                    'last_name'  => trim($row['Last Name'] ?? ''),
+                    'username'   => trim($row['Username'] ?? ''),
+                    'dob'        => $dob,
+                    'level'      => !empty($row['Level']) ? (int)$row['Level'] : null,
+                    'active'     => !empty($row['Active']) && strtolower(trim($row['Active'])) === 'yes',
+                ];
+                
+                // skip if first name or last name is empty
+                if (empty($studentData['first_name']) || empty($studentData['last_name'])) {
+                    continue;
+                }
+                
+                $studentsData[] = $studentData;
+            }
+            
+            fclose($handle);
+            
+            // Use DB transaction
+            \DB::beginTransaction();
+            // Used to check if there are any students created/linked/skipped
+            // If so, the transaction rolls back and 0 students are added = better than some added
+            
+            // Get each student
+            try {
+                $studentsCreated = 0;
+                $studentsLinked = 0;
+                $studentsSkipped = 0;
+                
+                // Loop through each student
+                foreach ($studentsData as $studentData) {
+                    // Check if username already exists
+                    if (!empty($studentData['username'])) {
+                        $existingUser = User::where('username', $studentData['username'])->first();
+                        
+                        // If user exists and is a student
+                        if ($existingUser && $existingUser->role === 'Student') {
+                            $existingStudent = \App\Models\Student::where('user_id', $existingUser->id)->first();
+                            
+                            if ($existingStudent) {
+                                // Check if students are already in the classrtoom
+                                if ($classroom->students()->where('student_id', $existingStudent->id)->exists()) {
+                                    $studentsSkipped++;
+                                    continue;
+                                }
+                                
+                                // Link existing student to this classroom
+                                $classroom->students()->attach($existingStudent->id, [
+                                    'active' => $studentData['active'] ?? true,
+                                ]);
+                                $studentsLinked++;
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    // Check if student with same name and DOB already exists in this school
+                    $query = \App\Models\Student::where('school_id', $classroom->school_id)
+                        ->where('first_name', $studentData['first_name'])
+                        ->where('last_name', $studentData['last_name']);
+                    
+                    if (!empty($studentData['dob'])) {
+                        $query->where('date_of_birth', $studentData['dob']);
+                    }
+                    
+                    $existingStudent = $query->first();
+                    
+                    if ($existingStudent) {
+                        // Check if already in this classroom
+                        if ($classroom->students()->where('student_id', $existingStudent->id)->exists()) {
+                            $studentsSkipped++;
+                            continue;
+                        }
+                        
+                        // Link existing student to this classroom
+                        $classroom->students()->attach($existingStudent->id, [
+                            'active' => $studentData['active'] ?? true,
+                        ]);
+                        $studentsLinked++;
+                    } else {
+                        // Create new student
+                        $this->createStudent($classroom, $studentData);
+                        $studentsCreated++;
+                    }
+                }
+                
+                \DB::commit();
+
+                // Success messages
+                $message = [];
+                if ($studentsCreated > 0) {
+                    if ($studentsCreated === 1) {
+                        $message[] = "1 new student added!";;
+                    } else {
+                        $message[] = "{$studentsCreated} new students added!";
+                    }
+                }
+                if ($studentsLinked > 0) {
+                    if ($studentsLinked === 1) {
+                        $message[] = "1 existing student joined the classroom!";
+                    } else {
+                        $message[] = "{$studentsLinked} existing students joined the classroom!";
+                    }
+                }
+                if ($studentsSkipped > 0) {
+                    if ($studentsSkipped === 1) {
+                        $message[] = "1 student is already in the classroom!";
+                    } else {
+                        $message[] = "{$studentsSkipped} students are already in the classroom!";
+                    }
+                }
+                
+                return redirect()
+                    ->route('teacher.classes.students', $classroom->id)
+                    ->with('success', implode(', ', $message) . '.');
+                    
+            } catch (\Exception $e) {
+                \DB::rollBack();
+                throw $e;
+            }
+                
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->with('error', 'Error importing students: ' . $e->getMessage());
+        }
+    }
+
 
     // Export student list CSV
     public function exportStudents(Classroom $classroom)
@@ -250,4 +433,69 @@ class TeacherController extends Controller
         return redirect()->route('teacher.index')->with('success', 'Class created successfully.');
     }
 
+    // Remove student
+    public function removeStudent(Classroom $classroom, int $studentId)
+    {
+        $this->ensureOwnsClassroom($classroom);
+        
+        // Find the student
+        $student = $classroom->students()->findOrFail($studentId);
+        // Detach from classroom and remove the pivot record too
+        $classroom->students()->detach($studentId);
+
+        return redirect()->back()->with('success', 'Student removed successfully.');
+    }
+
+    // Remove all students
+    public function removeAllStudents(Classroom $classroom)
+    {
+        $this->ensureOwnsClassroom($classroom);
+        
+        // Detach all students from classroom
+        $classroom->students()->detach();
+
+        return redirect()->back()->with('success', 'All students removed successfully.');
+    }
+
+
+    // Create student
+    protected function createStudent(Classroom $classroom, array $data): \App\Models\Student
+    {
+        // Create username and password
+        $username = $this->createStudentUsername();
+        $normalpassword = Str::password(10);
+        
+        $randomPfp = '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random();
+
+        // Create user
+        $user = User::create([
+            'name'      => $data['first_name'] . ' ' . $data['last_name'],
+            'username'  => $username,
+            'email'     => null,              
+            'phone'     => null,
+            'password'  => bcrypt($normalpassword),
+            'role'      => 'Student',
+            'pfp'       => $randomPfp,
+            'school_id' => $classroom->school_id,
+        ]);
+
+        // Link user to student
+        $student = \App\Models\Student::create([
+            'user_id'        => $user->id,
+            'school_id'      => $classroom->school_id,
+            'first_name'     => $data['first_name'],
+            'last_name'      => $data['last_name'],
+            'date_of_birth'  => $data['dob'] ?? null,
+            'level'          => $data['level'] ?? $classroom->year_group,
+            'pfp'            => $randomPfp,
+            'active'         => $data['active'] ?? true,
+        ]);
+        
+        // Attach to classroom
+        $classroom->students()->attach($student->id, [
+            'active' => $data['active'] ?? true,
+        ]);
+
+        return $student;
+    }
 }
