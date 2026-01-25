@@ -58,15 +58,32 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     // Add Students
     Route::get('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'addStudents'])
         ->name('teacher.classes.addStudents');
-    
+
+    // Remove Student
+    Route::delete('/teacher/classes/{classroom}/students/{studentId}', [TeacherController::class, 'removeStudent'])
+        ->name('teacher.classes.removeStudent');
+
+    // Remove All Students
+    Route::get('/teacher/classes/{classroom}/removeAllStudents', [TeacherController::class, 'removeAllStudents'])
+        ->name('teacher.classes.removeAllStudents');
+
     // Create Students
     Route::post('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'storeStudents'])
         ->name('teacher.classes.storeStudents');
-});
 
-// Export student list CSV
-Route::get('/teacher/classes/{classroom}/export-students', [TeacherController::class, 'exportStudents'])
-    ->name('teacher.classes.export');
+    // Export student list CSV
+    Route::get('/teacher/classes/{classroom}/export-students', [TeacherController::class, 'exportStudents'])
+        ->name('teacher.classes.export');
+
+    // Import student list CSV - Show form
+    Route::get('/teacher/classes/{classroom}/import-students', [TeacherController::class, 'showImportForm'])
+        ->name('teacher.classes.import');
+
+    // Import student list CSV - Process upload
+    Route::post('/teacher/classes/{classroom}/import-students', [TeacherController::class, 'importStudents'])
+        ->name('teacher.classes.importStudents');
+    
+});
 
 // user profile, anyone logged in can visit
 Route::get('/user/{id}', [UserController::class, 'show'])->name('user.show')->middleware('auth');
