@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Response;
 use App\Models\User;
+use App\Models\Student;
 use Illuminate\Support\Str;
 
 class TeacherController extends Controller
@@ -127,7 +128,7 @@ class TeacherController extends Controller
     public function storeStudents(Request $request, Classroom $classroom)
     {
         $this->ensureOwnsClassroom($classroom);
-
+        $studentsCreated = 0;
         // check validation
         $validated = $request->validate([
             'students' => 'required|array|min:1',
@@ -139,11 +140,20 @@ class TeacherController extends Controller
 
         foreach ($validated['students'] as $studentData) {
             $this->createStudent($classroom, $studentData);
+            $studentsCreated++;
+        }
+
+        // Success messages
+        $message = [];
+        if ($studentsCreated === 1) {
+            $message[] = "1 new student added!";;
+        } else {
+            $message[] = "{$studentsCreated} new students added!";
         }
 
         return redirect()
             ->route('teacher.classes.students', $classroom->id)
-            ->with('success', 'Students added successfully.');
+            ->with('success', implode(', ', $message));
     }
 
     // Show import form
@@ -263,7 +273,7 @@ class TeacherController extends Controller
                         
                         // If user exists and is a student
                         if ($existingUser && $existingUser->role === 'Student') {
-                            $existingStudent = \App\Models\Student::where('user_id', $existingUser->id)->first();
+                            $existingStudent = Student::where('user_id', $existingUser->id)->first();
                             
                             if ($existingStudent) {
                                 // Check if students are already in the classrtoom
@@ -283,7 +293,7 @@ class TeacherController extends Controller
                     }
                     
                     // Check if student with same name and DOB already exists in this school
-                    $query = \App\Models\Student::where('school_id', $classroom->school_id)
+                    $query = Student::where('school_id', $classroom->school_id)
                         ->where('first_name', $studentData['first_name'])
                         ->where('last_name', $studentData['last_name']);
                     
@@ -340,7 +350,7 @@ class TeacherController extends Controller
                 
                 return redirect()
                     ->route('teacher.classes.students', $classroom->id)
-                    ->with('success', implode(', ', $message) . '.');
+                    ->with('success', implode(', ', $message));
                     
             } catch (\Exception $e) {
                 \DB::rollBack();
@@ -459,7 +469,7 @@ class TeacherController extends Controller
 
 
     // Create student
-    protected function createStudent(Classroom $classroom, array $data): \App\Models\Student
+    protected function createStudent(Classroom $classroom, array $data): Student
     {
         // Create username and password
         $username = $this->createStudentUsername();
@@ -480,7 +490,7 @@ class TeacherController extends Controller
         ]);
 
         // Link user to student
-        $student = \App\Models\Student::create([
+        $student = Student::create([
             'user_id'        => $user->id,
             'school_id'      => $classroom->school_id,
             'first_name'     => $data['first_name'],
