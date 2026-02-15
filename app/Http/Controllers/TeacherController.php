@@ -129,13 +129,23 @@ class TeacherController extends Controller
     {
         $this->ensureOwnsClassroom($classroom);
         $studentsCreated = 0;
+
         // check validation
+        $now = now();
+        $academicYearStart = $now->month >= 9 ? $now->year : $now->year - 1;
+        $expectedAge = $classroom->year_group + 4;
+        $minDob = \Carbon\Carbon::create($academicYearStart - $expectedAge - 1, 9, 1)->format('Y-m-d');
+        $maxDob = \Carbon\Carbon::create($academicYearStart - $expectedAge, 8, 31)->format('Y-m-d');
+
         $validated = $request->validate([
-            'students' => 'required|array|min:1',
+            'students'              => 'required|array|min:1',
             'students.*.first_name' => 'required|string|max:255',
             'students.*.last_name'  => 'required|string|max:255',
-            'students.*.dob'        => 'nullable|date',
+            'students.*.dob'        => "nullable|date|after_or_equal:{$minDob}|before_or_equal:{$maxDob}",
             'students.*.level'      => 'nullable|integer',
+        ],[
+            'students.*.dob.after_or_equal' => "Student's date of birth must be after or equal to {$minDob}.",
+            'students.*.dob.before_or_equal' => "Student's date of birth must be before or equal to {$maxDob}.",
         ]);
 
         foreach ($validated['students'] as $studentData) {
@@ -143,17 +153,13 @@ class TeacherController extends Controller
             $studentsCreated++;
         }
 
-        // Success messages
-        $message = [];
-        if ($studentsCreated === 1) {
-            $message[] = "1 new student added!";;
-        } else {
-            $message[] = "{$studentsCreated} new students added!";
-        }
+        $message = $studentsCreated === 1
+            ? "1 new student added!"
+            : "{$studentsCreated} new students added!";
 
         return redirect()
             ->route('teacher.classes.students', $classroom->id)
-            ->with('success', implode(', ', $message));
+            ->with('success', $message);
     }
 
     // Show import form

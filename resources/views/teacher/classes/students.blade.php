@@ -60,10 +60,10 @@
         <button type="submit" id="submitBtn" class="bg-secondary text-background font-bold rounded-md px-4 py-2 hover:bg-primary text-sm">Import</button>
       </div>
     </form>
-
+    <!-- Template download -->
     <div>
       <p class="text-sm text-primary font-semibold">
-        <strong>Make sure the CSV file is in a format of:</strong> First Name, Last Name, Username, Level, Date of Birth, Active
+        <strong>Download the file <span><a href="{{ asset('template/student_import_template.csv') }}" class="underline">template</a></span> for the required format. The username must be unique across the system and the level should be a number (1-20).
       </p>
     </div>
 </div>

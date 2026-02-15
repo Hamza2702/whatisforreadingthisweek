@@ -3,6 +3,16 @@
         <form action="{{ route('teacher.classes.storeStudents', $classroom->id) }}" method="POST" class="space-y-4">
             @csrf
             <!-- How many students to add -->
+
+            @php
+                $now = now(); // current year
+                $academicYearStart = $now->month >= 9 ? $now->year : $now->year - 1; // year starts in september 
+                $expectedAge = $classroom->year_group + 4; // expected age based off year group
+                $minDob = \Carbon\Carbon::create($academicYearStart - $expectedAge - 1, 9, 1)->format('Y-m-d'); // students should be born after sep 1st
+                $maxDob = \Carbon\Carbon::create($academicYearStart - $expectedAge, 8, 31)->format('Y-m-d'); // students should be born before aug 31st
+                $yearLabel = $classroom->year_group === 0 ? 'Reception' : 'Year ' . $classroom->year_group;
+            @endphp
+
             <div>
                 <label for="student_count" class="block text-sm font-medium text-black">How many students do you want to add?</label>
                 <input type="number" name="student_count" id="student_count" min="1" max="50" step="1" value="1" required class="mt-1 block w-1/4 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
@@ -30,85 +40,54 @@
         </form>
     </div>
 </x-teacher.layout>
+
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const studentCountInput = document.getElementById('student_count');
-    const container = document.getElementById('studentname_container');
-    const setTenBtn = document.getElementById('setten');
-    const setTwentyBtn = document.getElementById('settwenty');
-    const setThirtyBtn = document.getElementById('setthirty');
-    // Set 10 students
-    setTenBtn.addEventListener('click', function () {
-        studentCountInput.value = 10;
-        displayStudents(10);
-    });
-    // Set 20 students
-    setTwentyBtn.addEventListener('click', function () {
-        studentCountInput.value = 20;
-        displayStudents(20);
-    });
-    // Set 30 students
-    setThirtyBtn.addEventListener('click', function () {
-        studentCountInput.value = 30;
-        displayStudents(30);
-    });
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('student_count'); // student count input
+        const container = document.getElementById('studentname_container'); // student container
+        const minDob = '{{ $minDob }}'; // minimum date of birth calculated
+        const maxDob = '{{ $maxDob }}'; // maximum dob calculated
+        const yearLabel = '{{ $yearLabel }}'; // year group label
 
-    // Display student fields
-    function displayStudents(count) {
-        container.innerHTML = '';
+        // Preset buttons
+        document.getElementById('setten').addEventListener('click', () => { input.value = 10; render(10); }); // 10
+        document.getElementById('settwenty').addEventListener('click', () => { input.value = 20; render(20); }); // 20
+        document.getElementById('setthirty').addEventListener('click', () => { input.value = 30; render(30); }); // 30
+        input.addEventListener('input', () => render(parseInt(input.value) || 0)); // render on input change
 
-        // for every extra student
-        for (let i = 1; i <= count; i++) {
-            const studentBlock = document.createElement('div');
-            studentBlock.classList.add(
-                'border',
-                'border-secondary',
-                'rounded-lg',
-                'p-2',
-                
-            );
-
-            studentBlock.innerHTML = `
-                <div class="font-semibold text-black">Student ${i}</div>
-                // fname
-                <div>
-                    <label class="block text-sm font-medium text-black">First Name</label>
-                    <input type="text" name="students[${i}][first_name]" required class="block w-full rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
-                </div>
-                // lname
-                <div>
-                    <label class="block text-sm font-medium text-black">Last Name</label>
-                    <input type="text" name="students[${i}][last_name]" required class="block w-full rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
-                </div>
-                // dob
-                <div>
-                    <label class="block text-sm font-medium text-black">Date of Birth</label>
-                    <input type="date" name="students[${i}][dob]" required class="block w-1/3 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
-                </div>
-                // level
-                <div>
-                    <label class="block text-sm font-medium text-black">Reading Level</label>
-                    <input type="number" name="students[${i}][level]" min="1" max="20" step="1" value="1" required class="block w-1/4 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
-                </div>
-            `;
-
-            container.appendChild(studentBlock);
-        }
-    }
-
-    studentCountInput.addEventListener('input', function () {
-        // get current value
-        const count = parseInt(this.value, 10);
-
-        // if greater than 0, display student inputs
-        if (count >= 1) {
-            displayStudents(count);
-        } else {
+        // create student input fields
+        function render(count) {
             container.innerHTML = '';
+            for (let i = 1; i <= count; i++) {
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="border border-secondary rounded-lg p-2">
+                    <!-- Student -->
+                        <div class="font-semibold text-black">Student ${i}</div>
+                        <!-- First name -->
+                        <div>
+                            <label class="block text-sm font-medium text-black">First Name</label>
+                            <input type="text" name="students[${i}][first_name]" required class="block w-full rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
+                        </div>
+                        <!-- Last name -->
+                        <div>
+                            <label class="block text-sm font-medium text-black">Last Name</label>
+                            <input type="text" name="students[${i}][last_name]" required class="block w-full rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
+                        </div>
+                        <!-- Date of birth -->
+                        <div>
+                            <label class="block text-sm font-medium text-black">Date of Birth</label>
+                            <input type="date" name="students[${i}][dob]" required min="${minDob}" max="${maxDob}" class="block w-1/3 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Students born in ${yearLabel} from: ${minDob} to ${maxDob}</p>
+                        </div>
+                        <!-- Reading level -->
+                        <div>
+                            <label class="block text-sm font-medium text-black">Reading Level</label>
+                            <input type="number" name="students[${i}][level]" min="1" max="20" step="1" value="1" required class="block w-1/4 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
+                        </div>
+                    </div>
+                `);
+            }
         }
+        render(1);
     });
-
-    // default = 1
-    displayStudents(1);
-});
 </script>

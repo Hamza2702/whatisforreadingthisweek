@@ -39,12 +39,12 @@ class SessionController extends Controller
 
         // if teacher/admin, redirect to dashboards
         if (Auth::user()->isAdmin()) {
-            return redirect()->intended('/admin');
+            return redirect('/admin');
         } elseif (Auth::user()->isTeacher()) {
-            return redirect()->intended('/teacher');
+            return redirect('/teacher');
+        } else {
+            return redirect()->intended('/dashboard');
         }
-
-        return redirect('/dashboard');
     }
 
     // Handle logout
