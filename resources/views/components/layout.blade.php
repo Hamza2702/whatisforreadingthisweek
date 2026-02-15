@@ -27,16 +27,17 @@
 
     <!-- Navigation bar -->
     <div class="flex items-center space-x-5">
-      <x-nav-link href='/dashboard'> Dashboard </x-nav-link>
+      @if (Auth::check() && Auth::user()->isAdmin())
+        <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
+      @elseif (Auth::check() && Auth::user()->role === 'Teacher')
+        <x-nav-link href="{{ route('teacher.index') }} " class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
+      @else 
+        <x-nav-link href='/dashboard'> Dashboard </x-nav-link>
+      @endif
       <x-nav-link href='/explore'> Explore </x-nav-link>
       <x-nav-link href='/assignments'> Assignments </x-nav-link>
       <x-nav-link href='/progress'> Progress </x-nav-link>
       <x-nav-link href='/leaderboard'> Leaderboard </x-nav-link>
-      @if (Auth::check() && Auth::user()->isAdmin())
-        <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Admin </x-nav-link>
-      @elseif (Auth::check() && Auth::user()->role === 'Teacher')
-        <x-nav-link href="{{ route('teacher.index') }} " class="px-2 text-red-700 font-black"> Teacher </x-nav-link>
-      @endif
       <!-- Navigation bar guest access -->
       <div class=" flex items-center space-x-3">
         @guest
@@ -76,7 +77,17 @@
           <div class="flex justify-between space-x-3">
       </div>
           <li class="font-semibold">Pages</li>
-          <li><a href="/" class="hover:underline">Dashboard</a></li>
+          <li>
+
+            @if (Auth::check() && Auth::user()->isAdmin())
+              <a href='/admin/index' class="hover:underline">Dashboard</a>
+            @elseif (Auth::check() && Auth::user()->role === 'Teacher')
+              <a href="{{ route('teacher.index') }} " class="hover:underline">Dashboard</a>
+            @else 
+              <a href='/dashboard' class="hover:underline">Dashboard</a>
+            @endif
+
+          </li>
           <li><a href="/explore" class="hover:underline">Explore</a></li>
           <li><a href="/assignments" class="hover:underline">Assignments</a></li>
           <li><a href="/progress" class="hover:underline">Progress</a></li>

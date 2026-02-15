@@ -37,7 +37,14 @@ class SessionController extends Controller
         // Regenerate session
         request()->session()->regenerate();
 
-        return redirect('/dashboard');
+        // if teacher/admin, redirect to dashboards
+        if (Auth::user()->isAdmin()) {
+            return redirect('/admin');
+        } elseif (Auth::user()->isTeacher()) {
+            return redirect('/teacher');
+        } else {
+            return redirect()->intended('/dashboard');
+        }
     }
 
     // Handle logout

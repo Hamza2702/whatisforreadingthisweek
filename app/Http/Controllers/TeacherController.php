@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Response;
 use App\Models\User;
+use App\Models\Student;
 use Illuminate\Support\Str;
 
 class TeacherController extends Controller
@@ -127,23 +128,38 @@ class TeacherController extends Controller
     public function storeStudents(Request $request, Classroom $classroom)
     {
         $this->ensureOwnsClassroom($classroom);
+        $studentsCreated = 0;
 
         // check validation
+        $now = now();
+        $academicYearStart = $now->month >= 9 ? $now->year : $now->year - 1;
+        $expectedAge = $classroom->year_group + 4;
+        $minDob = \Carbon\Carbon::create($academicYearStart - $expectedAge - 1, 9, 1)->format('Y-m-d');
+        $maxDob = \Carbon\Carbon::create($academicYearStart - $expectedAge, 8, 31)->format('Y-m-d');
+
         $validated = $request->validate([
-            'students' => 'required|array|min:1',
+            'students'              => 'required|array|min:1',
             'students.*.first_name' => 'required|string|max:255',
             'students.*.last_name'  => 'required|string|max:255',
-            'students.*.dob'        => 'nullable|date',
+            'students.*.dob'        => "nullable|date|after_or_equal:{$minDob}|before_or_equal:{$maxDob}",
             'students.*.level'      => 'nullable|integer',
+        ],[
+            'students.*.dob.after_or_equal' => "Student's date of birth must be after or equal to {$minDob}.",
+            'students.*.dob.before_or_equal' => "Student's date of birth must be before or equal to {$maxDob}.",
         ]);
 
         foreach ($validated['students'] as $studentData) {
             $this->createStudent($classroom, $studentData);
+            $studentsCreated++;
         }
+
+        $message = $studentsCreated === 1
+            ? "1 new student added!"
+            : "{$studentsCreated} new students added!";
 
         return redirect()
             ->route('teacher.classes.students', $classroom->id)
-            ->with('success', 'Students added successfully.');
+            ->with('success', $message);
     }
 
     // Show import form
@@ -263,7 +279,7 @@ class TeacherController extends Controller
                         
                         // If user exists and is a student
                         if ($existingUser && $existingUser->role === 'Student') {
-                            $existingStudent = \App\Models\Student::where('user_id', $existingUser->id)->first();
+                            $existingStudent = Student::where('user_id', $existingUser->id)->first();
                             
                             if ($existingStudent) {
                                 // Check if students are already in the classrtoom
@@ -283,7 +299,7 @@ class TeacherController extends Controller
                     }
                     
                     // Check if student with same name and DOB already exists in this school
-                    $query = \App\Models\Student::where('school_id', $classroom->school_id)
+                    $query = Student::where('school_id', $classroom->school_id)
                         ->where('first_name', $studentData['first_name'])
                         ->where('last_name', $studentData['last_name']);
                     
@@ -340,7 +356,7 @@ class TeacherController extends Controller
                 
                 return redirect()
                     ->route('teacher.classes.students', $classroom->id)
-                    ->with('success', implode(', ', $message) . '.');
+                    ->with('success', implode(', ', $message));
                     
             } catch (\Exception $e) {
                 \DB::rollBack();
@@ -459,7 +475,7 @@ class TeacherController extends Controller
 
 
     // Create student
-    protected function createStudent(Classroom $classroom, array $data): \App\Models\Student
+    protected function createStudent(Classroom $classroom, array $data): Student
     {
         // Create username and password
         $username = $this->createStudentUsername();
@@ -480,7 +496,7 @@ class TeacherController extends Controller
         ]);
 
         // Link user to student
-        $student = \App\Models\Student::create([
+        $student = Student::create([
             'user_id'        => $user->id,
             'school_id'      => $classroom->school_id,
             'first_name'     => $data['first_name'],
