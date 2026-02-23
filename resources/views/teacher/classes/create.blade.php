@@ -18,7 +18,7 @@
             <!-- Class name -->
             <div>
                 <label for="name" class="block text-sm font-medium text-black">Class Name</label>
-                <input type="text" name="name" id="name" required class="mt-1 block w-full rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
+                <input type="text" name="name" id="name" class="mt-1 block w-full rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
             </div>
             <x-form-error name="name"/>
             <!-- Academic Year -->

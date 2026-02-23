@@ -49,11 +49,42 @@
         const maxDob = '{{ $maxDob }}'; // maximum dob calculated
         const yearLabel = '{{ $yearLabel }}'; // year group label
 
+        // Calculate expanded DOB range for special students
+        const minDate = new Date(minDob);
+        const maxDate = new Date(maxDob);
+        const expandedMinDob = new Date(minDate.getFullYear() - 2, minDate.getMonth(), minDate.getDate()).toISOString().split('T')[0];
+        const expandedMaxDob = new Date(maxDate.getFullYear() + 2, maxDate.getMonth(), maxDate.getDate()).toISOString().split('T')[0];
+        
+
         // Preset buttons
         document.getElementById('setten').addEventListener('click', () => { input.value = 10; render(10); }); // 10
         document.getElementById('settwenty').addEventListener('click', () => { input.value = 20; render(20); }); // 20
         document.getElementById('setthirty').addEventListener('click', () => { input.value = 30; render(30); }); // 30
         input.addEventListener('input', () => render(parseInt(input.value) || 0)); // render on input change
+
+        // Change DOB range on is_special toggle
+        container.addEventListener('change', function (e) {
+            if (e.target.matches('input[type="checkbox"]') && e.target.name.includes('is_special')) {
+                const studentBlock = e.target.closest('.border');
+                const dobInput = studentBlock.querySelector('input[type="date"]');
+                const dobText = studentBlock.querySelector('.dob-text');
+
+                if (e.target.checked) {
+                    dobInput.setAttribute('min', expandedMinDob);
+                    dobInput.setAttribute('max', expandedMaxDob);
+                    // change text to show expanded range
+                    dobText.textContent = `Students born in ${yearLabel} from ${expandedMinDob} to ${expandedMaxDob}`;
+                } else {
+                    dobInput.setAttribute('min', minDob);
+                    dobInput.setAttribute('max', maxDob);
+                    dobText.textContent = `Students born in ${yearLabel} from ${minDob} to ${maxDob}`;
+                    // clear value if its out of the standard range
+                    if (dobInput.value && (dobInput.value < minDob || dobInput.value > maxDob)) {
+                        dobInput.value = '';
+                    }
+                }
+            }
+        });
 
         // create student input fields
         function render(count) {
@@ -64,6 +95,10 @@
                     <!-- Student -->
                         <div class="font-semibold text-black">Student ${i}</div>
                         <!-- First name -->
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="checkbox" value="1" name="students[${i}][is_special]" id="students[${i}][is_special]" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            <label for="students[${i}][is_special]" class="text-sm font-medium text-black">Is this student born from a different date other than ${minDob} - ${maxDob}?</label>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-black">First Name</label>
                             <input type="text" name="students[${i}][first_name]" required class="block w-full rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
@@ -77,7 +112,7 @@
                         <div>
                             <label class="block text-sm font-medium text-black">Date of Birth</label>
                             <input type="date" name="students[${i}][dob]" required min="${minDob}" max="${maxDob}" class="block w-1/3 rounded-md border-2 border-gray-300 bg-white text-black shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
-                            <p class="text-xs text-gray-500 mt-1">Students born in ${yearLabel} from: ${minDob} to ${maxDob}</p>
+                            <p id="dob-text-${i}" class="text-xs text-gray-500 mt-1 dob-text">Students born in ${yearLabel} from: ${minDob} to ${maxDob}</p>
                         </div>
                         <!-- Reading level -->
                         <div>

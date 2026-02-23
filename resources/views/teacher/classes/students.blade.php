@@ -78,6 +78,17 @@
             <div class="font-semibold text-gray-800">{{ $s->first_name }} {{ $s->last_name }}</div>
             <div class="text-sm text-gray-600">{{ $s->user->username }}</div>
             <div class="text-sm text-gray-600">Level {{ $s->level }}</div>
+            @php
+              if ($s->is_special) {
+                $statusText = 'Special';
+                $statusColor = 'bg-green-200 text-green-800';
+              } else {
+                // dont show anything if not special
+                $statusText = '';
+                $statusColor = '';
+              }
+            @endphp
+            <div class="ml-2 px-2 py-1 rounded text-xs font-semibold {{ $statusColor }}">{{ $statusText }}</div>
           </div>
           <!-- Buttons -->
           <div>

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Response;
 use App\Models\User;
 use App\Models\Student;
 use Illuminate\Support\Str;
+use \Carbon\Carbon;
 
 class TeacherController extends Controller
 {
@@ -130,25 +131,42 @@ class TeacherController extends Controller
         $this->ensureOwnsClassroom($classroom);
         $studentsCreated = 0;
 
-        // check validation
         $now = now();
         $academicYearStart = $now->month >= 9 ? $now->year : $now->year - 1;
         $expectedAge = $classroom->year_group + 4;
-        $minDob = \Carbon\Carbon::create($academicYearStart - $expectedAge - 1, 9, 1)->format('Y-m-d');
-        $maxDob = \Carbon\Carbon::create($academicYearStart - $expectedAge, 8, 31)->format('Y-m-d');
+
+        // Normal DOB
+        $minDob = Carbon::create($academicYearStart - $expectedAge - 1, 9, 1)->format('Y-m-d');
+        $maxDob = Carbon::create($academicYearStart - $expectedAge, 8, 31)->format('Y-m-d');
+
+        // Expanded DOB (special students)
+        $expandedMinDob = Carbon::create($academicYearStart - $expectedAge - 3, 9, 1)->format('Y-m-d');
+        $expandedMaxDob = Carbon::create($academicYearStart - $expectedAge + 2, 8, 31)->format('Y-m-d');
 
         $validated = $request->validate([
             'students'              => 'required|array|min:1',
-            'students.*.first_name' => 'required|string|max:255',
-            'students.*.last_name'  => 'required|string|max:255',
-            'students.*.dob'        => "nullable|date|after_or_equal:{$minDob}|before_or_equal:{$maxDob}",
+            'students.*.first_name' => 'required|string|min:2|max:255',
+            'students.*.last_name'  => 'required|string|min:2|max:255',
             'students.*.level'      => 'nullable|integer',
-        ],[
-            'students.*.dob.after_or_equal' => "Student's date of birth must be after or equal to {$minDob}.",
-            'students.*.dob.before_or_equal' => "Student's date of birth must be before or equal to {$maxDob}.",
+            'students.*.is_special' => 'nullable',
         ]);
 
-        foreach ($validated['students'] as $studentData) {
+        // Validate DOB and check w/ special students
+        foreach ($request->input('students') as $index => $studentData) {
+            $isSpecial = isset($studentData['is_special']); // if checkbox is ticked
+
+            $min = $isSpecial ? $expandedMinDob : $minDob;
+            $max = $isSpecial ? $expandedMaxDob : $maxDob;
+
+            $request->validate([
+                "students.{$index}.dob" => "required|date|after_or_equal:{$min}|before_or_equal:{$max}",
+            ]);
+        }
+
+        foreach ($validated['students'] as $index => $studentData) {
+            // Merge DOB and special status when creating students
+            $studentData['dob'] = $request->input("students.{$index}.dob");
+            $studentData['is_special'] = $request->has("students.{$index}.is_special") ? 1 : 0;
             $this->createStudent($classroom, $studentData);
             $studentsCreated++;
         }
@@ -423,7 +441,7 @@ class TeacherController extends Controller
     {   
         // validate inputs
         $validated = $request->validate([
-            'name'          => 'required|string|max:255',
+            'name'          => 'nullable|string|max:255',
             'year_group'    => 'required|numeric|min:0|max:6',
             'academic_start'    => 'required|integer|min:0|max:99',
             'academic_end'      => 'required|integer|min:0|max:99',
@@ -505,6 +523,7 @@ class TeacherController extends Controller
             'level'          => $data['level'] ?? $classroom->year_group,
             'pfp'            => $randomPfp,
             'active'         => $data['active'] ?? true,
+            'is_special'     => $data['is_special'] ?? false,
         ]);
         
         // Attach to classroom

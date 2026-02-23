@@ -20,6 +20,7 @@ class Student extends Model
         'date_of_birth',
         'active',
         'pfp',
+        'is_special',
     ];
 
     protected $casts = [
