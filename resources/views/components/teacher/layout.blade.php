@@ -4,8 +4,8 @@
 @endphp
 
 <x-layout title="{{ $title ?? 'Teacher' }}">
-  <div class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-    <div class="mx-auto w-full max-w-4xl rounded-2xl border-4 border-primary p-4 sm:p-6 shadow">
+  <div class="py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto w-full max-w-7xl rounded-2xl border-4 border-primary p-4 sm:p-6 shadow">
 
       <!-- Header card -->
       <div class="rounded-xl border-2 border-primary p-4">

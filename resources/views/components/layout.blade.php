@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600&family=Fredoka+One&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
   @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
-<body class="z-50 bg-background flex flex-col min-h-screen">
+<body class="z-50 bg-background flex flex-col min-h-full">
 
   <!-- Navigation Bar -->
   <nav class="z-50 justify-between items-center px-7 desktop-nav hidden md:flex border-b-4 border-orange-900 p-1">
@@ -18,14 +18,11 @@
       <a href="/" class="flex-shrink-0">
         <img src="/images/Logo.png" alt="Logo" class="bookwormLogo max-w-20">
       </a>
-
       <div class="flex flex-col">
-        <h1 class="font-display text-pink-400 text-2xl">Bookworms</h1>
-        <p class="font-script font-black text-primary text-sm md:text-base leading-tight">Book slogan phrase thing</p>
+        <h1 class="font-display text-pink-400 text-2xl tracking-wider">BOOKWORMS</h1>
       </div>
     </div>
 
-    <!-- Navigation bar -->
     <div class="flex items-center space-x-5">
       @if (Auth::check() && Auth::user()->isAdmin())
         <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
@@ -38,22 +35,18 @@
       <x-nav-link href='/assignments'> Assignments </x-nav-link>
       <x-nav-link href='/progress'> Progress </x-nav-link>
       <x-nav-link href='/leaderboard'> Leaderboard </x-nav-link>
-      <!-- Navigation bar guest access -->
-      <div class=" flex items-center space-x-3">
+      <div class="flex items-center space-x-3">
         @guest
         <x-nav-link href="{{ route('login') }}"> Login </x-nav-link>
         @endguest
-
-        <!-- Navigation bar logged in user -->
         @auth
         <div class="group flex flex-col justify-start bg-white">
-          <!-- User Image (CHANGE PATH) -->
           <x-nav-link href='{{ route("user.show", ["id" => Auth::id()]) }}' class="p-0 m-0">
             <a href='{{ route("user.show", ["id" => Auth::id()]) }}'><img src="{{ Auth::user()->pfp ?? '/images/Placeholder.jpeg' }}" alt="Pfp icon" class="h-6 md:h-8 hover:opacity-75 rounded-full"></a>
           </x-nav-link>
           <div class="group-hover:flex fixed top-[60px] right-[40px] flex-col z-10 p-4 space-y-2 hidden bg-white">
             <x-nav-link href='{{ route("user.show", ["id" => Auth::id()]) }}'>Manage</x-nav-link>
-            <form class=" m-0" method="POST" action="/logout">
+            <form class="m-0" method="POST" action="/logout">
               @csrf
               <button class="hover:text-primary">Log Out</button>
             </form>
@@ -65,20 +58,19 @@
     <div class="worm hidden">
         <img src="/images/home/wormMovement1.png" alt="Worm" class="h-8">
     </div>
-  </nav>  
-  <main class="p-4 text-white">
+  </nav>
+
+  <main class="p-4 text-white flex-1 flex flex-col">
       {{ $slot }}
   </main>
 
-  <footer class="mt-auto bg-primary w-full p-6 text-white">
+  <footer class="bg-primary w-full p-6 text-white">
     <div class="flex flex-wrap justify-center space-y-6 md:space-y-0 md:flex-nowrap">
       <div class="w-full md:w-1/3 text-center flex flex-col items-center">
         <ul class="space-y-1">
-          <div class="flex justify-between space-x-3">
-      </div>
+          <div class="flex justify-between space-x-3"></div>
           <li class="font-semibold">Pages</li>
           <li>
-
             @if (Auth::check() && Auth::user()->isAdmin())
               <a href='/admin/index' class="hover:underline">Dashboard</a>
             @elseif (Auth::check() && Auth::user()->role === 'Teacher')
@@ -86,7 +78,6 @@
             @else 
               <a href='/dashboard' class="hover:underline">Dashboard</a>
             @endif
-
           </li>
           <li><a href="/explore" class="hover:underline">Explore</a></li>
           <li><a href="/assignments" class="hover:underline">Assignments</a></li>
@@ -131,6 +122,7 @@
       <p class="text-xs md:text-base">&copy; 2025 What is for reading this week? All rights reserved.</p>
     </div>
   </footer>
-    <script src="{{ asset('js/bookwormLogo.js') }}"></script>
+
+  <script src="{{ asset('js/bookwormLogo.js') }}"></script>
 </body>
 </html>
