@@ -21,6 +21,7 @@ class Student extends Model
         'active',
         'pfp',
         'is_special',
+        'classroom_id',
     ];
 
     protected $casts = [

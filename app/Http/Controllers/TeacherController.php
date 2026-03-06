@@ -167,6 +167,7 @@ class TeacherController extends Controller
             // Merge DOB and special status when creating students
             $studentData['dob'] = $request->input("students.{$index}.dob");
             $studentData['is_special'] = $request->has("students.{$index}.is_special") ? 1 : 0;
+            $studentData['classroom_id'] = $classroom->id;
             $this->createStudent($classroom, $studentData);
             $studentsCreated++;
         }
@@ -392,7 +393,7 @@ class TeacherController extends Controller
     // Export student list CSV
     public function exportStudents(Classroom $classroom)
     {
-        $fileName = "Year_" . $classroom->year_group . "_". $classroom->name . '_StudentsList.csv';
+        $fileName = "Year_" . $classroom->year_group . "_". $classroom->name . '_Students_List.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -443,8 +444,8 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'name'          => 'nullable|string|max:255',
             'year_group'    => 'required|numeric|min:0|max:6',
-            'academic_start'    => 'required|integer|min:0|max:99',
-            'academic_end'      => 'required|integer|min:0|max:99',
+            'academic_start'    => 'required|integer|min:2020|max:9999',
+            'academic_end'      => 'required|integer|min:2020|max:9999',
         ]);
 
         // stage and academic year
@@ -465,6 +466,24 @@ class TeacherController extends Controller
         ]);
 
         return redirect()->route('teacher.index')->with('success', 'Class created successfully.');
+    }
+
+    // Delete class
+    public function destroy(Classroom $classroom)
+    {
+        // check if teacher owns the class
+        if($classroom->teacher_id !== auth()->id()){
+            abort(403, "Unauthorised action");
+        }
+        
+        // unassign students
+        $classroom->students()->update(['classroom_id' => null]);
+
+        // delete class
+        $classroom->delete();
+
+        // redirect
+        return redirect()->route('teacher.index')->with('success', 'Classroom deleted successfully');
     }
 
     // Remove student
@@ -524,6 +543,7 @@ class TeacherController extends Controller
             'pfp'            => $randomPfp,
             'active'         => $data['active'] ?? true,
             'is_special'     => $data['is_special'] ?? false,
+            'classroom_id'   => $data['classroom_id'],
         ]);
         
         // Attach to classroom

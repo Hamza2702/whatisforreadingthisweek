@@ -82,6 +82,10 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     // Import student list CSV - Process upload
     Route::post('/teacher/classes/{classroom}/import-students', [TeacherController::class, 'importStudents'])
         ->name('teacher.classes.importStudents');
+
+    // Delete classroom
+    Route::delete('/classes/{classroom}', [TeacherController::class, 'destroy'])
+        ->name('teacher.classes.destroy');
     
 });
 
