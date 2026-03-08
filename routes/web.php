@@ -33,6 +33,11 @@ Route::get('/forgot-password', function () {
 });
 Route::post('forgot-password', [UserController::class, 'forgotPassword']);
 
+// Explore books
+Route::get('/explore', function (){
+    return view('explore');
+});
+
 // Teacher
 Route::middleware(['auth', 'isTeacher'])->group(function () {
     Route::get('/teacher', [TeacherController::class, 'index'])->name('teacher.index');
