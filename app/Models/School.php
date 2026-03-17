@@ -24,8 +24,13 @@ class School extends Model
         return $this->hasMany(Classroom::class);
     }
 
-    public function students(): HasMany
+    public function teachers()
     {
-        return $this->hasMany(Student::class);
+        return $this->hasMany(User::class)->where('role', 'teacher');
+    }
+
+    public function students()
+    {
+        return $this->hasMany(User::class)->where('role', 'student');
     }
 }

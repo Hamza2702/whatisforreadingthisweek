@@ -4,6 +4,14 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\ExploreController;
+
+
+// Explore page
+Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 
+
+// Individual books
+Route::get('/books/{id}', [ExploreController::class, 'show'])->name('books.show');
 
 Route::get('/', function () {
     return view('Site/index');
@@ -20,7 +28,6 @@ Route::middleware(['auth', 'isAdmin'])->group(function () {
 });
 
 Route::patch('/user', [UserController::class, 'update'])->middleware('auth');
-
 
 // Login
 Route::get('/login', [SessionController::class, 'show'])->name('login')->middleware('guest');
@@ -82,6 +89,16 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     // Import student list CSV - Process upload
     Route::post('/teacher/classes/{classroom}/import-students', [TeacherController::class, 'importStudents'])
         ->name('teacher.classes.importStudents');
+
+    // Delete classroom
+    Route::delete('/classes/{classroom}', [TeacherController::class, 'destroy'])
+        ->name('teacher.classes.destroy');
+
+    // Add book
+    Route::post('/explore/add', [ExploreController::class, 'addBook'])->name('explore.addBook');
+
+    // Delete book
+    Route::delete('/explore/book/{book}', [ExploreController::class, 'deleteBook'])->name('explore.deleteBook');
     
 });
 

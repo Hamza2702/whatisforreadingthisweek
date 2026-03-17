@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\File;
 use App\Models\School;
+use App\Http\Controllers\UserController;
 
 
 class UserController extends Controller
@@ -53,7 +54,35 @@ class UserController extends Controller
 
     public function show($id){
         $user = User::with('school', 'student')->findOrFail($id);
-        return view ('user.show', compact('user'));
+        $currentUser = Auth::user();
+
+        // allow if user is visiting own profile
+        if ($currentUser->id === $user->id){
+            return view('user.show', compact('user'));
+        }
+
+        if ($currentUser->role === 'Teacher' && $user->isAdmin) {
+            abort(403, 'You are only allowed to view student profiles in your own classroom(s)');
+        }
+
+        // allow if the current user is a teacher or admin
+        if ($currentUser->isTeacher() || $currentUser->isAdmin()){
+            return view('user.show', compact('user'));
+        }
+
+        // check students share a classrom w/ each other
+        if ($currentUser->role === 'Student' && $user->role === 'Student') {
+            
+            $currentUserClassroomID = $currentUser->student->classroom_id ?? null;
+            $targetUserClassroomID = $user->student->classroom_id ?? null;
+
+            if ($currentUserClassroomId && $currentUserClassroomId == $targetUserClassroomId) {
+                return view('user.show', compact('user'));
+            }
+        }
+
+        // if not allowed, deny access
+        abort(403, 'You are only allowed to view student profiles in your own classroom');
     }
 
     // Show own profile
