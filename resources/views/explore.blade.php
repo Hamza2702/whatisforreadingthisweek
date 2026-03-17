@@ -7,27 +7,27 @@
 
         <!-- Top bar -->
         <div class="bg-white border border-[#755f5420] rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm w-full">
-            <div class="flex items-center justify-center sm:justify-start gap-4 w-full sm:w-auto">
-                <div class="text-sm font-bold text-primary/70 flex items-center gap-2">
-                    <span class="flex items-center justify-center w-12 h-12 rounded-full  bg-secondary text-white text-xs">{{ $books->total() }}</span>
+            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 w-full sm:w-auto">
+                <div class="text-sm font-bold text-primary/70 flex items-center gap-2 shrink-0">
+                    <span class="flex items-center justify-center w-12 h-12 rounded-full bg-secondary text-white text-xs">{{ $books->total() }}</span>
                     Books found
                 </div>
-                @csrf
-                    @if(session('success'))
-                        <div class="mx-6 mt-4 p-3 bg-green-100 text-green-700 rounded-xl text-xs font-bold text-center">
-                            {{ session('success') }}
-                        </div>
-                    @endif
+                
+                @if(session('success'))
+                    <div class="px-4 py-2.5 bg-green-100 text-green-700 rounded-xl text-xs font-bold text-center flex items-center">
+                        {{ session('success') }}
+                    </div>
+                @endif
 
-                    @if($errors->any())
-                        <div class="mx-6 mt-4 p-3 bg-red-100 text-red-700 rounded-xl text-xs font-bold">
-                            <ul>
-                                @foreach($errors->all() as $error)
-                                    <li>- {{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+                @if($errors->any())
+                    <div class="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl text-xs font-bold flex items-center">
+                        <ul class="flex flex-col gap-1">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
             </div>
             <!-- Right side of top bar -->
             <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
@@ -73,9 +73,10 @@
                             <label class="cursor-pointer flex items-center gap-3">
                                 <!-- part of the explore-form -->
                                 <input type="checkbox" name="readable" form="explore-form" value="1" {{ request('readable') == '1' ? 'checked' : '' }} onchange="submitFilters()" class="peer hidden">
-                                <div class="w-10 h-6 bg-[#755f5420] rounded-full peer-checked:bg-green-500 relative transition-colors shadow-inner border border-[#755f5410]">
-                                    <div class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 peer-checked:translate-x-4 transition-transform shadow-sm"></div>
-                                </div>
+                                
+                                <!-- toggle actually works now -->
+                                <div class="w-10 h-6 bg-[#755f5420] rounded-full peer-checked:bg-green-500 relative transition-colors shadow-inner border border-[#755f5410] after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform after:shadow-sm peer-checked:after:translate-x-4"></div>
+                                
                                 <span class="text-xs font-black text-primary/70 peer-checked:text-primary transition-colors">Online books only</span>
                             </label>
                         </div>
@@ -85,7 +86,7 @@
                             <label class="block text-[10px] font-bold text-primary/60 tracking-widest mb-2">SEARCH TITLE</label>
                             <div class="relative">
                                 <!-- part of the explore-form -->
-                                <input type="text" id="searchInput" name="search" form="explore-form" value="{{ request('search') }}" oninput="debounceSearch()" placeholder="e.g. The Gruffalo..." class="w-full rounded-2xl border border-[#755f5420] bg-[#755f540a] px-4 py-3 pl-10 text-sm font-bold text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-primary/30">
+                                <input type="text" id="searchInput" name="search" form="explore-form" value="{{ request('search') }}" oninput="debounceSearch()" placeholder="e.g. Matilda" class="w-full rounded-2xl border border-[#755f5420] bg-[#755f540a] px-4 py-3 pl-10 text-sm font-bold text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-primary/30">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-primary/30 absolute left-3.5 top-1/2 -translate-y-1/2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                                 </svg>
@@ -97,7 +98,7 @@
                             <label class="block text-[10px] font-bold text-primary/60 tracking-widest mb-2">SEARCH AUTHOR</label>
                             <div class="relative">
                                 <!-- part of the explore-form -->
-                                <input type="text" id="authorInput" name="author" form="explore-form" value="{{ request('author') }}" oninput="debounceSearch()" placeholder="e.g. Julia Donaldson..." class="w-full rounded-2xl border border-[#755f5420] bg-[#755f540a] px-4 py-3 pl-10 text-sm font-bold text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-primary/30">
+                                <input type="text" id="authorInput" name="author" form="explore-form" value="{{ request('author') }}" oninput="debounceSearch()" placeholder="e.g. Roald Dahl" class="w-full rounded-2xl border border-[#755f5420] bg-[#755f540a] px-4 py-3 pl-10 text-sm font-bold text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-primary/30">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-primary/30 absolute left-3.5 top-1/2 -translate-y-1/2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                                 </svg>
@@ -171,14 +172,14 @@
                         <!-- Book title -->
                         <div class="px-6 pt-4">
                             <label for="title" class="text-xs font-bold tracking-widest text-primary/60 mb-2 block">BOOK TITLE</label>
-                            <input type="text" name="title" id="title" placeholder="e.g. The Gruffalo" required
+                            <input type="text" name="title" id="title" placeholder="e.g. The BFG" required
                                 class="block w-full rounded-xl border border-[#755f5420] bg-[#755f540a] text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm px-4 py-3 outline-none transition-all">
                         </div>
 
                         <!-- Author -->
                         <div class="px-6">
                             <label for="author" class="text-xs font-bold tracking-widest text-primary/60 mb-2 block">AUTHOR</label>
-                            <input type="text" name="author" id="author" placeholder="e.g. Julia Donaldson" required
+                            <input type="text" name="author" id="author" placeholder="e.g. Roald Dahl" required
                                 class="block w-full rounded-xl border border-[#755f5420] bg-[#755f540a] text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm px-4 py-3 outline-none transition-all">
                         </div>
 
@@ -187,6 +188,18 @@
                             <label for="ort_level" class="text-xs font-bold tracking-widest text-primary/60 mb-2 block">READING LEVEL (0-20)</label>
                             <input type="number" name="ort_level" id="ort_level" min="0" max="20" placeholder="e.g. 4" required
                                 class="block w-full rounded-xl border border-[#755f5420] bg-[#755f540a] text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm px-4 py-3 outline-none transition-all">
+                        </div>
+
+                        <!-- Phonics -->
+                        <div class="px-6">
+                            <label for="phonic_input" class="text-xs font-bold tracking-widest text-primary/60 mb-2 block">PHONICS (OPTIONAL)</label>
+                            <div class="flex flex-col gap-3">
+                                <!-- tags container -->
+                                <div id="phonics-container" class="flex flex-wrap gap-2 empty:hidden"></div>
+                                <!-- input -->
+                                <input type="text" id="phonic_input" placeholder="Enter a phonic sound like 'oo'"
+                                    class="block w-full rounded-xl border border-[#755f5420] bg-[#755f540a] text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm px-4 py-3 outline-none transition-all">
+                            </div>
                         </div>
 
                         <!-- Description -->
@@ -359,5 +372,80 @@
                 sessionStorage.removeItem('searchCursorPos');
             }
         });
+
+        // PHONICS
+        const phonicInput = document.getElementById('phonic_input');
+        const phonicsContainer = document.getElementById('phonics-container');
+
+        if (phonicInput && phonicsContainer) {
+            
+            // listen for enter key
+            phonicInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // stop form from submitting
+                    addPhonicTag(this.value);
+                }
+            });
+
+            // listen for user click away
+            phonicInput.addEventListener('blur', function() {
+                addPhonicTag(this.value);
+            });
+        }
+
+        // add phonic tag function
+        function addPhonicTag(value) {
+            const val = value.trim();
+            if (!val) return;
+
+            // only letters, 10 max characters
+            const regex = /^[A-Za-z]{1,10}$/;
+
+            if (!regex.test(val)) {
+                phonicInput.value = '';
+                return;
+            }
+
+            // check to avoid any duplicates
+            const existingInputs = Array.from(document.querySelectorAll('input[name="new_phonics[]"]')).map(el => el.value.toLowerCase());
+            
+            if (existingInputs.includes(val.toLowerCase())) {
+                phonicInput.value = '';
+                return;
+            }
+
+            // create tag div
+            const tagDiv = document.createElement('div');
+            tagDiv.className = 'flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm cursor-pointer hover:bg-red-500 transition-colors';
+            
+            // text
+            const text = document.createElement('span');
+            text.textContent = val;
+            
+            // delete phonic tag
+            const closeBtn = document.createElement('span');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.className = 'text-sm leading-none ml-1';
+            
+            // hidden input to submit array value
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'new_phonics[]';
+            hiddenInput.value = val;
+
+            // add to tag div
+            tagDiv.appendChild(text);
+            tagDiv.appendChild(closeBtn);
+            tagDiv.appendChild(hiddenInput);
+
+            // add remove event listeners
+            tagDiv.addEventListener('click', function() {
+                tagDiv.remove();
+            });
+
+            // add to the container and set input to nothing
+            phonicsContainer.appendChild(tagDiv);
+            phonicInput.value = '';
+        }
     </script>
 </x-layout>
