@@ -148,6 +148,12 @@ class DatabaseSeeder extends Seeder
         }
         
         $this->command->info('Created test user');
+
+        $this->command->info('Syncing books');
+        $this->call([
+            BookBackupSeeder::class,
+        ]);
+        $this->command->info('Books synced');
     }
 
     // Create student usernames

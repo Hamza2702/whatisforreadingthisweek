@@ -27,6 +27,18 @@ export default {
         sans: ['"Nunito"', 'sans-serif'], // Paragraphs
       },
       colors: {
+        ort: {
+          Pink: '#ffb6c1',
+          Red: '#ff0000',
+          Yellow: '#fbbf24', // Amber-400
+          Blue: '#3b82f6',   // Blue-500
+          Green: '#22c55e',  // Green-500
+          Orange: '#f97316', // Orange-500
+          Turquoise: '#06b6d4', // Cyan-500
+          Purple: '#a855f7', // Purple-500
+          Gold: '#eab308',   // Yellow-500
+          'Dark Red': '#991b1b', // Red-800
+        },
         "primary": "#6D4423", // Brown
         "secondary" : "#755F54", // Light Brown
         "background": "#FFF9E7", // Beige?
