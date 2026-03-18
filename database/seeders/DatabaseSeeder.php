@@ -9,6 +9,7 @@ use App\Models\School;
 use Illuminate\Support\Facades\Artisan;
 use App\Models\Classroom;
 use App\Models\Student;
+use App\Models\Genre; // <-- Added Genre model
 
 class DatabaseSeeder extends Seeder
 {
@@ -25,7 +26,6 @@ class DatabaseSeeder extends Seeder
 
         // KS1 - reception to year 2 (animals)
         // KS2 - year 3 to year 6 (authors)
-
         $KS1Names = [
             'Ladybird', 'Bumblebee', 'Caterpillar', 'Butterfly', 'Dragonfly', 'Grasshopper', 'Snail', 'Frog', 'Toad',
             'Turtle', 'Rabbit', 'Hedgehog', 'Squirrel', 'Mouse', 'Deer', 'Otter', 'Panda', 'Koala', 'Kangaroo', 'Elephant',
@@ -43,8 +43,6 @@ class DatabaseSeeder extends Seeder
             ['year' => 3, 'stage' => 'KS2'],
         ];
 
-
-                
         $this->command->info('Importing schools');
         Artisan::call('schools:import');
         $this->command->info('Schools imported');
@@ -62,7 +60,6 @@ class DatabaseSeeder extends Seeder
             'isAdmin' => true,
             'pfp' => '/images/pfp/cat.png',
         ]);
-
 
         // Montgomery school
         $school = School::firstOrCreate([
@@ -85,7 +82,6 @@ class DatabaseSeeder extends Seeder
             'pfp' => '/images/pfp/owl.png',
         ]);
 
-
         // Classrooms
         $classrooms = collect($classConfig)->map(function ($config) use ($school, $teacher, $KS1Names, $KS2Names) {
             $year = $config['year'];
@@ -105,10 +101,21 @@ class DatabaseSeeder extends Seeder
                     'academic_year' => '2025/2026',
                     'active' => true,
                 ]
-                );
+            );
         });
 
+        // SYNC BOOKS AND GENRES
+        $this->command->info('Syncing books and genres');
+        $this->call([
+            BookBackupSeeder::class,
+        ]);
+        $this->command->info('Books and genres synced');
+
+        // Fetch all genre ids from db
+        $allGenreIds = Genre::pluck('id');
+
         // Create students and assign to classrooms
+        $this->command->info('Creating students and assigning genres...');
         foreach ($classrooms as $classroom) {
 
             $students = collect();
@@ -116,12 +123,15 @@ class DatabaseSeeder extends Seeder
             // 20-30 students per class
             foreach (range(1, rand(20, 30)) as $_) {
 
-                // create students as a user first
+                // generate names once
                 $username = $this->createStudentUsername();
+                $firstName = fake()->firstName();
+                $lastName = fake()->lastName();
 
+                // assign names to the user
                 $user = User::factory()->create([
                     'username' => $username,
-                    'name' => fake()->firstName() . ' ' . fake()->lastName(),
+                    'name' => $firstName . ' ' . $lastName,
                     'email' => $username . '@example.com',
                     'password' => 'password',
                     'phone' => '07' . rand(100000000, 999999999),
@@ -129,31 +139,40 @@ class DatabaseSeeder extends Seeder
                     'school_id' => $school->id,
                 ]);
 
-                // create students
+                // create students (assign same names to student profiles)
                 $student = $user->student()->create([
                     'school_id' => $school->id,
                     'classroom_id' => $classroom->id,
-                    'first_name' => fake()->firstName(),
-                    'last_name' => fake()->lastName(),
-                    'level' => fake()->numberBetween(0, 20),
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'level' => fake()->numberBetween(1, 20),
                     'date_of_birth' => now()->subYears(5 + $classroom->year_group)->subDays(rand(0, 365)),
                     'pfp' => '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random(),
                 ]);
 
+                // ASSIGN LIKED GENRES
+                if ($allGenreIds->isNotEmpty()) {
+                    $randomGenres = $allGenreIds->random(rand(1, 3));
+                    
+                    $pivotData = [];
+                    foreach ($randomGenres as $genreId) {
+                        $pivotData[$genreId] = ['school_id' => $school->id];
+                    }
+                    
+                    $student->preferredGenres()->attach($pivotData);
+                }
+
                 $students->push($student);
             }
 
-            // assign students to classroom
-            $classroom->students()->attach($students->pluck('id'));
+            // assign students to pivot table and give them a school id too
+            $classroom->students()->syncWithPivotValues(
+                $students->pluck('id')->toArray(), 
+                ['school_id' => $school->id]
+            );
         }
         
-        $this->command->info('Created test user');
-
-        $this->command->info('Syncing books');
-        $this->call([
-            BookBackupSeeder::class,
-        ]);
-        $this->command->info('Books synced');
+        $this->command->info('Created test user and synced books and classrooms');
     }
 
     // Create student usernames

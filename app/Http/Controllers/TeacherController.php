@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Student;
 use Illuminate\Support\Str;
 use \Carbon\Carbon;
+use App\Models\Book;
 
 class TeacherController extends Controller
 {
@@ -80,15 +81,51 @@ class TeacherController extends Controller
 
     // Display reading list for the class
     public function classReadingList(Classroom $classroom)
-    {
+    {   
+        // make sure they are a teacher that owns the classroom
         $this->ensureOwnsClassroom($classroom);
+        $students = $classroom->students()->get();
+
+        // loop through students
+        foreach ($students as $student) {
+        $student->ort_colour = $this->getOxfordColour($student->level);
+        
+        // get 10 random books at students reading level
+        $student->recommendedBooks = Book::where('ort_level', $student->level)
+            ->inRandomOrder()
+            ->take(10)
+            ->get();
+        }
 
         // student count
         $classroom->loadCount('students');
 
         $yearGroups = $this->yearGroupsForTeacher(auth()->id());
 
-        return view('teacher.classes.reading-list', compact('classroom', 'yearGroups'));
+        return view('teacher.classes.reading-list', compact('classroom', 'yearGroups', 'students'));
+    }
+
+    // Convert ort to colour
+    private function getOxfordColour($level) {
+        return match((int)$level) {
+            0 => 'Light Purple',
+            1 => 'Pink',
+            2 => 'Red',
+            3 => 'Yellow', 
+            4 => 'Light Blue',
+            5 => 'Green',
+            6 => 'Orange',
+            7 => 'Turquoise', 
+            8 => 'Purple',
+            9 => 'Gold',
+            10 => 'White', 
+            1 => 'Lime', 
+            12 => 'Lime+',
+            13, 14 => 'Grey',
+            15, 16 => 'Dark Blue', 
+            17, 18, 19, 20 => 'Dark Red',
+            default => 'Dark Red',
+        };
     }
 
     // Add Students

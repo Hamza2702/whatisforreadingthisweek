@@ -5,7 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\ExploreController;
-
+use App\Http\Controllers\ReadingController;
 
 // Explore page
 Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 
@@ -100,6 +100,16 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     // Delete book
     Route::delete('/explore/book/{book}', [ExploreController::class, 'deleteBook'])->name('explore.deleteBook');
     
+    // Reading list
+    Route::prefix('teacher/classes/{classroom}/reading')->name('teacher.reading.')->group(function () {
+        
+        Route::get('/generate', [ReadingController::class, 'generateList'])->name('index');
+
+        Route::post('/generate-all', [ReadingController::class, 'generateAll'])->name('generateAll');
+        Route::post('/save-log', [ReadingController::class, 'saveWeeklyLog'])->name('saveWeeklyLog');
+        Route::post('/student/{student}/assign', [ReadingController::class, 'assignBook'])->name('assignBook');
+
+    });
 });
 
 // user profile, anyone logged in can visit
