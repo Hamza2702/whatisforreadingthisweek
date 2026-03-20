@@ -4,17 +4,24 @@
     <!-- Classes -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
       
-      @forelse(($yearGroups ?? []) as $group)
+      <!-- collect() to sort active classes to top and inactive at the bottom -->
+      @forelse(collect($yearGroups ?? [])->sortByDesc('active') as $group)
 
         @php
           $displayYear = $group['year'] == 0 ? 'Reception' : 'Year ' . $group['year'];
         @endphp
 
-        <!-- class card -->
-        <div class="bg-[#755f540a] border border-[#755f5420] hover:border-primary/30 rounded-3xl p-5 md:p-6 shadow-sm hover:shadow-md flex flex-col justify-between group relative">
-
-        <!-- delete button -->
-        <form action="{{ route('teacher.classes.destroy', $group['id'] ?? $group['slug']) }}" method="POST" class="absolute -top-3 -right-3 z-20 m-0" onsubmit="return confirm('Are you sure you want to delete {{ $group['name'] }}? You cannot restore a classroom.')">
+        <!-- Check if classroom is active -->
+        @if (!$group['active'])
+            <!-- INACTIVE -->
+            <div id="classroom-{{ $group['id'] ?? $group['slug'] }}" data-classroom-id="{{ $group['id'] ?? $group['slug'] }}" class="bg-gray-50 border border-gray-200 transition-all rounded-3xl p-5 md:p-6 shadow-sm flex flex-col justify-between group relative">
+        @else
+            <!-- ACTIVE -->
+            <div id="classroom-{{ $group['id'] ?? $group['slug'] }}" data-classroom-id="{{ $group['id'] ?? $group['slug'] }}" class="bg-[#755f540a] border border-[#755f5420] hover:border-primary/30 rounded-3xl p-5 md:p-6 shadow-sm hover:shadow-md flex flex-col justify-between group relative">
+        @endif
+        
+          <!-- delete button -->
+          <form action="{{ route('teacher.classes.removeClassroom', $group['id'] ?? $group['slug']) }}" method="POST" class="absolute -top-3 -right-3 z-20 m-0" onsubmit="return confirm('Are you sure you want to delete {{ $group['name'] }}? You cannot restore a classroom.')">
             @csrf
             @method('DELETE')
             <button type="submit" title="Delete Class" class="w-8 h-8 flex items-center justify-center bg-white border-2 border-red-200 text-red-400 rounded-3xl hover:bg-red-500 hover:text-white hover:border-red-500 shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2">
@@ -24,13 +31,24 @@
             </button>
           </form>
 
-          <!-- year group and member -->
-          <div>
+          <!-- if inactive = grey hover -->
+          <div class="@if(!$group['active']) opacity-50 grayscale group-hover:opacity-100 group-hover:grayscale-0 transition-all duration-300 @endif">
+            
             <div class="flex justify-between items-start mb-4">
-              <!-- year group -->
-              <span class="px-4 py-2 bg-primary text-background rounded-lg text-xs font-black uppercase tracking-widest shadow-sm">
-                {{ $displayYear }}
-              </span>
+              
+              <div class="flex items-center gap-2">
+                <!-- year group -->
+                <span class="px-4 py-2 bg-primary text-background rounded-lg text-xs font-black uppercase tracking-widest shadow-sm">
+                  {{ $displayYear }}
+                </span>
+
+                <!-- inactive badge -->
+                @if (!$group['active'])
+                  <span class="px-2 py-1 bg-gray-500 text-white rounded-md text-[10px] font-bold uppercase tracking-wider">
+                    Inactive
+                  </span>
+                @endif
+              </div>
               
               <!-- student count-->
               <span class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-primary/10 text-primary/80 text-sm font-bold shadow-sm" title="Total Students">
@@ -41,41 +59,91 @@
               </span>
             </div>
 
+            <!-- Class name and classroom id-->
             <h3 class="text-2xl font-black text-primary mb-1 truncate" title="{{ $group['name'] }}">
-              {{ $group['name'] }}
+              {{ $group['name'] }} <span class="text-base font-semibold text-primary/40 ml-1">#{{ $group['id'] ?? $group['slug'] }}</span>
             </h3>
           </div>
 
           <!-- Buttons -->
-          <div class="mt-6 grid grid-cols-3 gap-2">
-            
-            <!-- view class -->
-            <a href="{{ url('/teacher/classes/'.$group['slug'].'/view') }}" class="py-2.5 bg-primary border-2 border-primary text-background font-bold text-[10px] xl:text-xs rounded-xl text-center hover:bg-orange-900 transition-colors flex flex-col items-center justify-center gap-1 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-              </svg>
-              View
-            </a>
-            
-            <!-- manage students -->
-            <a href="{{ url('/teacher/classes/'.$group['slug'].'/students') }}" class="py-2.5 bg-white border-2 border-primary/10 text-primary/70 font-bold text-[10px] xl:text-xs rounded-xl text-center hover:bg-orange-50 hover:border-primary/30 hover:text-primary transition-colors flex flex-col items-center justify-center gap-1 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-              </svg>
-              Manage
-            </a>
-            
-            <!-- reading list books -->
-            <a href="{{ url('/teacher/classes/'.$group['slug'].'/reading-list') }}" class="py-2.5 bg-white border-2 border-primary/10 text-primary/70 font-bold text-[10px] xl:text-xs rounded-xl text-center hover:bg-orange-50 hover:border-primary/30 hover:text-primary transition-colors flex flex-col items-center justify-center gap-1 shadow-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-              </svg>
-              Books
-            </a>
+          @if (!$group['active'])
+              <!-- INACTIVE CLASSROOM -->
+              <div class="mt-6 w-full flex flex-col gap-2">
+                
+                <!-- academic year -->
+                <div class="text-start">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-200 px-3 py-1 rounded-md">
+                        {{ str_replace(['/', '-'], ' to ', $group['academic_year'] ?? '') }}
+                    </span>
+                </div>
 
-          </div>
+                @if (!$group['is_progressed'])
+                    @if ($group['year'] == '6')
+                    @else
+                        <!-- Progress button (year 1 to 5)) -->
+                        <form action="{{ route('teacher.classes.progressClassroom', $group['slug']) }}" method="POST" class="inline-block w-full m-0" onsubmit="return confirm('Are you sure you want to progress this class to the next year? A new active classroom will be created for Year {{ $group['year'] + 1 }}, and the students will be moved into it.');">
+                          @csrf
+                          @method('PATCH')
+                          <button type="submit" class="bg-green-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-green-600 w-full shadow-sm transition-colors cursor-pointer border-none outline-none mt-2">
+                              <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">Progress students</span>
+                          </button>
+                        </form>
+                    @endif
 
+                @else
+                    <!-- already progressed / year 6 -->
+                    <div class="mt-4 w-full bg-gray-200 rounded-xl p-3 flex justify-center items-center text-center shadow-inner border border-gray-300">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
+                            {{ $group['year'] == '6' ? 'Cannot progress' : 'Already Progressed' }}
+                        </span>
+                    </div>
+                @endif
+                <!-- Restore classroom button -->
+                <form action="{{ route('teacher.classes.restoreClassroom', $group['slug']) }}" method="POST" class="inline-block w-full m-0" onsubmit="return confirm('Are you sure you want to restore this classroom? All previous students will be added automatically');">
+                  @csrf
+                  @method('PATCH')
+                  <button type="submit" class="bg-amber-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-amber-600 w-full shadow-sm transition-colors cursor-pointer border-none outline-none">
+                      <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">Restore classroom</span>
+                  </button>
+                </form>
+              </div>
+          @else
+            <!-- Active classroom buttons -->
+            <div>
+              <!-- academic year -->
+                <div class="text-start">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-200 px-3 py-1 rounded-md">
+                        {{ str_replace(['/', '-'], ' to ', $group['academic_year'] ?? '') }}
+                    </span>
+                </div>
+            </div>
+            <div class="mt-6 grid grid-cols-3 gap-2">
+              <!-- view class -->
+              <a href="{{ url('/teacher/classes/'.$group['slug'].'/view') }}" class="py-2.5 bg-primary border-2 border-primary text-background font-bold text-[10px] xl:text-xs rounded-xl text-center hover:bg-orange-900 transition-colors flex flex-col items-center justify-center gap-1 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+                View
+              </a>
+              
+              <!-- manage students -->
+              <a href="{{ url('/teacher/classes/'.$group['slug'].'/students') }}" class="py-2.5 bg-white border-2 border-primary/10 text-primary/70 font-bold text-[10px] xl:text-xs rounded-xl text-center hover:bg-orange-50 hover:border-primary/30 hover:text-primary transition-colors flex flex-col items-center justify-center gap-1 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+                </svg>
+                Manage
+              </a>
+              
+              <!-- reading list books -->
+              <a href="{{ url('/teacher/classes/'.$group['slug'].'/reading-list') }}" class="py-2.5 bg-white border-2 border-primary/10 text-primary/70 font-bold text-[10px] xl:text-xs rounded-xl text-center hover:bg-orange-50 hover:border-primary/30 hover:text-primary transition-colors flex flex-col items-center justify-center gap-1 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                </svg>
+                Books
+              </a>
+            </div>
+          @endif
         </div>
 
       @empty

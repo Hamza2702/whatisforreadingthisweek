@@ -28,6 +28,9 @@ class TeacherController extends Controller
                 'students' => $c->students_count,
                 // classroom id as slug
                 'slug'     => $c->id,
+                'active'   => $c->active,
+                'academic_year' => $c->academic_year,
+                'is_progressed' => $c->is_progressed,
             ])
             ->toArray();
     }
@@ -233,14 +236,12 @@ class TeacherController extends Controller
         // Longer time limit for larger file imports
         set_time_limit(300);
         ini_set('max_execution_time', 300);
-        
+
         // Check if teacher owns classroom
         $this->ensureOwnsClassroom($classroom);
         
         // validate file
-        $validated = $request->validate([
-            'students_csv' => 'required|file|mimes:csv,txt|max:2048',
-        ]);
+        $request->validate(['students_csv' => 'required|file|mimes:csv,txt|max:2048']);
         
         // CSV file
         try {
@@ -252,58 +253,59 @@ class TeacherController extends Controller
                     ->back()
                     ->with('error', 'No file was uploaded.');
             }
-            
+
             // Open file
             $handle = fopen($file->getRealPath(), 'r');
+            if ($handle === false) return redirect()->back()->with('error', 'Could not open the CSV file.');
             
-            // Check if file is successfully opened
-            if ($handle === false) {
-                return redirect()
-                    ->back()
-                    ->with('error', 'Could not open the CSV file.');
-            }
+            $firstLine = fgets($handle);
+            $delimiter = strpos($firstLine, ';') !== false ? ';' : ',';
+            rewind($handle);
             
             // Read header row
-            $header = fgetcsv($handle, 1000, ',');
-            
-            // Validate header
+            $header = fgetcsv($handle, 1000, $delimiter);
             if ($header === false) {
                 fclose($handle);
-                return redirect()
-                    ->back()
-                    ->with('error', 'CSV file is empty or invalid.');
+                return redirect()->back()->with('error', 'CSV file is empty or invalid.');
             }
+
+            // make everything lowercase and remove extra spaces etc
+            $normalizedHeader = array_map(function($col) {
+                return strtolower(trim(str_replace("\xEF\xBB\xBF", '', $col)));
+            }, $header);
             
-            // Headers
             $studentsData = [];
             
             // Collect all student data
-            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+            while (($data = fgetcsv($handle, 1000, $delimiter)) !== false) {
                 // Skip empty rows
                 if (empty(array_filter($data))) {
                     continue;
                 }
-                
-                $row = array_combine($header, $data);
-                
+                // skip any broken rows
+                if (count($normalizedHeader) !== count($data)) continue;
+
+                $row = array_combine($normalizedHeader, $data);
+
                 // Parse DOB
                 $dob = null;
-                if (!empty($row['Date of Birth'])) {
+                // look for dob
+                if (!empty($row['date of birth'])) {
                     try {
-                        $dob = date('Y-m-d', strtotime($row['Date of Birth']));
+                        $dobStr = str_replace('/', '-', trim($row['date of birth']));
+                        $dob = date('Y-m-d', strtotime($dobStr));
                     } catch (\Exception $e) {
                         $dob = null;
                     }
                 }
-                
+
                 // create student data array
                 $studentData = [
-                    'first_name' => trim($row['First Name'] ?? ''),
-                    'last_name'  => trim($row['Last Name'] ?? ''),
-                    'username'   => trim($row['Username'] ?? ''),
+                    'first_name' => trim($row['first name'] ?? ''),
+                    'last_name'  => trim($row['last name'] ?? ''),
                     'dob'        => $dob,
-                    'level'      => !empty($row['Level']) ? (int)$row['Level'] : null,
-                    'active'     => !empty($row['Active']) && strtolower(trim($row['Active'])) === 'yes',
+                    'level'      => !empty($row['level']) ? (int)$row['level'] : null,
+                    'active'     => !empty($row['active']) && strtolower(trim($row['active'])) === 'yes',
                 ];
                 
                 // skip if first name or last name is empty
@@ -315,66 +317,47 @@ class TeacherController extends Controller
             }
             
             fclose($handle);
-            
+
             // Use DB transaction
+            if (empty($studentsData)) {
+                return redirect()->back()->with('error', 'No valid students found in CSV. Please ensure headers are exactly: First Name, Last Name, Level, Date of Birth, Active.');
+            }
+
             \DB::beginTransaction();
             // Used to check if there are any students created/linked/skipped
             // If so, the transaction rolls back and 0 students are added = better than some added
-            
             // Get each student
             try {
                 $studentsCreated = 0;
                 $studentsLinked = 0;
                 $studentsSkipped = 0;
                 
-                // Loop through each student
-                foreach ($studentsData as $studentData) {
-                    // Check if username already exists
-                    if (!empty($studentData['username'])) {
-                        $existingUser = User::where('username', $studentData['username'])->first();
-                        
-                        // If user exists and is a student
-                        if ($existingUser && $existingUser->role === 'Student') {
-                            $existingStudent = Student::where('user_id', $existingUser->id)->first();
-                            
-                            if ($existingStudent) {
-                                // Check if students are already in the classrtoom
-                                if ($classroom->students()->where('student_id', $existingStudent->id)->exists()) {
-                                    $studentsSkipped++;
-                                    continue;
-                                }
-                                
-                                // Link existing student to this classroom
-                                $classroom->students()->attach($existingStudent->id, [
-                                    'active' => $studentData['active'] ?? true,
-                                ]);
-                                $studentsLinked++;
-                                continue;
-                            }
-                        }
-                    }
+                                foreach ($studentsData as $studentData) {
                     
-                    // Check if student with same name and DOB already exists in this school
+                    // Avoid duplicate students
                     $query = Student::where('school_id', $classroom->school_id)
-                        ->where('first_name', $studentData['first_name'])
-                        ->where('last_name', $studentData['last_name']);
+                        // match names
+                        ->whereRaw('LOWER(first_name) = ?', [strtolower($studentData['first_name'])])
+                        ->whereRaw('LOWER(last_name) = ?', [strtolower($studentData['last_name'])]);
                     
                     if (!empty($studentData['dob'])) {
-                        $query->where('date_of_birth', $studentData['dob']);
+                        // wheredate() = ignores weird dobs
+                        $query->whereDate('date_of_birth', $studentData['dob']);
                     }
                     
                     $existingStudent = $query->first();
-                    
+
                     if ($existingStudent) {
                         // Check if already in this classroom
                         if ($classroom->students()->where('student_id', $existingStudent->id)->exists()) {
                             $studentsSkipped++;
                             continue;
                         }
-                        
+
                         // Link existing student to this classroom
                         $classroom->students()->attach($existingStudent->id, [
-                            'active' => $studentData['active'] ?? true,
+                            'active'    => $studentData['active'] ?? true,
+                            'school_id' => $classroom->school_id, 
                         ]);
                         $studentsLinked++;
                     } else {
@@ -385,34 +368,15 @@ class TeacherController extends Controller
                 }
                 
                 \DB::commit();
-
-                // Success messages
+                // new success messages fixed?
                 $message = [];
-                if ($studentsCreated > 0) {
-                    if ($studentsCreated === 1) {
-                        $message[] = "1 new student added!";;
-                    } else {
-                        $message[] = "{$studentsCreated} new students added!";
-                    }
-                }
-                if ($studentsLinked > 0) {
-                    if ($studentsLinked === 1) {
-                        $message[] = "1 existing student joined the classroom!";
-                    } else {
-                        $message[] = "{$studentsLinked} existing students joined the classroom!";
-                    }
-                }
-                if ($studentsSkipped > 0) {
-                    if ($studentsSkipped === 1) {
-                        $message[] = "1 student is already in the classroom!";
-                    } else {
-                        $message[] = "{$studentsSkipped} students are already in the classroom!";
-                    }
-                }
+                if ($studentsCreated > 0) $message[] = $studentsCreated === 1 ? "1 new student added!" : "{$studentsCreated} new students added!";
+                if ($studentsLinked > 0) $message[] = $studentsLinked === 1 ? "1 existing student joined the classroom!" : "{$studentsLinked} existing students joined the classroom!";
+                if ($studentsSkipped > 0) $message[] = $studentsSkipped === 1 ? "1 student was already in the classroom!" : "{$studentsSkipped} students were already in the classroom!";
                 
                 return redirect()
                     ->route('teacher.classes.students', $classroom->id)
-                    ->with('success', implode(', ', $message));
+                    ->with('success', implode(' ', $message));
                     
             } catch (\Exception $e) {
                 \DB::rollBack();
@@ -425,7 +389,6 @@ class TeacherController extends Controller
                 ->with('error', 'Error importing students: ' . $e->getMessage());
         }
     }
-
 
     // Export student list CSV
     public function exportStudents(Classroom $classroom)
@@ -505,24 +468,6 @@ class TeacherController extends Controller
         return redirect()->route('teacher.index')->with('success', 'Class created successfully.');
     }
 
-    // Delete class
-    public function destroy(Classroom $classroom)
-    {
-        // check if teacher owns the class
-        if($classroom->teacher_id !== auth()->id()){
-            abort(403, "Unauthorised action");
-        }
-        
-        // unassign students
-        $classroom->students()->update(['classroom_id' => null]);
-
-        // delete class
-        $classroom->delete();
-
-        // redirect
-        return redirect()->route('teacher.index')->with('success', 'Classroom deleted successfully');
-    }
-
     // Remove student
     public function removeStudent(Classroom $classroom, int $studentId)
     {
@@ -580,12 +525,13 @@ class TeacherController extends Controller
             'pfp'            => $randomPfp,
             'active'         => $data['active'] ?? true,
             'is_special'     => $data['is_special'] ?? false,
-            'classroom_id'   => $data['classroom_id'],
+            'classroom_id'   => $classroom->id,
         ]);
         
         // Attach to classroom
         $classroom->students()->attach($student->id, [
-            'active' => $data['active'] ?? true,
+            'active'    => $data['active'] ?? true,
+            'school_id' => $classroom->school_id,
         ]);
 
         return $student;

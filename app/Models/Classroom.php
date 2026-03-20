@@ -18,6 +18,7 @@ class Classroom extends Model
         'stage',
         'academic_year',
         'active',
+        'is_progressed',
     ];
 
     protected $casts = [

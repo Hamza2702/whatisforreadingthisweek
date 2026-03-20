@@ -6,6 +6,7 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\ReadingController;
+use App\Http\Controllers\ClassroomController;
 
 // Explore page
 Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 
@@ -91,8 +92,8 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
         ->name('teacher.classes.importStudents');
 
     // Delete classroom
-    Route::delete('/classes/{classroom}', [TeacherController::class, 'destroy'])
-        ->name('teacher.classes.destroy');
+    Route::delete('/classes/{classroom}', [ClassroomController::class, 'removeClassroom'])
+        ->name('teacher.classes.removeClassroom');
 
     // Add book
     Route::post('/explore/add', [ExploreController::class, 'addBook'])->name('explore.addBook');
@@ -108,8 +109,16 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
         Route::post('/generate-all', [ReadingController::class, 'generateAll'])->name('generateAll');
         Route::post('/save-log', [ReadingController::class, 'saveWeeklyLog'])->name('saveWeeklyLog');
         Route::post('/student/{student}/assign', [ReadingController::class, 'assignBook'])->name('assignBook');
-
     });
+
+    // Archive classroom
+    Route::patch('/teacher/classes/{id}/archive', [ClassroomController::class, 'archiveClassroom'])
+    ->name('teacher.classes.archiveClassroom');
+
+    // Progress archived classroom
+    Route::patch('/teacher/classes/{id}/progress', [ClassroomController::class, 'progressClassroom'])->name('teacher.classes.progressClassroom');
+    // Restore archived classroom
+    Route::patch('/teacher/classes/{id}/restore', [ClassroomController::class, 'restoreClassroom'])->name('teacher.classes.restoreClassroom');
 });
 
 // user profile, anyone logged in can visit
