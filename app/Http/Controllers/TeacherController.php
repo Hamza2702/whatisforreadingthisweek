@@ -11,9 +11,33 @@ use App\Models\Student;
 use Illuminate\Support\Str;
 use \Carbon\Carbon;
 use App\Models\Book;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 class TeacherController extends Controller
 {
+    // ===================================================================
+    // Kitten username words
+    // ===================================================================
+    protected array $kittenAdjectives = [
+        'Fluffy', 'Tiny', 'Soft', 'Fuzzy', 'Cuddly', 'Silky', 'Velvet', 'Plump', 'Sleek', 'Striped',
+        'Spotted', 'Patchy', 'Ginger', 'Snowy', 'Ebony', 'Creamy', 'Dusty', 'Misty', 'Smoky', 'Tabby',
+        'Cute', 'Sweet', 'Playful', 'Sleepy', 'Purring', 'Lazy', 'Bouncy', 'Curious', 'Sneaky', 'Grumpy',
+        'Cheeky', 'Jolly', 'Witty', 'Brave', 'Shy', 'Dainty', 'Sassy', 'Dizzy', 'Clumsy', 'Peppy',
+        'Magic', 'Cosmic', 'Starry', 'Dreamy', 'Lucky', 'Sparkly', 'Rainbow', 'Bubbly', 'Zesty', 'Glittery',
+        'Funky', 'Jazzy', 'Snazzy', 'Fancy', 'Royal', 'Mighty', 'Speedy', 'Nifty', 'Cozy', 'Hyper',
+        'Wobbly', 'Scruffy', 'Shaggy', 'Perky', 'Jumpy', 'Loopy', 'Zippy', 'Dozy', 'Nosy', 'Quirky',
+    ];
+
+    protected array $kittenNames = [
+        'Kitten', 'Kitty', 'Cat', 'Paws', 'Whiskers', 'Mittens', 'Furball', 'Tabby', 'Moggy', 'Tomcat',
+        'Mochi', 'Biscuit', 'Waffle', 'Pancake', 'Muffin', 'Cookie', 'Brownie', 'Pudding', 'Custard', 'Toffee',
+        'Butterscotch', 'Caramel', 'Cheddar', 'Pretzel', 'Nugget', 'Noodle', 'Dumpling', 'Pickle', 'Peanut', 'Cocoa',
+        'Petal', 'Blossom', 'Meadow', 'Clover', 'Acorn', 'Hazel', 'Willow', 'Daisy', 'Fern', 'Briar',
+        'Snuggle', 'Cuddle', 'Bubble', 'Doodle', 'Sprinkle', 'Twinkle', 'Dimple', 'Freckle', 'Marble', 'Pebble',
+        'Meow', 'Purr', 'Mrow', 'Nap', 'Zoomie', 'Floof', 'Boop', 'Bonk', 'Chirp', 'Trill',
+    ];
+
     // Get year groups for a teacher
     private function yearGroupsForTeacher(int $teacherId): array
     {
@@ -122,7 +146,7 @@ class TeacherController extends Controller
             8 => 'Purple',
             9 => 'Gold',
             10 => 'White', 
-            1 => 'Lime', 
+            11 => 'Lime', 
             12 => 'Lime+',
             13, 14 => 'Grey',
             15, 16 => 'Dark Blue', 
@@ -143,26 +167,56 @@ class TeacherController extends Controller
     // Create student usernames
     protected function createStudentUsername(): string
     {
-        $colours = collect([
-            'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Black', 'White', 'Grey',
-            'Gold', 'Silver', 'Cyan', 'Magenta', 'Lime', 'Teal', 'Navy', 'Maroon', 'Olive', 'Coral', 'Turquoise',
-            'Violet', 'Indigo', 'Amber', 'Crimson', 'Azure', 'Beige', 'Lavender', 'Mint', 'Peach', 'Salmon', 'Tan',
-            'Chocolate', 'Plum', 'Rose', 'Sapphire', 'Emerald',
-        ]);
+        do {
+            $adjective = $this->kittenAdjectives[array_rand($this->kittenAdjectives)];
+            $name      = $this->kittenNames[array_rand($this->kittenNames)];
+            $number    = str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+            $username  = $adjective . $name . $number;
+        } while (User::where('username', $username)->exists());
 
-        $animals = collect([
-            'Lion', 'Tiger', 'Bear', 'Wolf', 'Fox', 'Eagle', 'Hawk', 'Shark', 'Dolphin', 'Whale', 'Penguin',
-            'Kangaroo', 'Panda', 'Giraffe', 'Zebra', 'Elephant', 'Cheetah', 'Leopard', 'Rabbit', 'Deer',
-            'Otter', 'Raccoon', 'Squirrel', 'Badger', 'Hedgehog', 'Turtle', 'Frog', 'Toad', 'Snake', 'Lizard',
-            'Butterfly', 'Bee', 'Ant', 'Dragonfly', 'Ladybug', 'Cat', 'Dog', 'Mouse', 'Rat', 'Hamster', 'Raccoon',
-            'Owl', 'Parrot', 'Flamingo', 'Peacock',
-        ]);
+        return $username;
+    }
 
-    do {
-        $username = $colours->random() . $animals->random() . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-    } while (User::where('username', $username)->exists());
+    // ===================================================================
+    // Download and store PFP from Robohash
+    // stored at storage/app/public/pfp
+    // ===================================================================
+    protected function downloadKittenPfp(string $username): string
+    {
+        // create directory
+        Storage::disk('public')->makeDirectory('pfp/kittens');
 
-    return $username;
+        // set path w/ image
+        $storagePath = 'pfp/kittens/' . $username . '.png';
+
+        // Reuse if already downloaded
+        if (Storage::disk('public')->exists($storagePath)) {
+            return Storage::url($storagePath);
+        }
+
+        // set=set4 = robohash kittens
+        // bgset=bg1 = coloured background
+        // size = 200x200
+        $robohashUrl = sprintf(
+            'https://robohash.org/%s?set=set4&bgset=bg1&size=200x200',
+            urlencode($username)
+        );
+
+        try {
+            $response = Http::timeout(15)->get($robohashUrl);
+            
+            // set
+            if ($response->successful()) {
+                Storage::disk('public')->put($storagePath, $response->body());
+                return Storage::url($storagePath);
+            }
+
+        } catch (\Exception $e) {
+            //
+        }
+
+        // just set to cat if it doesnt work
+        return '/images/pfp/cat.png';
     }
 
     // Create Students
@@ -331,10 +385,9 @@ class TeacherController extends Controller
                 $studentsCreated = 0;
                 $studentsLinked = 0;
                 $studentsSkipped = 0;
-                
-                                foreach ($studentsData as $studentData) {
-                    
-                    // Avoid duplicate students
+
+                // Avoid duplicate students                
+                foreach ($studentsData as $studentData) {
                     $query = Student::where('school_id', $classroom->school_id)
                         // match names
                         ->whereRaw('LOWER(first_name) = ?', [strtolower($studentData['first_name'])])
@@ -393,7 +446,7 @@ class TeacherController extends Controller
     // Export student list CSV
     public function exportStudents(Classroom $classroom)
     {
-        $fileName = "Year_" . $classroom->year_group . "_". $classroom->name . '_Students_List.csv';
+        $fileName = "Year_" . $classroom->year_group . "_" . $classroom->name . '_Students_List.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -499,8 +552,9 @@ class TeacherController extends Controller
         // Create username and password
         $username = $this->createStudentUsername();
         $normalpassword = Str::password(10);
-        
-        $randomPfp = '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random();
+
+        // Download and store kitten pfp from Robohash set4
+        $pfpPath = $this->downloadKittenPfp($username);
 
         // Create user
         $user = User::create([
@@ -510,7 +564,7 @@ class TeacherController extends Controller
             'phone'     => null,
             'password'  => bcrypt($normalpassword),
             'role'      => 'Student',
-            'pfp'       => $randomPfp,
+            'pfp'       => $pfpPath,
             'school_id' => $classroom->school_id,
         ]);
 
@@ -522,7 +576,7 @@ class TeacherController extends Controller
             'last_name'      => $data['last_name'],
             'date_of_birth'  => $data['dob'] ?? null,
             'level'          => $data['level'] ?? $classroom->year_group,
-            'pfp'            => $randomPfp,
+            'pfp'            => $pfpPath,
             'active'         => $data['active'] ?? true,
             'is_special'     => $data['is_special'] ?? false,
             'classroom_id'   => $classroom->id,

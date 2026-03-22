@@ -66,4 +66,18 @@ class Student extends Model
         // returns what the student is reading
         return $this->books()->wherePivot('status', 'reading')->first();
     }
+
+    // students can have many reviews
+    public function bookReviews()
+    {
+        return $this->hasMany(BookReview::class);
+    }
+
+    // book review upvotes
+    public function upvotedReviews()
+    {
+        return $this->belongsToMany(BookReview::class, 'book_review_upvotes', 'student_id', 'book_review_id')
+            ->withPivot('school_id', 'book_id')
+            ->withTimestamps();
+    }
 }

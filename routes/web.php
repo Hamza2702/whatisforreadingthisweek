@@ -7,6 +7,7 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\ReadingController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\BookReviewController;
 
 // Explore page
 Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 
@@ -125,3 +126,12 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
 Route::get('/user/{id}', [UserController::class, 'show'])->name('user.show')->middleware('auth');
 // get own profile
 Route::get('/user/profile', [UserController::class, 'profile'])->name('user.profile')->middleware('auth');
+
+// Book reviews
+Route::post('/books/reviews/{reviewId}/upvote', [BookReviewController::class, 'upvote'])
+    ->middleware('auth')
+    ->name('reviews.upvote');
+
+Route::get('/books/{id}/review', [BookReviewController::class, 'create'])->middleware('auth');
+Route::post('/books/{id}/review', [BookReviewController::class, 'store'])->middleware('auth');
+Route::delete('/books/{bookId}/review/{reviewId}', [BookReviewController::class, 'destroy'])->middleware('auth');

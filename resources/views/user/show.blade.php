@@ -5,7 +5,7 @@
         <div class="bg-[#755f540a] border border-[#755f5420] rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-sm relative overflow-hidden">
                 <!-- Avatar and level -->
                 <div class="relative flex-shrink-0">
-                    <img src="{{ asset($user->student->pfp ?? '/images/Placeholder.jpeg') }}" alt="Profile Picture" class="w-24 h-24 md:w-28 md:h-28 rounded-full ring-4 ring-white shadow-md object-cover">
+                    <img src="{{ asset($user->pfp ?? '/images/Placeholder.jpeg') }}" alt="Profile Picture" class="w-24 h-24 md:w-28 md:h-28 rounded-full ring-4 ring-white shadow-md object-cover">
                     <span class="absolute -bottom-2 -right-2 bg-level-{{ $user->student->level ?? '0' }} text-level-{{ $user->student->level ?? '0' }} text-xs font-black px-3 py-1 rounded-full border-2 border-white shadow-sm">
                         LVL {{ $user->student->level ?? '0' }}
                     </span>
@@ -14,14 +14,18 @@
                 <!-- User info -->
                 <div class="flex-1 text-primary text-center sm:text-left space-y-2 mt-2 sm:mt-0 relative z-10">
                     <h1 class="text-3xl md:text-4xl font-display font-bold text-primary tracking-tight">
-                        {{ $user->student->first_name }} {{ $user->student->last_name }}
+                        @if($user->student)
+                            {{ $user->student->first_name }} {{ $user->student->last_name }}
+                        @else
+                            {{ $user->name }}
+                        @endif
                     </h1>
                     <!-- Username and school -->
                     <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 text-base">
                     <span class="opacity-70 font-semibold">{{ '@' . $user->username }}</span>
                     <span class="opacity-70 font-medium">|</span>
                     <span class="opacity-70 font-medium">
-                        {{ $user->student->school?->name ?? 'No School Assigned' }}
+                        {{ $user->school->name ?? 'No School Assigned' }}
                     </span>
                 </div>
                 
@@ -174,7 +178,7 @@
                     @empty
                         <div class="h-full flex flex-col items-center justify-center text-center opacity-60">
                             <p class="text-sm font-bold text-primary">No completed books yet!</p>
-                            <p class="text-[10px] text-primary/60 mt-1">Books will appear once {{$user->student->first_name }} has finished a book!</p>
+                            <p class="text-[10px] text-primary/60 mt-1">Books will appear once {{ $user->name }} has finished a book!</p>
                         </div>
                     @endforelse
 

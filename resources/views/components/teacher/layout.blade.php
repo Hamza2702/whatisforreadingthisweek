@@ -163,7 +163,9 @@
               <button type="button" id="settwenty" class="rounded-lg bg-white border border-primary/10 text-primary font-black shadow-sm hover:bg-orange-50 hover:border-primary/40 transition-all text-sm py-2 hover:-translate-y-0.5">+20</button>
               <button type="button" id="setthirty" class="rounded-lg bg-white border border-primary/10 text-primary font-black shadow-sm hover:bg-orange-50 hover:border-primary/40 transition-all text-sm py-2 hover:-translate-y-0.5">+30</button>
             </div>
-          </div>
+          </div>        
+        </div>        
+      </div>
         <!-- =================== STUDENTS READING LIST =================== -->
         <!-- @elseif (request()->routeIs('teacher.classes.reading-list'))
           <form action="{{ route('teacher.reading.generateAll', $classroom->id) }}" method="POST">
@@ -175,10 +177,9 @@
               Auto-Assign All
             </button>
         </form> -->
+        </div>
         @endif
-
       </div>
-
     </div>
 
     <!-- =================== PAGE CONTENT =================== -->

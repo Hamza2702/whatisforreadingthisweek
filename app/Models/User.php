@@ -84,5 +84,12 @@ class User extends Authenticatable
     {
         return $this->isAdmin;
     }
+
+    public function upvotedReviews()
+    {
+        return $this->belongsToMany(BookReview::class, 'book_review_upvotes', 'user_id', 'book_review_id')
+            ->withPivot('school_id', 'book_id')
+            ->withTimestamps();
+    }
     
 }

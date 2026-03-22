@@ -61,24 +61,18 @@ class UserController extends Controller
             return view('user.show', compact('user'));
         }
 
-        if ($currentUser->role === 'Teacher' && $user->isAdmin) {
-            abort(403, 'You are only allowed to view student profiles in your own classroom(s)');
-        }
-
-        // allow if the current user is a teacher or admin
-        if ($currentUser->isTeacher() || $currentUser->isAdmin()){
+        if ($currentUser->isAdmin()) {
             return view('user.show', compact('user'));
         }
 
-        // check students share a classrom w/ each other
-        if ($currentUser->role === 'Student' && $user->role === 'Student') {
-            
-            $currentUserClassroomID = $currentUser->student->classroom_id ?? null;
-            $targetUserClassroomID = $user->student->classroom_id ?? null;
+        // make sure both users belong to a school
+        if (!$currentUser->school_id || !$user->school_id) {
+            abort(403, 'Unauthorized access.');
+        }
 
-            if ($currentUserClassroomId && $currentUserClassroomId == $targetUserClassroomId) {
-                return view('user.show', compact('user'));
-            }
+        // allow if they belong to the same school
+        if ($currentUser->school_id === $user->school_id) {
+            return view('user.show', compact('user'));
         }
 
         // if not allowed, deny access

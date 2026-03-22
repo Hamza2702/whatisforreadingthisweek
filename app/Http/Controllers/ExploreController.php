@@ -9,6 +9,7 @@ use App\Models\Phonic;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class ExploreController extends Controller {
     
@@ -106,11 +107,48 @@ class ExploreController extends Controller {
     }
 
     // show individual book page
-    public function show($id) {
-        // return book, findorfail = (find or fails loading page if user types fake id)
-        $book = Book::with(['genres', 'phonics'])->findOrFail($id);
+    public function show($id, Request $request)
+    {
+        $book = Book::with(['genres', 'phonics', 'reviews.student.user'])->findOrFail($id);
+        $reviews = $book->reviews;
+
+        // get the sort parameter and set default to top
+        $sort = $request->query('sort', 'top');
+
+        // sort reviews based on the filters
+        switch ($sort) {
+            case 'recent':
+                $reviews = $reviews->sortByDesc('created_at')->values();
+                break;
+
+            case 'classroom':
+                if (Auth::check() && Auth::user()->student) {
+                    $classroomID = Auth::user()->student->classroom_id;
+                    $reviews = $reviews->filter(function ($review) use ($classroomID) {
+                        return $review->student && $review->student->classroom_id === $classroomID;
+                    })->sortByDesc('created_at')->values();
+                }
+                break;
+
+            case 'top':
+            default:
+                $reviews = $reviews->sortByDesc('upvotes')->values();
+                break;
+        }
         
-        return view('book', compact('book'));
+        // upvoted review ids
+        $upvotedReviewIds = [];
+        if (Auth::check()) {
+            $upvotedReviewIds = Auth::user()
+                ->upvotedReviews()
+                ->whereIn('book_review_id', $reviews->pluck('id'))
+                ->pluck('book_review_id')
+                ->toArray();
+        }
+
+        $currentSort = $sort;
+
+        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort'));
     }
 
     // Create book
