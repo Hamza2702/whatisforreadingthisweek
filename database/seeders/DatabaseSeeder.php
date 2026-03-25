@@ -245,9 +245,9 @@ class DatabaseSeeder extends Seeder
 
             if ($response->successful()) {
                 Storage::disk('public')->put($storagePath, $response->body());
-                $this->command->line("  ✓ Saved kitten pfp for {$username}");
+                $this->command->line("  Saved kitten pfp for {$username}");
             } else {
-                $this->command->warn("  ✗ Failed to download pfp for {$username} (HTTP {$response->status()})");
+                $this->command->warn("  Failed to download pfp for {$username} (HTTP {$response->status()})");
                 return '/images/pfp/cat.png';
             }
 
