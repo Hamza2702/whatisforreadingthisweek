@@ -10,9 +10,34 @@ use App\Models\User;
 use App\Models\Student;
 use Illuminate\Support\Str;
 use \Carbon\Carbon;
+use App\Models\Book;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 class TeacherController extends Controller
 {
+    // ===================================================================
+    // Kitten username words
+    // ===================================================================
+    protected array $kittenAdjectives = [
+        'Fluffy', 'Tiny', 'Soft', 'Fuzzy', 'Cuddly', 'Silky', 'Velvet', 'Plump', 'Sleek', 'Striped',
+        'Spotted', 'Patchy', 'Ginger', 'Snowy', 'Ebony', 'Creamy', 'Dusty', 'Misty', 'Smoky', 'Tabby',
+        'Cute', 'Sweet', 'Playful', 'Sleepy', 'Purring', 'Lazy', 'Bouncy', 'Curious', 'Sneaky', 'Grumpy',
+        'Cheeky', 'Jolly', 'Witty', 'Brave', 'Shy', 'Dainty', 'Sassy', 'Dizzy', 'Clumsy', 'Peppy',
+        'Magic', 'Cosmic', 'Starry', 'Dreamy', 'Lucky', 'Sparkly', 'Rainbow', 'Bubbly', 'Zesty', 'Glittery',
+        'Funky', 'Jazzy', 'Snazzy', 'Fancy', 'Royal', 'Mighty', 'Speedy', 'Nifty', 'Cozy', 'Hyper',
+        'Wobbly', 'Scruffy', 'Shaggy', 'Perky', 'Jumpy', 'Loopy', 'Zippy', 'Dozy', 'Nosy', 'Quirky',
+    ];
+
+    protected array $kittenNames = [
+        'Kitten', 'Kitty', 'Cat', 'Paws', 'Whiskers', 'Mittens', 'Furball', 'Tabby', 'Moggy', 'Tomcat',
+        'Mochi', 'Biscuit', 'Waffle', 'Pancake', 'Muffin', 'Cookie', 'Brownie', 'Pudding', 'Custard', 'Toffee',
+        'Butterscotch', 'Caramel', 'Cheddar', 'Pretzel', 'Nugget', 'Noodle', 'Dumpling', 'Pickle', 'Peanut', 'Cocoa',
+        'Petal', 'Blossom', 'Meadow', 'Clover', 'Acorn', 'Hazel', 'Willow', 'Daisy', 'Fern', 'Briar',
+        'Snuggle', 'Cuddle', 'Bubble', 'Doodle', 'Sprinkle', 'Twinkle', 'Dimple', 'Freckle', 'Marble', 'Pebble',
+        'Meow', 'Purr', 'Mrow', 'Nap', 'Zoomie', 'Floof', 'Boop', 'Bonk', 'Chirp', 'Trill',
+    ];
+
     // Get year groups for a teacher
     private function yearGroupsForTeacher(int $teacherId): array
     {
@@ -27,6 +52,9 @@ class TeacherController extends Controller
                 'students' => $c->students_count,
                 // classroom id as slug
                 'slug'     => $c->id,
+                'active'   => $c->active,
+                'academic_year' => $c->academic_year,
+                'is_progressed' => $c->is_progressed,
             ])
             ->toArray();
     }
@@ -80,15 +108,51 @@ class TeacherController extends Controller
 
     // Display reading list for the class
     public function classReadingList(Classroom $classroom)
-    {
+    {   
+        // make sure they are a teacher that owns the classroom
         $this->ensureOwnsClassroom($classroom);
+        $students = $classroom->students()->get();
+
+        // loop through students
+        foreach ($students as $student) {
+        $student->ort_colour = $this->getOxfordColour($student->level);
+        
+        // get 10 random books at students reading level
+        $student->recommendedBooks = Book::where('ort_level', $student->level)
+            ->inRandomOrder()
+            ->take(10)
+            ->get();
+        }
 
         // student count
         $classroom->loadCount('students');
 
         $yearGroups = $this->yearGroupsForTeacher(auth()->id());
 
-        return view('teacher.classes.reading-list', compact('classroom', 'yearGroups'));
+        return view('teacher.classes.reading-list', compact('classroom', 'yearGroups', 'students'));
+    }
+
+    // Convert ort to colour
+    private function getOxfordColour($level) {
+        return match((int)$level) {
+            0 => 'Light Purple',
+            1 => 'Pink',
+            2 => 'Red',
+            3 => 'Yellow', 
+            4 => 'Light Blue',
+            5 => 'Green',
+            6 => 'Orange',
+            7 => 'Turquoise', 
+            8 => 'Purple',
+            9 => 'Gold',
+            10 => 'White', 
+            11 => 'Lime', 
+            12 => 'Lime+',
+            13, 14 => 'Grey',
+            15, 16 => 'Dark Blue', 
+            17, 18, 19, 20 => 'Dark Red',
+            default => 'Dark Red',
+        };
     }
 
     // Add Students
@@ -103,26 +167,56 @@ class TeacherController extends Controller
     // Create student usernames
     protected function createStudentUsername(): string
     {
-        $colours = collect([
-            'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Brown', 'Black', 'White', 'Grey',
-            'Gold', 'Silver', 'Cyan', 'Magenta', 'Lime', 'Teal', 'Navy', 'Maroon', 'Olive', 'Coral', 'Turquoise',
-            'Violet', 'Indigo', 'Amber', 'Crimson', 'Azure', 'Beige', 'Lavender', 'Mint', 'Peach', 'Salmon', 'Tan',
-            'Chocolate', 'Plum', 'Rose', 'Sapphire', 'Emerald',
-        ]);
+        do {
+            $adjective = $this->kittenAdjectives[array_rand($this->kittenAdjectives)];
+            $name      = $this->kittenNames[array_rand($this->kittenNames)];
+            $number    = str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+            $username  = $adjective . $name . $number;
+        } while (User::where('username', $username)->exists());
 
-        $animals = collect([
-            'Lion', 'Tiger', 'Bear', 'Wolf', 'Fox', 'Eagle', 'Hawk', 'Shark', 'Dolphin', 'Whale', 'Penguin',
-            'Kangaroo', 'Panda', 'Giraffe', 'Zebra', 'Elephant', 'Cheetah', 'Leopard', 'Rabbit', 'Deer',
-            'Otter', 'Raccoon', 'Squirrel', 'Badger', 'Hedgehog', 'Turtle', 'Frog', 'Toad', 'Snake', 'Lizard',
-            'Butterfly', 'Bee', 'Ant', 'Dragonfly', 'Ladybug', 'Cat', 'Dog', 'Mouse', 'Rat', 'Hamster', 'Raccoon',
-            'Owl', 'Parrot', 'Flamingo', 'Peacock',
-        ]);
+        return $username;
+    }
 
-    do {
-        $username = $colours->random() . $animals->random() . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-    } while (User::where('username', $username)->exists());
+    // ===================================================================
+    // Download and store PFP from Robohash
+    // stored at storage/app/public/pfp
+    // ===================================================================
+    protected function downloadKittenPfp(string $username): string
+    {
+        // create directory
+        Storage::disk('public')->makeDirectory('pfp/kittens');
 
-    return $username;
+        // set path w/ image
+        $storagePath = 'pfp/kittens/' . $username . '.png';
+
+        // Reuse if already downloaded
+        if (Storage::disk('public')->exists($storagePath)) {
+            return Storage::url($storagePath);
+        }
+
+        // set=set4 = robohash kittens
+        // bgset=bg1 = coloured background
+        // size = 200x200
+        $robohashUrl = sprintf(
+            'https://robohash.org/%s?set=set4&bgset=bg1&size=200x200',
+            urlencode($username)
+        );
+
+        try {
+            $response = Http::timeout(15)->get($robohashUrl);
+            
+            // set
+            if ($response->successful()) {
+                Storage::disk('public')->put($storagePath, $response->body());
+                return Storage::url($storagePath);
+            }
+
+        } catch (\Exception $e) {
+            //
+        }
+
+        // just set to cat if it doesnt work
+        return '/images/pfp/cat.png';
     }
 
     // Create Students
@@ -196,14 +290,12 @@ class TeacherController extends Controller
         // Longer time limit for larger file imports
         set_time_limit(300);
         ini_set('max_execution_time', 300);
-        
+
         // Check if teacher owns classroom
         $this->ensureOwnsClassroom($classroom);
         
         // validate file
-        $validated = $request->validate([
-            'students_csv' => 'required|file|mimes:csv,txt|max:2048',
-        ]);
+        $request->validate(['students_csv' => 'required|file|mimes:csv,txt|max:2048']);
         
         // CSV file
         try {
@@ -215,58 +307,59 @@ class TeacherController extends Controller
                     ->back()
                     ->with('error', 'No file was uploaded.');
             }
-            
+
             // Open file
             $handle = fopen($file->getRealPath(), 'r');
+            if ($handle === false) return redirect()->back()->with('error', 'Could not open the CSV file.');
             
-            // Check if file is successfully opened
-            if ($handle === false) {
-                return redirect()
-                    ->back()
-                    ->with('error', 'Could not open the CSV file.');
-            }
+            $firstLine = fgets($handle);
+            $delimiter = strpos($firstLine, ';') !== false ? ';' : ',';
+            rewind($handle);
             
             // Read header row
-            $header = fgetcsv($handle, 1000, ',');
-            
-            // Validate header
+            $header = fgetcsv($handle, 1000, $delimiter);
             if ($header === false) {
                 fclose($handle);
-                return redirect()
-                    ->back()
-                    ->with('error', 'CSV file is empty or invalid.');
+                return redirect()->back()->with('error', 'CSV file is empty or invalid.');
             }
+
+            // make everything lowercase and remove extra spaces etc
+            $normalizedHeader = array_map(function($col) {
+                return strtolower(trim(str_replace("\xEF\xBB\xBF", '', $col)));
+            }, $header);
             
-            // Headers
             $studentsData = [];
             
             // Collect all student data
-            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+            while (($data = fgetcsv($handle, 1000, $delimiter)) !== false) {
                 // Skip empty rows
                 if (empty(array_filter($data))) {
                     continue;
                 }
-                
-                $row = array_combine($header, $data);
-                
+                // skip any broken rows
+                if (count($normalizedHeader) !== count($data)) continue;
+
+                $row = array_combine($normalizedHeader, $data);
+
                 // Parse DOB
                 $dob = null;
-                if (!empty($row['Date of Birth'])) {
+                // look for dob
+                if (!empty($row['date of birth'])) {
                     try {
-                        $dob = date('Y-m-d', strtotime($row['Date of Birth']));
+                        $dobStr = str_replace('/', '-', trim($row['date of birth']));
+                        $dob = date('Y-m-d', strtotime($dobStr));
                     } catch (\Exception $e) {
                         $dob = null;
                     }
                 }
-                
+
                 // create student data array
                 $studentData = [
-                    'first_name' => trim($row['First Name'] ?? ''),
-                    'last_name'  => trim($row['Last Name'] ?? ''),
-                    'username'   => trim($row['Username'] ?? ''),
+                    'first_name' => trim($row['first name'] ?? ''),
+                    'last_name'  => trim($row['last name'] ?? ''),
                     'dob'        => $dob,
-                    'level'      => !empty($row['Level']) ? (int)$row['Level'] : null,
-                    'active'     => !empty($row['Active']) && strtolower(trim($row['Active'])) === 'yes',
+                    'level'      => !empty($row['level']) ? (int)$row['level'] : null,
+                    'active'     => !empty($row['active']) && strtolower(trim($row['active'])) === 'yes',
                 ];
                 
                 // skip if first name or last name is empty
@@ -278,66 +371,46 @@ class TeacherController extends Controller
             }
             
             fclose($handle);
-            
+
             // Use DB transaction
+            if (empty($studentsData)) {
+                return redirect()->back()->with('error', 'No valid students found in CSV. Please ensure headers are exactly: First Name, Last Name, Level, Date of Birth, Active.');
+            }
+
             \DB::beginTransaction();
             // Used to check if there are any students created/linked/skipped
             // If so, the transaction rolls back and 0 students are added = better than some added
-            
             // Get each student
             try {
                 $studentsCreated = 0;
                 $studentsLinked = 0;
                 $studentsSkipped = 0;
-                
-                // Loop through each student
+
+                // Avoid duplicate students                
                 foreach ($studentsData as $studentData) {
-                    // Check if username already exists
-                    if (!empty($studentData['username'])) {
-                        $existingUser = User::where('username', $studentData['username'])->first();
-                        
-                        // If user exists and is a student
-                        if ($existingUser && $existingUser->role === 'Student') {
-                            $existingStudent = Student::where('user_id', $existingUser->id)->first();
-                            
-                            if ($existingStudent) {
-                                // Check if students are already in the classrtoom
-                                if ($classroom->students()->where('student_id', $existingStudent->id)->exists()) {
-                                    $studentsSkipped++;
-                                    continue;
-                                }
-                                
-                                // Link existing student to this classroom
-                                $classroom->students()->attach($existingStudent->id, [
-                                    'active' => $studentData['active'] ?? true,
-                                ]);
-                                $studentsLinked++;
-                                continue;
-                            }
-                        }
-                    }
-                    
-                    // Check if student with same name and DOB already exists in this school
                     $query = Student::where('school_id', $classroom->school_id)
-                        ->where('first_name', $studentData['first_name'])
-                        ->where('last_name', $studentData['last_name']);
+                        // match names
+                        ->whereRaw('LOWER(first_name) = ?', [strtolower($studentData['first_name'])])
+                        ->whereRaw('LOWER(last_name) = ?', [strtolower($studentData['last_name'])]);
                     
                     if (!empty($studentData['dob'])) {
-                        $query->where('date_of_birth', $studentData['dob']);
+                        // wheredate() = ignores weird dobs
+                        $query->whereDate('date_of_birth', $studentData['dob']);
                     }
                     
                     $existingStudent = $query->first();
-                    
+
                     if ($existingStudent) {
                         // Check if already in this classroom
                         if ($classroom->students()->where('student_id', $existingStudent->id)->exists()) {
                             $studentsSkipped++;
                             continue;
                         }
-                        
+
                         // Link existing student to this classroom
                         $classroom->students()->attach($existingStudent->id, [
-                            'active' => $studentData['active'] ?? true,
+                            'active'    => $studentData['active'] ?? true,
+                            'school_id' => $classroom->school_id, 
                         ]);
                         $studentsLinked++;
                     } else {
@@ -348,34 +421,15 @@ class TeacherController extends Controller
                 }
                 
                 \DB::commit();
-
-                // Success messages
+                // new success messages fixed?
                 $message = [];
-                if ($studentsCreated > 0) {
-                    if ($studentsCreated === 1) {
-                        $message[] = "1 new student added!";;
-                    } else {
-                        $message[] = "{$studentsCreated} new students added!";
-                    }
-                }
-                if ($studentsLinked > 0) {
-                    if ($studentsLinked === 1) {
-                        $message[] = "1 existing student joined the classroom!";
-                    } else {
-                        $message[] = "{$studentsLinked} existing students joined the classroom!";
-                    }
-                }
-                if ($studentsSkipped > 0) {
-                    if ($studentsSkipped === 1) {
-                        $message[] = "1 student is already in the classroom!";
-                    } else {
-                        $message[] = "{$studentsSkipped} students are already in the classroom!";
-                    }
-                }
+                if ($studentsCreated > 0) $message[] = $studentsCreated === 1 ? "1 new student added!" : "{$studentsCreated} new students added!";
+                if ($studentsLinked > 0) $message[] = $studentsLinked === 1 ? "1 existing student joined the classroom!" : "{$studentsLinked} existing students joined the classroom!";
+                if ($studentsSkipped > 0) $message[] = $studentsSkipped === 1 ? "1 student was already in the classroom!" : "{$studentsSkipped} students were already in the classroom!";
                 
                 return redirect()
                     ->route('teacher.classes.students', $classroom->id)
-                    ->with('success', implode(', ', $message));
+                    ->with('success', implode(' ', $message));
                     
             } catch (\Exception $e) {
                 \DB::rollBack();
@@ -389,11 +443,10 @@ class TeacherController extends Controller
         }
     }
 
-
     // Export student list CSV
     public function exportStudents(Classroom $classroom)
     {
-        $fileName = "Year_" . $classroom->year_group . "_". $classroom->name . '_Students_List.csv';
+        $fileName = "Year_" . $classroom->year_group . "_" . $classroom->name . '_Students_List.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -468,24 +521,6 @@ class TeacherController extends Controller
         return redirect()->route('teacher.index')->with('success', 'Class created successfully.');
     }
 
-    // Delete class
-    public function destroy(Classroom $classroom)
-    {
-        // check if teacher owns the class
-        if($classroom->teacher_id !== auth()->id()){
-            abort(403, "Unauthorised action");
-        }
-        
-        // unassign students
-        $classroom->students()->update(['classroom_id' => null]);
-
-        // delete class
-        $classroom->delete();
-
-        // redirect
-        return redirect()->route('teacher.index')->with('success', 'Classroom deleted successfully');
-    }
-
     // Remove student
     public function removeStudent(Classroom $classroom, int $studentId)
     {
@@ -517,8 +552,9 @@ class TeacherController extends Controller
         // Create username and password
         $username = $this->createStudentUsername();
         $normalpassword = Str::password(10);
-        
-        $randomPfp = '/images/pfp/' . collect(['lamb.png','cat.png','dog.png','penguin.png','raccoon.png','owl.png','pig.png','wolf.png'])->random();
+
+        // Download and store kitten pfp from Robohash set4
+        $pfpPath = $this->downloadKittenPfp($username);
 
         // Create user
         $user = User::create([
@@ -528,7 +564,7 @@ class TeacherController extends Controller
             'phone'     => null,
             'password'  => bcrypt($normalpassword),
             'role'      => 'Student',
-            'pfp'       => $randomPfp,
+            'pfp'       => $pfpPath,
             'school_id' => $classroom->school_id,
         ]);
 
@@ -540,15 +576,16 @@ class TeacherController extends Controller
             'last_name'      => $data['last_name'],
             'date_of_birth'  => $data['dob'] ?? null,
             'level'          => $data['level'] ?? $classroom->year_group,
-            'pfp'            => $randomPfp,
+            'pfp'            => $pfpPath,
             'active'         => $data['active'] ?? true,
             'is_special'     => $data['is_special'] ?? false,
-            'classroom_id'   => $data['classroom_id'],
+            'classroom_id'   => $classroom->id,
         ]);
         
         // Attach to classroom
         $classroom->students()->attach($student->id, [
-            'active' => $data['active'] ?? true,
+            'active'    => $data['active'] ?? true,
+            'school_id' => $classroom->school_id,
         ]);
 
         return $student;

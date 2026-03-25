@@ -43,11 +43,21 @@
             <p class="text-xs md:text-sm text-primary/70 mt-1">Set up a classroom!</p>
             <!-- students page -->
           @elseif (request()->routeIs('teacher.classes.students') && $classroom)
-            <h2 class="text-lg md:text-3xl font-sans text-primary">{{ $classroom->name }}</h2>
-            <div class="flex items-center md:justify-end gap-3 mt-1 text-primary/70 text-xs md:text-sm">
-              <span class="font-bold">{{ $classroom->year_group == 0 ? 'Reception' : 'Year ' . $classroom->year_group}}</span>
-              <span>{{ $classroom->students_count ?? $classroom->students->count() }} Students</span>
-            </div>
+            <!-- inactive classroom -->
+            @if (!$classroom->active)
+              <h2 class="text-lg md:text-3xl font-sans text-primary">{{ $classroom->name }} is archived</h2>
+              <div class="flex items-center md:justify-end gap-3 mt-1 text-primary text-xs md:text-sm">
+                <span>{{ str_replace(['/', '-'], ' to ', $classroom->academic_year) }}</span>
+                <span class="text-priamry/60">{{ $classroom->students_count ?? $classroom->students->count() }} Students</span>
+              </div>
+          @else
+          <!-- active classroom -->
+              <h2 class="text-lg md:text-3xl font-sans text-primary">{{ $classroom->name }}</h2>
+              <div class="flex items-center md:justify-end gap-3 mt-1 text-primary/70 text-xs md:text-sm">
+                <span class="font-bold">{{ $classroom->year_group == 0 ? 'Reception' : 'Year ' . $classroom->year_group}}</span>
+                <span>{{ $classroom->students_count ?? $classroom->students->count() }} Students</span>
+              </div>
+          @endif
             <!-- add students page -->
           @elseif (request()->routeIs('teacher.classes.addStudents') && $classroom)
             <h2 class="text-lg md:text-3xl font-sans text-primary">{{ $classroom->name }}</h2>
@@ -116,10 +126,18 @@
             <a href="{{ route('teacher.classes.export', $classroom->id) }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
               <span class="text-xs font-bold text-background tracking-widest leading-tight">EXPORT<br>CSV</span>
             </a>
-            <!-- remove all students -->
-            <a onclick="return confirm('Are you sure you want to remove ALL students from this classroom?')" href="{{ route('teacher.classes.removeAllStudents', $classroom->id) }}" class="bg-red-400 rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-red-500">
-              <span class="text-xs font-bold text-background tracking-widest leading-tight">REMOVE<br>ALL STUDENTS</span>
-            </a>
+            @if (!$classroom->active)
+              <!-- something -->
+            @else
+              <!-- archive classroom -->
+              <form action="{{ route('teacher.classes.archiveClassroom', $classroom->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to archive this classroom?');">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="bg-gray-500 rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-black/80 w-full h-full cursor-pointer border-none outline-none">
+                    <span class="text-xs font-bold text-background tracking-widest leading-tight">ARCHIVE<br>CLASSROOM</span>
+                </button>
+              </form>
+            @endif
           @endif
 
         <!-- =================== STUDENTS CREATE PAGE =================== -->
@@ -145,12 +163,23 @@
               <button type="button" id="settwenty" class="rounded-lg bg-white border border-primary/10 text-primary font-black shadow-sm hover:bg-orange-50 hover:border-primary/40 transition-all text-sm py-2 hover:-translate-y-0.5">+20</button>
               <button type="button" id="setthirty" class="rounded-lg bg-white border border-primary/10 text-primary font-black shadow-sm hover:bg-orange-50 hover:border-primary/40 transition-all text-sm py-2 hover:-translate-y-0.5">+30</button>
             </div>
-          </div>
-          
-        @endif
-
+          </div>        
+        </div>        
       </div>
-
+        <!-- =================== STUDENTS READING LIST =================== -->
+        <!-- @elseif (request()->routeIs('teacher.classes.reading-list'))
+          <form action="{{ route('teacher.reading.generateAll', $classroom->id) }}" method="POST">
+            @csrf
+            <button type="submit" class="bg-primary text-background font-bold rounded-xl px-4 py-2.5 shadow-sm hover:bg-orange-900 transition-colors text-sm flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09l2.846.813-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+              </svg>
+              Auto-Assign All
+            </button>
+        </form> -->
+        </div>
+        @endif
+      </div>
     </div>
 
     <!-- =================== PAGE CONTENT =================== -->

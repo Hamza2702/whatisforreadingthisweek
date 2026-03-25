@@ -9,6 +9,7 @@ use App\Models\Phonic;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class ExploreController extends Controller {
     
@@ -106,11 +107,48 @@ class ExploreController extends Controller {
     }
 
     // show individual book page
-    public function show($id) {
-        // return book, findorfail = (find or fails loading page if user types fake id)
-        $book = Book::with(['genres', 'phonics'])->findOrFail($id);
+    public function show($id, Request $request)
+    {
+        $book = Book::with(['genres', 'phonics', 'reviews.student.user'])->findOrFail($id);
+        $reviews = $book->reviews;
+
+        // get the sort parameter and set default to top
+        $sort = $request->query('sort', 'top');
+
+        // sort reviews based on the filters
+        switch ($sort) {
+            case 'recent':
+                $reviews = $reviews->sortByDesc('created_at')->values();
+                break;
+
+            case 'classroom':
+                if (Auth::check() && Auth::user()->student) {
+                    $classroomID = Auth::user()->student->classroom_id;
+                    $reviews = $reviews->filter(function ($review) use ($classroomID) {
+                        return $review->student && $review->student->classroom_id === $classroomID;
+                    })->sortByDesc('created_at')->values();
+                }
+                break;
+
+            case 'top':
+            default:
+                $reviews = $reviews->sortByDesc('upvotes')->values();
+                break;
+        }
         
-        return view('book', compact('book'));
+        // upvoted review ids
+        $upvotedReviewIds = [];
+        if (Auth::check()) {
+            $upvotedReviewIds = Auth::user()
+                ->upvotedReviews()
+                ->whereIn('book_review_id', $reviews->pluck('id'))
+                ->pluck('book_review_id')
+                ->toArray();
+        }
+
+        $currentSort = $sort;
+
+        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort'));
     }
 
     // Create book
@@ -118,24 +156,31 @@ class ExploreController extends Controller {
     {   
         // validate inputs
         $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'author'      => 'required|string|max:255',
-            'ort_level'   => 'required|integer|min:0|max:20',
-            'description' => 'nullable|string',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB max
+            'title'         => 'required|string|max:255',
+            'author'        => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/'], // letters and spaces only
+            'ort_level'     => 'required|integer|min:0|max:20',
+            'description'   => 'nullable|string',
+            'cover_image'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB max
+            'new_phonics'   => 'nullable|array', // phonics array
+            'new_phonics.*' => 'string|alpha|max:50', // letters only for phonics
+        ], [
+            // error messages
+            'author.regex'        => 'Author names can only contain letters and spaces.',
+            'new_phonics.*.alpha' => 'Phonics may only contain letters.',
         ]);
 
         // trim title and author
         $cleanTitle = trim($validated['title']);
         $cleanAuthor = trim($validated['author']);
 
-        // check if book already exists, match title and author
+        // check if book already exists, match BOTH title and author
+        // authors can create multiple books
         $bookExists = Book::whereRaw('LOWER(title) = ?', [strtolower($cleanTitle)])->whereRaw('LOWER(author) = ?', [strtolower($cleanAuthor)])->exists();
 
         if ($bookExists) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'A book with this title and author already exists in the database.');
+                ->withErrors(['duplicate' => 'A book with this title and author already exists.']); // if title and author is the same
         }
 
         // map level to colour
@@ -212,7 +257,7 @@ class ExploreController extends Controller {
         }
 
         // create book
-        Book::create([
+        $newBook = Book::create([
             'ol_key'      => 'NO_OL_CUSTOM_' . \Illuminate\Support\Str::random(10), 
             'title'       => $validated['title'],
             'author'      => $validated['author'],
@@ -221,6 +266,25 @@ class ExploreController extends Controller {
             'ort_colour'  => $ortColour,
             'description' => $validated['description'],
         ]);
+
+        // attach phonics if any were submitted
+        if (!empty($validated['new_phonics'])) {
+            $phonicIds = [];
+            
+            foreach ($validated['new_phonics'] as $sound) {
+                $cleanSound = trim($sound);
+                
+                if ($cleanSound !== '') {
+                    // find existing phonic or create a new one to prevent duplicates
+                    $phonic = Phonic::firstOrCreate(['sound' => $cleanSound]);
+                    $phonicIds[] = $phonic->id;
+                }
+            }
+            
+            if (!empty($phonicIds)) {
+                $newBook->phonics()->sync($phonicIds);
+            }
+        }
 
         return redirect()->back()->with('success', 'Book added successfully!');
     }

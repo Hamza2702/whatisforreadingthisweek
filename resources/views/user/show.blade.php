@@ -14,14 +14,18 @@
                 <!-- User info -->
                 <div class="flex-1 text-primary text-center sm:text-left space-y-2 mt-2 sm:mt-0 relative z-10">
                     <h1 class="text-3xl md:text-4xl font-display font-bold text-primary tracking-tight">
-                        {{ $user->name }}
+                        @if($user->student)
+                            {{ $user->student->first_name }} {{ $user->student->last_name }}
+                        @else
+                            {{ $user->name }}
+                        @endif
                     </h1>
                     <!-- Username and school -->
                     <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 text-base">
                     <span class="opacity-70 font-semibold">{{ '@' . $user->username }}</span>
                     <span class="opacity-70 font-medium">|</span>
                     <span class="opacity-70 font-medium">
-                        {{ $user->school?->name ?? 'No School Assigned' }}
+                        {{ $user->school->name ?? 'No School Assigned' }}
                     </span>
                 </div>
                 
@@ -122,7 +126,7 @@
         </div>
 
         <!-- ========================================= -->
-        <!-- Reading history, genres explored, phonics mastered -->
+        <!-- Reading history, genres liked, phonics mastered -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             <!-- reading history -->
@@ -132,68 +136,74 @@
                     Reading History
                 </h3>
                 <div class="flex-1 overflow-y-auto pr-2 space-y-3">
-                    <!-- Book -->
-                    <div class="flex items-center gap-3 p-3 rounded-2xl bg-[#755f540a] border border-[#755f5410]">
-                        <div class="w-10 h-14 bg-red-200 rounded flex-shrink-0 flex items-center justify-center">
+                    
+                    @php
+                        // get books that are marked as completed in pivot table ordered by latest finished
+                        $readingHistory = $user->student ? $user->student->books()->wherePivot('status', 'completed')->latest('book_student.updated_at')->get() : [];
+                    @endphp
+
+                    @forelse($readingHistory as $book)
+                        <div class="flex items-center gap-3 p-3 rounded-2xl bg-[#755f540a] border border-[#755f5410]">
+                            <!-- book cover -->
+                            <div class="relative w-10 h-14 bg-[#755f540a] border border-[#755f5410] rounded-md overflow-hidden flex-shrink-0 flex items-center justify-center shadow-sm">
+                                @if($book->cover_id && str_starts_with($book->cover_id, 'LOCAL_'))
+                                    @php $imagePath = str_replace('LOCAL_', '', $book->cover_id); @endphp
+                                    <img src="{{ asset('storage/' . $imagePath) }}" alt="{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}" class="absolute inset-0 w-full h-full object-cover">
+                                @elseif($book->cover_id && str_starts_with($book->cover_id, 'PLACEHOLDER_'))
+                                    @php $bgColour = str_replace('PLACEHOLDER_', '', $book->cover_id); @endphp
+                                    <div class="absolute inset-0 w-full h-full flex items-center justify-center p-1 text-center" style="background-color: {{ $bgColour }};">
+                                        <span class="font-black text-white text-[6px] leading-tight drop-shadow-md line-clamp-4">{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}</span>
+                                    </div>
+                                @elseif($book->cover_id)
+                                    <img src="https://books.google.com/books/content?id={{ $book->cover_id }}&printsec=frontcover&img=1&zoom=1" alt="{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}" class="absolute inset-0 w-full h-full object-cover">
+                                @else
+                                    <span class="font-bold text-primary/30 text-[6px] tracking-widest -rotate-12 text-center leading-tight">NO<br>COVER</span>
+                                @endif
+                            </div>
+                            
+                            <!-- book info -->
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-bold text-primary truncate" title="{{ $book->title }}">{{ $book->title }}</h4>
+                                <p class="text-[10px] font-semibold text-primary/60 truncate">by {{ $book->author }}</p>
+                            </div>
+                            
+                            <!-- date completed -->
+                            <div class="flex flex-col items-end justify-center">
+                                <span class="text-[9px] font-bold text-primary/40 uppercase">Finished</span>
+                                <span class="text-xs font-black text-primary/70">
+                                    {{ $book->pivot->updated_at->format('M d') }}
+                                </span>
+                            </div>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-bold text-primary truncate">The Very Hungry Caterpillar</h4>
-                            <p class="text-[10px] font-semibold text-primary/60 truncate">Eric Carle</p>
+                    @empty
+                        <div class="h-full flex flex-col items-center justify-center text-center opacity-60">
+                            <p class="text-sm font-bold text-primary">No completed books yet!</p>
+                            <p class="text-[10px] text-primary/60 mt-1">Books will appear once {{ $user->name }} has finished a book!</p>
                         </div>
-                        <div class="text-yellow-400 text-xs font-black flex items-center">
-                            5.0 ★
-                        </div>
-                    </div>
-                    <!-- Book -->
-                    <div class="flex items-center gap-3 p-3 rounded-2xl bg-[#755f540a] border border-[#755f5410]">
-                        <div class="w-10 h-14 bg-red-200 rounded flex-shrink-0 flex items-center justify-center">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-bold text-primary truncate">The Very Hungry Caterpillar</h4>
-                            <p class="text-[10px] font-semibold text-primary/60 truncate">Eric Carle</p>
-                        </div>
-                        <div class="text-yellow-400 text-xs font-black flex items-center">
-                            5.0 ★
-                        </div>
-                    </div>
-                    <!-- Book -->
-                    <div class="flex items-center gap-3 p-3 rounded-2xl bg-[#755f540a] border border-[#755f5410]">
-                        <div class="w-10 h-14 bg-red-200 rounded flex-shrink-0 flex items-center justify-center">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-bold text-primary truncate">The Very Hungry Caterpillar</h4>
-                            <p class="text-[10px] font-semibold text-primary/60 truncate">Eric Carle</p>
-                        </div>
-                        <div class="text-yellow-400 text-xs font-black flex items-center">
-                            5.0 ★
-                        </div>
-                    </div>
-                    <!-- Book -->
-                    <div class="flex items-center gap-3 p-3 rounded-2xl bg-[#755f540a] border border-[#755f5410]">
-                        <div class="w-10 h-14 bg-red-200 rounded flex-shrink-0 flex items-center justify-center">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-bold text-primary truncate">The Very Hungry Caterpillar</h4>
-                            <p class="text-[10px] font-semibold text-primary/60 truncate">Eric Carle</p>
-                        </div>
-                        <div class="text-yellow-400 text-xs font-black flex items-center">
-                            5.0 ★
-                        </div>
-                    </div>
+                    @endforelse
+
                 </div>
             </div>
 
-            <!-- Genres explored and phonics mastered -->
+            <!-- Genres liked and phonics mastered -->
             <div class="flex flex-col gap-6 h-[350px]">
-                <!-- genres explored -->
+                
+                <!-- liked genres -->
                 <div class="bg-white border border-[#755f5420] rounded-3xl p-5 flex-1 flex flex-col">
-                    <h3 class="font-bold text-primary text-sm mb-3 uppercase tracking-widest text-center md:text-left">Genres Explored</h3>
+                    <h3 class="font-bold text-primary text-sm mb-3 uppercase tracking-widest text-center md:text-left">Liked Genres</h3>
+                    
                     <div class="flex flex-wrap gap-2 justify-center md:justify-start overflow-y-auto max-h-[120px] custom-scrollbar pr-2 pb-1">
-                        <span class="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-xs font-bold">Romance</span>
-                        <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Fantasy</span>
-                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Adventure</span>
-                        <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Mystery</span>
-                        <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Comedy</span>
+                        @php
+                            $likedGenres = $user->student ? $user->student->preferredGenres : [];
+                        @endphp
+
+                        @forelse($likedGenres as $genre)
+                            <span class="px-3 py-1 bg-orange-50 border border-orange-100 text-primary rounded-full text-xs font-bold shadow-sm">
+                                {{ $genre->name }}
+                            </span>
+                        @empty
+                            <p class="text-xs text-primary/50 italic text-center w-full mt-2">No liked genres added yet.</p>
+                        @endforelse
                     </div>
                 </div>
                 <!-- phonics mastered -->

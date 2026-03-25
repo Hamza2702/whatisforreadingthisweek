@@ -1,7 +1,19 @@
 <x-teacher.layout :classroom="$classroom" :yearGroups="$yearGroups" title="Manage">
   
   <div>
-    <h2 class="text-xl font-bold text-primary mb-4 px-2">Classroom Roster</h2>
+    <!-- error/success messages -->
+    @if(session('success'))
+      <div class="mb-4 bg-green-100 border-2 border-green-500 text-green-700 px-4 py-3 rounded-lg font-bold flex items-center gap-2">
+        {{ session('success') }}
+      </div>
+    @endif
+
+    @if(session('error'))
+      <div class="mb-4 bg-red-100 border-2 border-red-500 text-red-700 px-4 py-3 rounded-lg font-bold flex items-center gap-2">
+        {{ session('error') }}
+      </div>
+    @endif
+    <h2 class="text-xl font-bold text-primary mb-4 px-2">Classroom Students</h2>
 
     <!-- ========================================= -->
     <!-- STUDENT GRID -->

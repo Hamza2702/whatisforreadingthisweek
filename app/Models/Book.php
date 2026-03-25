@@ -29,4 +29,10 @@ class Book extends Model
     {
         return $this->belongsToMany(Phonic::class);
     }
+
+    // books can be reviewed
+    public function reviews()
+    {
+        return $this->hasMany(BookReview::class);
+    }
 }

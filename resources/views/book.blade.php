@@ -123,6 +123,322 @@
                 </div>
             </div>
         </div>
+        <!-- Student Reviews -->
+        <div class="bg-white border border-[#755f5420] rounded-3xl p-6 md:p-10 shadow-sm">
+            <h2 class="text-2xl font-black text-primary mb-8 flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7 text-primary/60">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                </svg>
+                Student Reviews
+            </h2>
 
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Rating Summary -->
+                <div class="bg-[#755f540a] border border-[#755f5420] rounded-2xl p-6">
+                    <div class="flex items-center mb-5">
+                        <!-- Big review number -->
+                        <div class="text-4xl font-black text-primary mr-3">{{ $reviews->count() > 0 ? round($reviews->avg('rating'), 1) : '0' }}</div>
+                        <div>
+                            <!-- Stars -->
+                            <div class="flex">
+                                @for ($i = 0; $i < ($reviews->count() > 0 ? round($reviews->avg('rating')) : 0); $i++)
+                                    ⭐
+                                @endfor
+                                @for ($i = ($reviews->count() > 0 ? round($reviews->avg('rating')) : 0); $i < 5; $i++)
+                                    <span style="color: transparent; text-shadow: 0 0 #c4b5a4;">⭐</span>
+                                @endfor
+                            </div>
+                            <!-- Ratings -->
+                            <p class="text-xs font-bold text-primary/40 tracking-widest mt-1">{{ $reviews->count() }} {{ Str::plural('RATING', $reviews->count()) }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Rating bars -->
+                    <div class="space-y-3 mb-8">
+                        @for ($i = 5; $i > 0; $i--)
+                            <div class="flex items-center gap-3">
+                                <p class="w-12 text-xs font-black text-primary/60">{{ $i }} star</p>
+                                <div class="flex-1 h-2.5 bg-[#755f5415] rounded-full overflow-hidden">
+                                    <div class="h-full bg-primary/60 rounded-full transition-all duration-500" style="width: {{ $reviews->count() > 0 ? round(($reviews->where('rating', $i)->count() / $reviews->count()) * 100, 1) : 0 }}%;"></div>
+                                </div>
+                                <p class="w-12 text-right text-xs font-bold text-primary/50">{{ $reviews->count() > 0 ? round(($reviews->where('rating', $i)->count() / $reviews->count()) * 100, 1) : 0 }}%</p>
+                            </div>
+                        @endfor
+                    </div>
+
+                    <!-- Write a review -->
+                    <div class="border-t border-[#755f5415] pt-6">
+                        @php
+                            $student = Auth::check() ? Auth::user()->student : null;
+                            $existingReview = $student ? $reviews->where('student_id', $student->id)->first() : null;
+                        @endphp
+                        <!-- Existing reviews -->
+                        <h3 class="font-black text-primary text-sm mb-1">
+                            {{ $existingReview ? 'Edit your review' : 'Review this book' }}
+                        </h3>
+                        <p class="text-xs text-primary/50 mb-4">
+                            {{ $existingReview ? 'Update your thoughts about this book' : 'Share your thoughts with other students' }}
+                        </p>
+                        <a href="{{ url('/books/' . $book->id . '/review') }}" class="block text-center bg-white border-2 border-[#755f5420] hover:border-primary text-primary font-black text-xs tracking-widest py-3 px-4 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                            {{ $existingReview ? 'EDIT YOUR REVIEW' : 'WRITE A REVIEW' }}
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Reviews -->
+                <div class="md:col-span-2 bg-[#755f540a] border border-[#755f5420] rounded-2xl p-6">
+                    <!-- Filters -->
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-black text-primary text-sm tracking-wide">Reader Feedback</h3>
+                        <select name="review-sort" id="review-sort" class="rounded-xl bg-white text-xs font-bold text-primary px-4 py-2 border border-[#755f5420] focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                            <option value="top" {{ ($currentSort ?? 'top') === 'top' ? 'selected' : '' }}>Top reviews</option>
+                            <option value="recent" {{ ($currentSort ?? '') === 'recent' ? 'selected' : '' }}>Most recent</option>
+                            @if(Auth::check() && Auth::user()->student)
+                                <option value="classroom" {{ ($currentSort ?? '') === 'classroom' ? 'selected' : '' }}>Classmates</option>
+                            @endif
+                        </select>
+                    </div>
+
+                    <!-- Reviews -->
+                    <div class="space-y-6 max-h-[500px] overflow-y-auto pr-2">
+                        <!-- Loop through reviews -->
+                        @if($reviews->count() > 0)
+                            @foreach($reviews as $review)
+                                <div class="border-b border-[#755f5415] pb-6 last:border-0">
+                                    <div class="flex items-center mb-3">
+                                        <!-- PFP -->
+                                        <a href="{{ route('user.show', $review->student->user->id) }}" target="_blank">
+                                        @if($review->student && $review->student->user)
+                                            <img src="{{ $review->student->user->pfp ?? '/images/Placeholder.jpeg' }}" class="w-10 h-10 rounded-full object-cover mr-3 border-2 border-[#755f5420]">
+                                        @else
+                                            <img src="/images/Placeholder.jpeg" class="w-10 h-10 rounded-full object-cover mr-3 border-2 border-[#755f5420]">
+                                        @endif
+                                        </a>
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <!-- Name -->
+                                                <h4 class="font-black text-primary text-sm">{{ $review->student ? $review->student->first_name . ' ' . $review->student->last_name : 'Anonymous' }}</h4>
+                                                <!-- Classmate tags -->
+                                                @if(($currentSort ?? '') === 'classroom' && Auth::check() && Auth::user()->student && $review->student && $review->student->classroom_id === Auth::user()->student->classroom_id)
+                                                    <span class="text-[10px] font-black text-background tracking-widest bg-primary px-2 py-1 rounded-lg">CLASSMATE</span>
+                                                @endif
+                                            </div>
+                                            <!-- Created date -->
+                                            <p class="text-[10px] font-bold text-primary/40 tracking-widest">{{ $review->created_at->format('H:i, M d, Y.') }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="ml-[52px]">
+                                        <!-- Rating and Title -->
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <h5 class="font-black text-primary text-sm">{{ $review->title }}</h5>
+                                            <div class="flex">
+                                                @for ($i = 0; $i < $review->rating; $i++)
+                                                    ⭐
+                                                @endfor
+                                                @for ($i = $review->rating; $i < 5; $i++)
+                                                    <span style="color: transparent; text-shadow: 0 0 #c4b5a4;">⭐</span>
+                                                @endfor
+                                            </div>
+                                        </div>
+
+                                        <!-- Description -->
+                                        @if($review->description)
+                                            <p class="text-sm text-primary/70 leading-relaxed mb-4">{{ $review->description }}</p>
+                                        @endif
+
+                                        <!-- Helpful button -->
+                                        <div class="flex items-center gap-3 text-xs">
+                                            <button 
+                                                class="helpful-btn border border-[#755f5420] hover:border-primary text-primary/60 hover:text-primary hover:bg-primary/5 rounded-full px-4 py-1.5 transition-all font-bold"
+                                                data-review-id="{{ $review->id }}"
+                                                data-upvoted="{{ in_array($review->id, $upvotedReviewIds) ? 'true' : 'false' }}">
+                                                Helpful (<span class="upvote-count">{{ $review->upvotes }}</span>)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <!-- No reviews (empty) -->
+                            <div class="py-12 text-center">
+                                @if(($currentSort ?? '') === 'classroom')
+                                    <p class="font-black text-primary/40 text-sm tracking-wide mb-2">NO CLASSMATE REVIEWS YET</p>
+                                    <p class="text-xs text-primary/30 mb-6">Be the first student in your class to review this book!</p>
+                                @else
+                                    <div class="text-5xl mb-4">📖</div>
+                                    <p class="font-black text-primary/40 text-sm tracking-wide mb-2">NO REVIEWS YET</p>
+                                    <p class="text-xs text-primary/30 mb-6">Be the first student to share your thoughts about this book!</p>
+                                @endif
+                                <a href="{{ url('/books/' . $book->id . '/review') }}" class="inline-block bg-white border-2 border-[#755f5420] hover:border-primary text-primary font-black text-xs tracking-widest py-3 px-6 rounded-xl transition-all hover:-translate-y-0.5 shadow-sm">
+                                    WRITE THE FIRST REVIEW
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // Filter/sort dropdown
+
+        // get sort dropdown
+        var sortSelect = document.getElementById('review-sort');
+        
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function() {
+                // get selected value
+                var selectedSort = this.value;
+
+                // update url with sort parameter
+                var currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('sort', selectedSort);
+
+                // reload page with new sort filter
+                window.location.href = currentUrl.toString();
+            });
+        }
+
+        // Upvote buttons
+
+        // get all helpful buttons
+        var helpfulButtons = document.querySelectorAll('.helpful-btn');
+        // get csrf token
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+
+        // stop if csrf token missing
+        if (!csrfToken) {
+            console.error('CSRF token meta tag not found');
+            return;
+        }
+        
+        // apply active styles
+        function setActive(button) {
+            button.style.borderColor = '#755f54';
+            button.style.backgroundColor = 'rgba(117, 95, 84, 0.1)';
+            button.style.color = '#755f54';
+            button.style.fontWeight = '800';
+        }
+
+        // remove active style
+        function setInactive(button) {
+            button.style.borderColor = '';
+            button.style.backgroundColor = '';
+            button.style.color = '';
+            button.style.fontWeight = '';
+        }
+
+        // loop through each helpful button
+        helpfulButtons.forEach(function(button) {
+            // get review id and state
+            var reviewId = button.getAttribute('data-review-id');
+            var countSpan = button.querySelector('.upvote-count');
+            var isUpvoted = button.getAttribute('data-upvoted') === 'true';
+
+            // stop spam clicks
+            var isProcessing = false;
+
+            // set initial state if already upvoted
+            if (isUpvoted) {
+                setActive(button);
+            }
+
+            // on click
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // block if there is a request already in progress
+                if (isProcessing) return;
+                isProcessing = true;
+
+                // while loading, reduce opacity
+                button.style.opacity = '0.6';
+
+                var currentCount = parseInt(countSpan.textContent) || 0;
+
+                // if upvoted
+                if (isUpvoted) {
+                    // remove upvote
+                    countSpan.textContent = Math.max(0, currentCount - 1);
+                    setInactive(button);
+                } else {
+                    // add upvote
+                    countSpan.textContent = currentCount + 1;
+                    setActive(button);
+                }
+
+                // send request
+                var xhr = new XMLHttpRequest();
+
+                // post request to upvote route
+                xhr.open('POST', '/books/reviews/' + reviewId + '/upvote', true);
+
+                // set headers
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken.getAttribute('content'));
+                xhr.setRequestHeader('Accept', 'application/json');
+
+                // handle response
+                xhr.onload = function() {
+                    button.style.opacity = '1';
+
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.success) {
+                                // update count from server
+                                countSpan.textContent = data.upvotes;
+                                isUpvoted = data.upvoted;
+
+                                // update styles
+                                if (isUpvoted) {
+                                    setActive(button);
+                                } else {
+                                    setInactive(button);
+                                }
+                            }
+                        } catch (parseError) {
+                            // reset on parse error
+                            console.error('Failed to parse response:', parseError);
+                            countSpan.textContent = currentCount;
+                            if (isUpvoted) { setActive(button); } else { setInactive(button); }
+                        }
+                    } else if (xhr.status === 401) {
+                        // not logged in
+                        countSpan.textContent = currentCount;
+                        if (isUpvoted) { setActive(button); } else { setInactive(button); }
+                        alert('You must be logged in to vote');
+                    } else {
+                        // other error
+                        console.error('Upvote failed: HTTP ' + xhr.status);
+                        countSpan.textContent = currentCount;
+                        if (isUpvoted) { setActive(button); } else { setInactive(button); }
+                    }
+
+                    // unlock the button
+                    isProcessing = false;
+                };
+
+                // network error fallback
+                xhr.onerror = function() {
+                    button.style.opacity = '1';
+                    console.error('Upvote request failed');
+
+                    // reset ui
+                    countSpan.textContent = currentCount;
+                    if (isUpvoted) { setActive(button); } else { setInactive(button); }
+                    isProcessing = false;
+                };
+
+                // send request
+                xhr.send();
+            });
+        });
+    });
+    </script>
 </x-layout>

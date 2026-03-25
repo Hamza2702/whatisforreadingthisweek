@@ -45,4 +45,39 @@ class Student extends Model
             ->withPivot(['starts_on', 'ends_on', 'active'])
             ->withTimestamps();
     }
+
+    // genres student likes
+    public function preferredGenres()
+    {
+        return $this->belongsToMany(Genre::class, 'genre_student', 'student_id', 'genre_id')->withPivot('school_id')->withTimestamps();
+    }
+    // $student->preferredGenres()->sync([2, 4]); // genre id 2 and 4 
+
+
+    // all books the student has ever been assigned
+    public function books()
+    {
+        return $this->belongsToMany(Book::class)->withPivot('status', 'school_id')->withTimestamps();
+    }
+
+    // get the current assigned booked
+    public function currentBook()
+    {
+        // returns what the student is reading
+        return $this->books()->wherePivot('status', 'reading')->first();
+    }
+
+    // students can have many reviews
+    public function bookReviews()
+    {
+        return $this->hasMany(BookReview::class);
+    }
+
+    // book review upvotes
+    public function upvotedReviews()
+    {
+        return $this->belongsToMany(BookReview::class, 'book_review_upvotes', 'student_id', 'book_review_id')
+            ->withPivot('school_id', 'book_id')
+            ->withTimestamps();
+    }
 }

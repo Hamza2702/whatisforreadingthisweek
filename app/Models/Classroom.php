@@ -18,6 +18,7 @@ class Classroom extends Model
         'stage',
         'academic_year',
         'active',
+        'is_progressed',
     ];
 
     protected $casts = [
@@ -37,7 +38,7 @@ class Classroom extends Model
     public function students(): BelongsToMany
     {
         return $this->belongsToMany(Student::class)
-            ->withPivot(['starts_on', 'ends_on', 'active'])
+            ->withPivot(['school_id', 'starts_on', 'ends_on', 'active'])
             ->withTimestamps();
     }
 

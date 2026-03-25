@@ -23,6 +23,7 @@ return new class extends Migration
             $table->integer('academic_end')->nullable();
             $table->boolean('active')->default(true);
             $table->index(['school_id', 'teacher_id', 'active']);
+            $table->boolean('is_progressed')->default(false)->after('active');
             $table->timestamps();
         });
 

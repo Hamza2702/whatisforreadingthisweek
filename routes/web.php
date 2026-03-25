@@ -5,7 +5,9 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\ExploreController;
-
+use App\Http\Controllers\ReadingController;
+use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\BookReviewController;
 
 // Explore page
 Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 
@@ -91,8 +93,8 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
         ->name('teacher.classes.importStudents');
 
     // Delete classroom
-    Route::delete('/classes/{classroom}', [TeacherController::class, 'destroy'])
-        ->name('teacher.classes.destroy');
+    Route::delete('/classes/{classroom}', [ClassroomController::class, 'removeClassroom'])
+        ->name('teacher.classes.removeClassroom');
 
     // Add book
     Route::post('/explore/add', [ExploreController::class, 'addBook'])->name('explore.addBook');
@@ -100,9 +102,36 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     // Delete book
     Route::delete('/explore/book/{book}', [ExploreController::class, 'deleteBook'])->name('explore.deleteBook');
     
+    // Reading list
+    Route::prefix('teacher/classes/{classroom}/reading')->name('teacher.reading.')->group(function () {
+        
+        Route::get('/generate', [ReadingController::class, 'generateList'])->name('index');
+
+        Route::post('/generate-all', [ReadingController::class, 'generateAll'])->name('generateAll');
+        Route::post('/save-log', [ReadingController::class, 'saveWeeklyLog'])->name('saveWeeklyLog');
+        Route::post('/student/{student}/assign', [ReadingController::class, 'assignBook'])->name('assignBook');
+    });
+
+    // Archive classroom
+    Route::patch('/teacher/classes/{id}/archive', [ClassroomController::class, 'archiveClassroom'])
+    ->name('teacher.classes.archiveClassroom');
+
+    // Progress archived classroom
+    Route::patch('/teacher/classes/{id}/progress', [ClassroomController::class, 'progressClassroom'])->name('teacher.classes.progressClassroom');
+    // Restore archived classroom
+    Route::patch('/teacher/classes/{id}/restore', [ClassroomController::class, 'restoreClassroom'])->name('teacher.classes.restoreClassroom');
 });
 
 // user profile, anyone logged in can visit
 Route::get('/user/{id}', [UserController::class, 'show'])->name('user.show')->middleware('auth');
 // get own profile
 Route::get('/user/profile', [UserController::class, 'profile'])->name('user.profile')->middleware('auth');
+
+// Book reviews
+Route::post('/books/reviews/{reviewId}/upvote', [BookReviewController::class, 'upvote'])
+    ->middleware('auth')
+    ->name('reviews.upvote');
+
+Route::get('/books/{id}/review', [BookReviewController::class, 'create'])->middleware('auth');
+Route::post('/books/{id}/review', [BookReviewController::class, 'store'])->middleware('auth');
+Route::delete('/books/{bookId}/review/{reviewId}', [BookReviewController::class, 'destroy'])->middleware('auth');
