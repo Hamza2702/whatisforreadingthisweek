@@ -120,6 +120,14 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     Route::patch('/teacher/classes/{id}/progress', [ClassroomController::class, 'progressClassroom'])->name('teacher.classes.progressClassroom');
     // Restore archived classroom
     Route::patch('/teacher/classes/{id}/restore', [ClassroomController::class, 'restoreClassroom'])->name('teacher.classes.restoreClassroom');
+
+    // Classroom Announcements
+    Route::get('/teacher/classes/{classroom}/announcement', [ClassroomController::class, 'createAnnouncement'])
+        ->name('teacher.classes.announcements.create');
+    
+    Route::post('/teacher/classes/{classroom}/announcement', [ClassroomController::class, 'storeAnnouncement'])
+        ->name('teacher.classes.announcements.store');
+
 });
 
 // user profile, anyone logged in can visit
@@ -135,3 +143,8 @@ Route::post('/books/reviews/{reviewId}/upvote', [BookReviewController::class, 'u
 Route::get('/books/{id}/review', [BookReviewController::class, 'create'])->middleware('auth');
 Route::post('/books/{id}/review', [BookReviewController::class, 'store'])->middleware('auth');
 Route::delete('/books/{bookId}/review/{reviewId}', [BookReviewController::class, 'destroy'])->middleware('auth');
+
+// Students announcements
+
+   Route::post('/student/announcements/{id}/hide', [ClassroomController::class, 'hideAnnouncement'])->name('student.announcements.hide');
+    Route::post('/student/announcements/restore', [ClassroomController::class, 'restoreAnnouncements'])->name('student.announcements.restore');

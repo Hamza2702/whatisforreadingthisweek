@@ -139,7 +139,16 @@
               </form>
             @endif
           @endif
-
+        @elseif (request()->routeIs('teacher.classes.view'))
+        <!-- =================== CLASSROOM VIEW PAGE =================== -->
+          <!-- back to class -->
+          <a href="{{ route('teacher.index', $classroom->id) }}" class="col-span-2 bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">← BACK TO VIEW</span>
+          </a>
+          <!-- CREATE ANNOUNCEMENT BUTTON -->
+          <a href="{{ route('teacher.classes.announcements.create', $classroom->id) }}" class="col-span-2 bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            CREATE ANNOUNCEMENT
+          </a>
         <!-- =================== STUDENTS CREATE PAGE =================== -->
         @elseif (request()->routeIs('teacher.classes.addStudents'))
           
