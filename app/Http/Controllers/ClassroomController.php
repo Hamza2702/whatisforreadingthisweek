@@ -245,4 +245,91 @@ class ClassroomController extends Controller
             'Classroom progressed! A new classroom has been created for Year ' . ($oldClassroom->year_group + 1) . '.'
         );
     }
+
+     // Create announcement view
+    public function createAnnouncement(Classroom $classroom)
+    {
+        // verify ownership
+        if ($classroom->teacher_id !== auth()->id()) {
+            abort(403, "Unauthorised action");
+        }
+
+        // get all active students for dropdown menu
+        $students = $classroom->students()->orderBy('first_name')->get();
+
+        return view('teacher.classes.create-announcement', compact('classroom', 'students'));
+    }
+
+    // Store announcement
+    public function storeAnnouncement(Request $request, Classroom $classroom)
+    {
+        // verify ownership
+        if ($classroom->teacher_id !== auth()->id()) {
+            abort(403, "Unauthorised action");
+        }
+
+        // validation
+        $request->validate([
+            'message' => 'required|string|max:1000',
+            'entire_class' => 'nullable|boolean',
+            'student_id' => 'nullable|exists:students,id'
+        ]);
+
+        // if entire class is unchecked, validate a student has been selected
+        if (!$request->entire_class && empty($request->student_id)) {
+            return back()->withErrors(['student_id' => 'Please select a student or check the entire class'])->withInput();
+        }
+
+        // insert into db
+        DB::table('announcements')->insert([
+            'school_id'    => $classroom->school_id,
+            'classroom_id' => $classroom->id,
+            'student_id'   => $request->entire_class ? null : $request->student_id,
+            'message'      => $request->message,
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
+
+        return redirect()->route('teacher.classes.view', $classroom->id)->with('success', 'Announcement posted successfully!');
+    }
+
+    // Hide an announcement for individual students
+    public function hideAnnouncement(Request $request, $id)
+    {
+        // get student
+        $student = auth()->user()->student;
+        
+        if ($student) {
+            DB::table('hidden_announcements')->insertOrIgnore([
+                'school_id'       => $student->school_id,
+                'student_id'      => $student->id,
+                'announcement_id' => $id,
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
+        }
+        
+        return back();
+    }
+
+    // Restore announcements from the last 30 days
+    public function restoreAnnouncements(Request $request)
+    {
+        $student = auth()->user()->student;
+        
+        if ($student) {
+            // find the ids of announcements created in the last month
+            $recentAnnouncementIds = DB::table('announcements')
+                ->where('created_at', '>=', now()->subMonth())
+                ->pluck('id');
+
+            // unhide them for the student
+            DB::table('hidden_announcements')
+                ->where('student_id', $student->id)
+                ->whereIn('announcement_id', $recentAnnouncementIds)
+                ->delete();
+        }
+        
+        return back();
+    }
 }

@@ -93,42 +93,202 @@
         </div>
       </div>
 
-      <!-- Current book -->
-      <div class="lg:col-span-12 bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-[#755f5420] flex flex-col md:flex-row gap-8 md:gap-12 items-center">
-        
-        <!-- Book cover placeholder -->
-        <div class="w-40 h-56 md:w-48 md:h-72 bg-orange-100 rounded-2xl flex-shrink-0 flex items-center justify-center  ring-orange-50">
-          <span class="text-secondary text-3xl font-bold">Cover</span>
-        </div>
-
-        <div class="flex-1 flex flex-col justify-center text-center md:text-left space-y-6">
-          <div>
-            <span class="inline-block px-4 py-1.5 bg-primary text-background rounded-full text-sm font-bold tracking-wider mb-4">
-              CURRENTLY READING
-            </span>
-            <h1 class=" text-4xl md:text-5xl text-primary font-bold tracking-tight">
-              South of the Border, West of the Sun
-            </h1>
-            <p class="text-xl text-primary/70 font-medium mt-2">
-              by <span class="text-orange-500 font-bold">Haruki Murakami</span>
-            </p>
-          </div>
-          <p class="text-primary/80 text-base md:text-lg leading-relaxed ">
-            Hajime, a successful jazz bar owner in Tokyo, leads a seemingly perfect life with his wife and children.
-            However, his past resurfaces when he reunites with Shimamoto, his childhood friend and first love.
-            As their paths cross again, Hajime finds himself torn between the stability of his current life and the allure of a rekindled romance.
-          </p>
+      <!-- ========================================= -->
+      <!-- ANNOUNCEMENTS SECTION -->
+      @php
+          $student = Auth::user()->student;
+          $announcements = collect();
+          $hasHiddenRecent = false;
           
-          <div class="pt-4">
-            <a href="#" class="inline-flex items-center justify-center px-8 py-4 text-lg bg-primary text-background font-bold rounded-xl shadow-md hover:bg-orange-900 hover:shadow-lg transition-all duration-200 focus:ring-4 focus:ring-primary/30">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 mr-2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-              </svg>
-              Write a Review
-            </a>
+          if ($student && $student->classroom_id) {
+              // get ids of announcements the student has hidden
+              $hiddenIds = DB::table('hidden_announcements')
+                  ->where('student_id', $student->id)
+                  ->pluck('announcement_id');
+
+              // query for the student's announcements
+              $query = DB::table('announcements')
+                  ->join('classrooms', 'announcements.classroom_id', '=', 'classrooms.id')
+                  ->join('users', 'classrooms.teacher_id', '=', 'users.id')
+                  ->where('announcements.classroom_id', $student->classroom_id)
+                  ->where(function($q) use ($student) {
+                      $q->whereNull('announcements.student_id')
+                        ->orWhere('announcements.student_id', $student->id);
+                  })
+                  ->select(
+                      'announcements.*',
+                      'classrooms.name as class_name',
+                      'classrooms.year_group',
+                      'users.name as teacher_name',
+                      'users.pfp as teacher_pfp'
+                  );
+
+              // check if there are any hidden announcements fro mthe last 30 days
+              $hasHiddenRecent = DB::table('announcements')
+                  ->whereIn('id', $hiddenIds)
+                  ->where('created_at', '>=', now()->subMonth())
+                  ->exists();
+
+              // get visible announcements
+              $announcements = $query->whereNotIn('announcements.id', $hiddenIds)
+                  ->orderBy('announcements.created_at', 'desc')
+                  ->take(15) 
+                  ->get();
+          }
+      @endphp
+
+      <div class="lg:col-span-12 mt-8 mb-4">
+        <h2 class="text-2xl md:text-3xl font-display text-primary tracking-tight mb-5">Announcements</h2>
+        
+        @if($announcements->count() > 0)
+            <!-- Scroll wheel announcements -->
+            <div class="flex flex-col gap-4 overflow-y-auto max-h-[450px] pr-2 pb-2 bg-[#755f540a] border border-[#755f5420] rounded-3xl p-6 [&::-webkit-scrollbar-track]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-orange-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+                
+                @foreach($announcements as $announcement)
+                <div class="bg-[#fcd9c842] rounded-3xl p-6 shadow-md border border-orange-100 relative flex-shrink-0 flex flex-col gap-4 group transition-colors hover:bg-background">
+                    
+                    <!-- Hide announcements -->
+                    <form action="{{ route('student.announcements.hide', $announcement->id) }}" method="POST" class="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        @csrf
+                        <button type="submit" class="text-black p-1 flex">
+                            <span>HIDE ANNOUNCEMENT</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </form>
+
+                    <!-- Class announcement / message  -->
+                    <div class="flex items-center pr-8">
+                        <span class="px-3 py-1 rounded-full text-[10px] md:text-xs font-bold tracking-wider {{ $announcement->student_id ? 'bg-secondary text-background' : 'bg-orange-200 text-orange-900' }}">
+                            {{ $announcement->student_id ? 'MESSAGE' : 'CLASS ANNOUNCEMENT' }}
+                        </span>
+                        <span class="text-xs text-primary/60 font-medium">
+                            {{ \Carbon\Carbon::parse($announcement->created_at)->diffForHumans() }}
+                        </span>
+                    </div>
+
+                    <!-- Teacher info -->
+                    <div class="flex items-center gap-3">
+                        <img src="{{ $announcement->teacher_pfp ? asset($announcement->teacher_pfp) : asset('/images/Placeholder.jpeg') }}" 
+                             alt="{{ $announcement->teacher_name }}" 
+                             class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-white shadow-sm">
+                        <div class="flex flex-col">
+                          <!-- Name -->
+                            <span class="text-sm md:text-base font-bold text-primary leading-tight">
+                                {{ $announcement->teacher_name }}
+                            </span>
+                            <!-- Class -->
+                            <span class="text-xs text-primary/70 font-medium mt-0.5">
+                                {{ $announcement->class_name ?: ($announcement->year_group == 0 ? 'Reception' : 'Year ' . $announcement->year_group) }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Message -->
+                    <p class="text-primary/80 text-sm md:text-base leading-relaxed font-medium mt-1">
+                        {{ $announcement->message }}
+                    </p>
+                </div>
+                @endforeach
+                
+            </div>
+        @else
+            <!-- Empty state -->
+            <div class="pb-2 bg-[#755f540a] border border-[#755f5420] rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
+                <h3 class="text-xl font-bold text-primary">No new announcements</h3>
+                <p class="text-sm md:text-base text-primary/60 max-w-sm mt-2">Check back later for any messages<br> from your teacher!</p>
+                
+                <!-- Restore announcement -->
+                @if($hasHiddenRecent)
+                    <form action="{{ route('student.announcements.restore') }}" method="POST" class="mt-6">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center gap-2 text-md font-bold text-orange-600 transition-colors group">
+                            Restore previous announcements in the last month
+                        </button>
+                    </form>
+                @endif
+            </div>
+        @endif
+      </div>
+
+      <!-- Current book -->
+      @php
+          $currentBook = $student ? $student->currentBook() : null;
+      @endphp
+
+      @if($currentBook)
+        <div class="lg:col-span-12 bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-[#755f5420] flex flex-col md:flex-row gap-8 md:gap-12 items-center">
+          
+          <!-- Book cover -->
+          <a href="{{ route('books.show', $currentBook->id) }}" target="_blank" class="w-40 h-56 md:w-48 md:h-72 flex-shrink-0 relative rounded-2xl overflow-hidden shadow-md border border-[#755f5410] bg-[#755f540a] block group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              
+              @if($currentBook->cover_id && str_starts_with($currentBook->cover_id, 'LOCAL_'))
+                  @php $imagePath = str_replace('LOCAL_', '', $currentBook->cover_id); @endphp
+                  <img src="{{ asset('storage/' . $imagePath) }}" alt="{{ html_entity_decode($currentBook->title ?? '', ENT_QUOTES) }}" class="absolute inset-0 w-full h-full object-cover">
+              
+              @elseif($currentBook->cover_id && str_starts_with($currentBook->cover_id, 'PLACEHOLDER_'))
+                  @php $bgColor = str_replace('PLACEHOLDER_', '', $currentBook->cover_id); @endphp
+                  <div class="absolute inset-0 w-full h-full flex items-center justify-center p-4 text-center" style="background-color: {{ $bgColor }};">
+                      <span class="font-black text-white text-sm drop-shadow-md line-clamp-4">{{ html_entity_decode($currentBook->title ?? '', ENT_QUOTES) }}</span>
+                  </div>
+              
+              @elseif($currentBook->cover_id)
+                  <img src="https://books.google.com/books/content?id={{ $currentBook->cover_id }}&printsec=frontcover&img=1&zoom=1" alt="{{ html_entity_decode($currentBook->title ?? '', ENT_QUOTES) }}" class="absolute inset-0 w-full h-full object-cover">
+              
+              @else
+                  <div class="absolute inset-0 flex items-center justify-center bg-orange-100">
+                      <span class="font-bold text-primary/30 text-xs tracking-widest -rotate-12">NO COVER</span>
+                  </div>
+              @endif
+          </a>
+
+          <div class="flex-1 flex flex-col justify-center text-center md:text-left space-y-6">
+            <div>
+              <span class="inline-block px-4 py-1.5 bg-primary text-background rounded-full text-sm font-bold tracking-wider mb-4">
+                CURRENTLY READING
+              </span>
+              <h1 class=" text-4xl md:text-5xl text-primary font-bold tracking-tight">
+                {{ html_entity_decode($currentBook->title ?? '', ENT_QUOTES) }}
+              </h1>
+              <p class="text-xl text-primary/70 font-medium mt-2">
+                by <span class="text-orange-500 font-bold">{{ html_entity_decode($currentBook->author ?? '', ENT_QUOTES) }}</span>
+              </p>
+            </div>
+            <p class="text-primary/80 text-base md:text-lg leading-relaxed line-clamp-3 md:line-clamp-4">
+              {{ $currentBook->description ?? 'No description available for this book.' }}
+            </p>
+            
+            <div class="pt-4 flex flex-col sm:flex-row gap-4">
+              <!-- Read Online Button -->
+              @if(!str_starts_with($currentBook->ol_key, 'NO_OL_'))
+                  <a href="https://archive.org/details/{{ $currentBook->ol_key }}/mode/2up?view=theater" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-8 py-4 text-lg bg-green-500 text-white font-bold rounded-xl shadow-md hover:bg-green-600 hover:shadow-lg transition-all duration-200">
+                      READ ONLINE
+                  </a>
+              @endif
+
+              <!-- Write a Review Button -->
+              <a href="{{ url('/books/' . $currentBook->id . '/review') }}" class="inline-flex items-center justify-center px-8 py-4 text-lg bg-primary text-background font-bold rounded-xl shadow-md hover:bg-orange-900 hover:shadow-lg transition-all duration-200 focus:ring-4 focus:ring-primary/30">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 mr-2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                </svg>
+                Write a Review
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      @else
+        <!-- Empty state when no book is assigned -->
+        <div class="lg:col-span-12 bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-[#755f5420] flex flex-col items-center justify-center text-center py-16">
+            <h2 class="text-2xl font-black text-primary mb-2">Currently not reading a book</h2>
+            <p class="text-primary/60 max-w-md text-sm md:text-base leading-relaxed">
+                Explore the library to find a new book to read, or ask your teacher to assign your next book!
+            </p>
+            <a href="{{ route('explore') }}" class="mt-8 inline-flex items-center justify-center px-8 py-4 text-sm bg-primary text-background font-black tracking-widest rounded-xl shadow-sm hover:bg-orange-900 transition-all hover:-translate-y-0.5">
+                EXPLORE LIBRARY
+            </a>
+        </div>
+      @endif
 
     </div>
   </div>
