@@ -356,7 +356,7 @@
         let searchTimeout = null;
         function debounceSearch() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => submitFilters(), 600);
+            searchTimeout = setTimeout(() => submitFilters(), 1000);
         }
 
         document.addEventListener('DOMContentLoaded', () => {

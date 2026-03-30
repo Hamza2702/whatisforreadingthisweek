@@ -17,7 +17,7 @@ class isTeacher
     {
         $user = $request->user();
 
-        if ($user && $user->isTeacher()) {
+        if (auth()->check() && in_array(auth()->user()->role, ['teacher', 'headteacher'])) {
             return $next($request);
         }
         return abort(403, 'Unauthorised Access');

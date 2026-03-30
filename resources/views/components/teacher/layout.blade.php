@@ -1,6 +1,14 @@
 @php
   $classCount   = collect($yearGroups ?? [])->count();
   $studentTotal = collect($yearGroups ?? [])->sum('students');
+  // get teacher and class counts
+  $htTeacherCount = 0;
+  $htClassCount = 0;
+  if (auth()->check() && auth()->user()->role === 'headteacher') {
+      $schoolId = auth()->user()->school_id;
+      $htTeacherCount = \App\Models\User::where('school_id', $schoolId)->whereIn('role', ['teacher', 'headteacher'])->count();
+      $htClassCount = \App\Models\Classroom::where('school_id', $schoolId)->count();
+  }
 @endphp
 @props(['title' => '', 'yearGroups' => [], 'classroom' => null])
 
@@ -41,6 +49,14 @@
           @elseif (request()->routeIs('teacher.classes.create'))
             <h2 class="text-lg md:text-3xl font-sans text-primary">Create Class</h2>
             <p class="text-xs md:text-sm text-primary/70 mt-1">Set up a classroom!</p>
+          <!-- banned books -->
+          @elseif (request()->routeIs('headteacher.banned-books'))
+            <h2 class="text-lg md:text-3xl font-sans text-primary">Manage Banned Books</h2>
+            <p class="text-xs md:text-sm text-primary/70 mt-1">Manage banned books for your school</p>
+          <!-- create teacher page -->
+          @elseif (request()->routeIs('headteacher.teachers.create'))
+            <h2 class="text-lg md:text-3xl font-sans text-primary">Create Teacher</h2>
+            <p class="text-xs md:text-sm text-primary/70 mt-1">Set up a staff account!</p>
             <!-- students page -->
           @elseif (request()->routeIs('teacher.classes.students') && $classroom)
             <!-- inactive classroom -->
@@ -77,37 +93,66 @@
         <!-- =================== INDEX / CREATE PAGE =================== -->
         @if (request()->routeIs('teacher.index') || request()->routeIs('teacher.classes.create'))
           
-          <!-- back to dashboard -->
+          @if(auth()->user()->role === 'headteacher')
+          
+          <!-- =================== HEADTEACHER =================== -->
+            <!-- create teacher -->
+          @if (request()->routeIs('teacher.index'))
+            <a href="{{ route('headteacher.teachers.create') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+              <span class="text-xs font-bold text-background tracking-widest leading-tight">CREATE<br>TEACHER</span>
+            </a>
+          @else
+            <!-- back to dashboard -->
+            <a href="{{ route('teacher.index') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+              <span class="text-xs font-bold text-background tracking-widest leading-tight">BACK TO<br>DASHBOARD</span>
+            </a>
+          @endif
+          <!-- managed banned books -->
+          <a href="{{ route('headteacher.banned-books') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">MANAGE<br>BANNED BOOKS</span>
+          </a>
+
+          <!-- teachers stats -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
+            <span class="text-3xl font-black text-primary">{{ $htTeacherCount }}</span>
+            <span class="text-[10px] font-bold text-primary/80 tracking-widest mt-1">TEACHERS</span>
+          </div>
+
+          <!-- classes stats -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
+            <span class="text-3xl font-black text-primary">{{ $htClassCount }}</span>
+            <span class="text-[10px] font-bold text-primary/70 tracking-widest mt-1">CLASSES</span>
+          </div>
+
+        @else
+
+          <!-- =================== TEACHER =================== -->
+          
+            <!-- create class -->
           @if (request()->routeIs('teacher.index'))
             <a href="{{ route('teacher.classes.create') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
               <span class="text-xs font-bold text-background tracking-widest leading-tight">CREATE CLASS</span>
             </a>
           @elseif (request()->routeIs('teacher.classes.create'))
+            <!-- back to dashboard -->
             <a href="{{ route('teacher.index') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
               <span class="text-xs font-bold text-background tracking-widest leading-tight">BACK TO<br>DASHBOARD</span>
             </a>
           @endif
 
-          <!-- classes stat -->
+          <!-- classes stats -->
           <div class="bg-[#755f5415] border border-primary/10 rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
             <span class="text-3xl font-black text-primary">{{ $classCount }}</span>
             <span class="text-[10px] font-bold text-primary/80 tracking-widest mt-1">CLASSES</span>
           </div>
 
-          <!-- students stat -->
+          <!-- students stats -->
           <div class="bg-[#755f5415] border border-primary/10 rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
             <span class="text-3xl font-black text-primary">{{ $studentTotal }}</span>
             <span class="text-[10px] font-bold text-primary/70 tracking-widest mt-1">STUDENTS</span>
           </div>
 
-          <!-- date -->
-          <div class="bg-[#755f5415] border border-primary/10 rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-primary/60 mb-1">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-            </svg>
-            <span class="text-[10px] text-primary/60 font-medium">{{ now()->format('l, M j') }}</span>
-            <span class="text-[11px] font-bold text-primary">{{ now()->format('Y') }}</span>
-          </div>
+        @endif
 
         <!-- =================== STUDENTS PAGE =================== -->
         @elseif (request()->routeIs('teacher.classes.students'))
@@ -139,6 +184,15 @@
               </form>
             @endif
           @endif
+        <!-- =================== HEADTEACHER PAGES =================== -->
+        @elseif (request()->routeIs('headteacher.teachers.create'))
+          <a href="{{ route('teacher.index') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">BACK TO<br>DASHBOARD</span>
+          </a>
+        @elseif (request()->routeIs('headteacher.banned-books'))
+          <a href="{{ route('teacher.index') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">BACK TO<br>DASHBOARD</span>
+          </a>
         @elseif (request()->routeIs('teacher.classes.view'))
         <!-- =================== CLASSROOM VIEW PAGE =================== -->
           <!-- back to class -->
@@ -177,16 +231,7 @@
       </div>
         <!-- =================== STUDENTS READING LIST =================== -->
         <!-- @elseif (request()->routeIs('teacher.classes.reading-list'))
-          <form action="{{ route('teacher.reading.generateAll', $classroom->id) }}" method="POST">
-            @csrf
-            <button type="submit" class="bg-primary text-background font-bold rounded-xl px-4 py-2.5 shadow-sm hover:bg-orange-900 transition-colors text-sm flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09l2.846.813-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-              </svg>
-              Auto-Assign All
-            </button>
-        </form> -->
-        </div>
+          ... -->
         @endif
       </div>
     </div>

@@ -65,19 +65,20 @@ class User extends Authenticatable
         return $this->belongsTo(School::class);
     }
 
-    public function classroomsTaught(): HasMany
+    // im so stupid.
+    public function classrooms(): HasMany
     {
         return $this->hasMany(Classroom::class, 'teacher_id');
     }
 
     public function isTeacher()
     {
-        return $this->role === 'Teacher';
+        return in_array($this->role, ['teacher', 'headteacher']);
     }
 
     public function isTeacherRole(): bool
     {
-        return strtolower($this->role ?? '') === 'Teacher';
+        return strtolower($this->role ?? '') === 'teacher';
     }
 
     public function isAdmin()

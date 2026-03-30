@@ -43,7 +43,6 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
         // get a random school to assign to test user
         
-
         // KS1 - reception to year 2 (animals)
         // KS2 - year 3 to year 6 (authors)
 
@@ -73,7 +72,7 @@ class DatabaseSeeder extends Seeder
 
         $school = School::inRandomOrder()->first();
 
-        // Testuser
+        // Testuser -- ADMIN
         User::factory()->create([
             'username' => 'testuser',
             'name' => 'Test User',
@@ -94,13 +93,25 @@ class DatabaseSeeder extends Seeder
             'postcode' => 'B11 1EH',
         ]);
 
-        // Montgomery teacher
-        $teacher = User::factory()->create([
-            'username' => 'montgomery',
-            'name' => 'Montgomery Teacher',
-            'email' => 'testteacher@example.com',
+        // Montgomery -- HEADTEACHER
+        $headteacher = User::factory()->create([
+            'username' => 'montgomeryheadteacher',
+            'name' => 'Montgomery Headteacher',
+            'email' => 'headteacher@montgomery.com',
             'phone' => '07123456789',
-            'role' => 'Teacher',
+            'role' => 'headteacher',
+            'school_id' => $school->id,
+            'isAdmin' => false,
+            'pfp' => '/images/pfp/lamb.png',
+        ]);
+
+        // Montgomery -- TEACHER
+        $teacher = User::factory()->create([
+            'username' => 'montgomeryteacher',
+            'name' => 'Montgomery Teacher',
+            'email' => 'teacher@montgomery.com',
+            'phone' => '07123456789',
+            'role' => 'teacher',
             'school_id' => $school->id,
             'isAdmin' => false,
             'pfp' => '/images/pfp/owl.png',
@@ -166,7 +177,7 @@ class DatabaseSeeder extends Seeder
                     'email' => $username . '@example.com',
                     'password' => 'password',
                     'phone' => '07' . rand(100000000, 999999999),
-                    'role' => 'Student',
+                    'role' => 'student',
                     'school_id' => $school->id,
                     'pfp' => $pfpPath,
                 ]);
@@ -245,9 +256,8 @@ class DatabaseSeeder extends Seeder
 
             if ($response->successful()) {
                 Storage::disk('public')->put($storagePath, $response->body());
-                $this->command->line("  Saved kitten pfp for {$username}");
             } else {
-                $this->command->warn("  Failed to download pfp for {$username} (HTTP {$response->status()})");
+                $this->command->warn(" Failed to download pfp for {$username} (HTTP {$response->status()})");
                 return '/images/pfp/cat.png';
             }
 

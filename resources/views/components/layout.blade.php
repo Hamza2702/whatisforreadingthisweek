@@ -28,7 +28,7 @@
     <div class="flex items-center space-x-5">
       @if (Auth::check() && Auth::user()->isAdmin())
         <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
-      @elseif (Auth::check() && Auth::user()->role === 'Teacher')
+      @elseif (Auth::check() && Auth::user()->role === 'Teacher' || Auth::check() && Auth::user()->role === 'headteacher')
         <x-nav-link href="{{ route('teacher.index') }} " class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
       @else 
         <x-nav-link href='/dashboard'> Dashboard </x-nav-link>
@@ -75,7 +75,7 @@
           <li>
             @if (Auth::check() && Auth::user()->isAdmin())
               <a href='/admin/index' class="hover:underline">Dashboard</a>
-            @elseif (Auth::check() && Auth::user()->role === 'Teacher')
+            @elseif (Auth::check() && Auth::user()->role === 'Teacher' || Auth::check() && Auth::user()->role === 'headteacher')
               <a href="{{ route('teacher.index') }} " class="hover:underline">Dashboard</a>
             @else 
               <a href='/dashboard' class="hover:underline">Dashboard</a>
