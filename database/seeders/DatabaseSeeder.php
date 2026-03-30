@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\Genre;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\ConnectionException;
 
 class DatabaseSeeder extends Seeder
 {
@@ -238,7 +239,7 @@ class DatabaseSeeder extends Seeder
         // set path w/ image
         $storagePath = 'pfp/kittens/' . $username . '.png';
 
-        // Reuse if already downloaded
+        // Reuse if already downloaded (locally)
         if (Storage::disk('public')->exists($storagePath)) {
             return Storage::url($storagePath);
         }
@@ -251,22 +252,29 @@ class DatabaseSeeder extends Seeder
             urlencode($username)
         );
 
+        // Skip downloading pfps since theyll load from robohash
+        if (app()->environment('local')) {
+            return $robohashUrl; 
+        }
+
         try {
-            $response = Http::timeout(15)->get($robohashUrl);
+            $response = Http::timeout(3)->get($robohashUrl);
 
             if ($response->successful()) {
                 Storage::disk('public')->put($storagePath, $response->body());
+                return Storage::url($storagePath);
             } else {
                 $this->command->warn(" Failed to download pfp for {$username} (HTTP {$response->status()})");
                 return '/images/pfp/cat.png';
             }
 
+        } catch (ConnectionException $e) {
+            $this->command->warn("  Timeout for {$username} - Using a default image");
+            return '/images/pfp/cat.png';
         } catch (\Exception $e) {
             $this->command->warn("  Exception for {$username}: " . $e->getMessage());
             // just set to cat if it doesnt work
             return '/images/pfp/cat.png';
         }
-
-        return Storage::url($storagePath);
     }
 }

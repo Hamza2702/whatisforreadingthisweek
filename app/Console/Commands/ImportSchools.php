@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\School;
+use Illuminate\Support\Facades\DB;
 
 class ImportSchools extends Command
 {
@@ -48,6 +49,9 @@ class ImportSchools extends Command
             $handle = fopen($file, 'r');
             $header = fgetcsv($handle); // Read header row
             
+            // Array to hold the chunked data
+            $schoolsChunk = [];
+
             // Read each row
             while (($row = fgetcsv($handle)) !== false){
                 $data = array_combine($header, $row);
@@ -56,20 +60,30 @@ class ImportSchools extends Command
                 $phase = $data['PhaseOfEducation (name)'] ?? null;
                 
                 // If not primary, skip
-                if ($phase !== 'Primary' && $phase !== 'Academy Converter' && $phase !== 'Academy Sponsor Led' && $phase !== 'Free schools') {
+                if (!in_array($phase, ['Primary', 'Academy Converter', 'Academy Sponsor Led', 'Free schools'])) {
                     continue;
                 }
 
-                // Create or update school
-                School::updateOrCreate(
-                    ['urn' => $data['URN']],
-                    [
-                        'name' => $data['EstablishmentName'] ?? null,
-                        'town' => $data['Town'] ?? null,
-                        'postcode' => $data['Postcode'] ?? null,
-                    ]
-                );
+                // Add to array instead of saving to DB
+                $schoolsChunk[] = [
+                    'urn' => $data['URN'],
+                    'name' => $data['EstablishmentName'] ?? null,
+                    'town' => $data['Town'] ?? null,
+                    'postcode' => $data['Postcode'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
 
+                // When the array reaches 500, insert to DB and clear the array
+                if (count($schoolsChunk) >= 500) {
+                    DB::table('schools')->insert($schoolsChunk);
+                    $schoolsChunk = [];
+                }
+            }
+
+            // Add any remaining schools
+            if (!empty($schoolsChunk)) {
+                DB::table('schools')->insert($schoolsChunk);
             }
 
             fclose($handle);
