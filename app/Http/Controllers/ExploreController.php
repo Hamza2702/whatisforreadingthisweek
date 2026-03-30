@@ -18,6 +18,16 @@ class ExploreController extends Controller {
         $query = Book::query();
         $query->with('genres');
 
+        // Hide banned books from users school
+        if (Auth::check() && Auth::user()->school_id) {
+            $schoolId = Auth::user()->school_id;
+            
+            // only get non banned books by the specific school
+            $query->whereDoesntHave('bannedBySchools', function($q) use ($schoolId) {
+                $q->where('school_id', $schoolId);
+            });
+        }
+
         // search request title
         if ($request->filled('search')) {
             $query->where('title', 'like', '%' . $request->search . '%');
@@ -110,6 +120,17 @@ class ExploreController extends Controller {
     public function show($id, Request $request)
     {
         $book = Book::with(['genres', 'phonics', 'reviews.student.user'])->findOrFail($id);
+
+        // stop direct access if book is banned
+        if (Auth::check() && Auth::user()->school_id) {
+            $isBanned = $book->bannedBySchools()->where('school_id', Auth::user()->school_id)->exists();
+
+            // if book is banned, block access for non headteachers
+            if ($isBanned && Auth::user()->role !== 'headteacher' && !Auth::user()->isAdmin()) {
+                abort(403, 'This book has been restricted by your headteacher');
+            }
+        }
+
         $reviews = $book->reviews;
 
         // get the sort parameter and set default to top
@@ -251,8 +272,8 @@ class ExploreController extends Controller {
             // create placeholder if the local search and api fails
             if (!$coverId) {
                 $rainbowHex = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#6366f1', '#8b5cf6'];
-                $randomColor = $rainbowHex[array_rand($rainbowHex)];
-                $coverId = 'PLACEHOLDER_' . $randomColor;
+                $randomColour = $rainbowHex[array_rand($rainbowHex)];
+                $coverId = 'PLACEHOLDER_' . $randomColour;
             }
         }
 
@@ -294,12 +315,12 @@ class ExploreController extends Controller {
     {
         // check if teacher/admin is deleting
         if (!auth()->user()?->isTeacher() && !auth()->user()?->isAdmin()) {
-            abort(403, 'Unauthorized action.');
+            abort(403, 'Unauthorised action');
         }
 
         // only delete custom created books
         if (!str_starts_with($book->ol_key, 'NO_OL_CUSTOM_')) {
-            abort(403, 'You can only delete manually created books.');
+            abort(403, 'You can only delete manually created books');
         }
 
         // delete from storage if it has a locally uploaded cover

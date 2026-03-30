@@ -118,7 +118,6 @@ class BookReviewSeeder extends Seeder
                     DB::table('book_reviews')->insert($chunk);
                 }
                 $totalInserted += count($reviewBatch);
-                $this->command->info("Added {$totalInserted} reviews");
                 $reviewBatch = [];
             }
         });

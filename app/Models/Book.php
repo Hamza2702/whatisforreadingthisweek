@@ -35,4 +35,10 @@ class Book extends Model
     {
         return $this->hasMany(BookReview::class);
     }
+
+    // books can be banned by many schools
+    public function bannedBySchools()
+    {
+        return $this->belongsToMany(School::class, 'book_school_ban');
+    }
 }

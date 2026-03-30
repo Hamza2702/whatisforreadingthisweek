@@ -8,6 +8,8 @@ use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\ReadingController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\BookReviewController;
+use App\Http\Controllers\HeadteacherController;
+use App\Http\Middleware\IsHeadteacher;
 
 // Explore page
 Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 
@@ -146,5 +148,19 @@ Route::delete('/books/{bookId}/review/{reviewId}', [BookReviewController::class,
 
 // Students announcements
 
-   Route::post('/student/announcements/{id}/hide', [ClassroomController::class, 'hideAnnouncement'])->name('student.announcements.hide');
-    Route::post('/student/announcements/restore', [ClassroomController::class, 'restoreAnnouncements'])->name('student.announcements.restore');
+Route::post('/student/announcements/{id}/hide', [ClassroomController::class, 'hideAnnouncement'])->name('student.announcements.hide');
+Route::post('/student/announcements/restore', [ClassroomController::class, 'restoreAnnouncements'])->name('student.announcements.restore');
+
+// Headteacher
+Route::middleware(['auth', IsHeadteacher::class])->group(function () {
+    // Banned books
+    Route::get('/headteacher/banned-books', [HeadteacherController::class, 'bannedBooks'])->name('headteacher.banned-books');
+    Route::post('/headteacher/banned-books/{book}/toggle', [HeadteacherController::class, 'toggleBan'])->name('headteacher.toggle-ban');
+
+    // Create teacher
+    Route::get('/headteacher/teachers/create', [HeadteacherController::class, 'createTeacher'])->name('headteacher.teachers.create');
+    Route::post('/headteacher/teachers/create', [HeadteacherController::class, 'storeTeacher'])->name('headteacher.teachers.store');
+
+    // Delete teacher
+    Route::delete('/headteacher/teachers/{id}', [App\Http\Controllers\HeadteacherController::class, 'destroyTeacher'])->name('headteacher.teachers.destroy');
+});

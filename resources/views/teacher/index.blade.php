@@ -1,5 +1,65 @@
 <x-teacher.layout :yearGroups="$yearGroups" title="Teacher Dashboard">
 
+<!-- HEADTEACHER SECTION -->
+  @if(auth()->user()->role === 'headteacher' && isset($headteacherStats))
+  <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-red-900/10 mb-8 space-y-6 relative overflow-hidden">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+      <div>
+        <h2 class="text-2xl font-black text-primary">Headteacher Dashboard</h2>
+        <p class="text-primary/60 text-sm">School teachers</p>
+      </div>
+    </div>
+
+    <!-- Teacher list -->
+    <div class="flex flex-col gap-3 overflow-y-auto max-h-[250px] pr-2 pb-2 bg-[#755f540a] border border-[#755f5420] rounded-3xl p-5 [&::-webkit-scrollbar-track]:w-2 [&::-webkit-scrollbar-track]:bg-transparent  [&::-webkit-scrollbar-thumb]:rounded-full relative z-10">
+      
+      @foreach($headteacherStats['teachers_data'] as $teacher)
+      <div class="bg-white rounded-2xl p-4 shadow-sm border relative flex-shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-colors hover:bg-gray-50/50">
+        
+        <!-- Teacher Info -->
+        <div class="flex items-center gap-3">
+            <img src="{{ $teacher->pfp ?? '/images/Placeholder.jpeg' }}" class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-white shadow-sm">
+            <div class="flex flex-col">
+                <span class="text-sm md:text-base font-bold text-primary leading-tight">
+                    {{ $teacher->name }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Year groups -->
+        <div class="flex flex-wrap gap-3 md:justify-end items-center">
+            @forelse($teacher->classrooms as $room)
+                <span class="px-3 py-1.5 bg-white border border-gray-200 text-primary/80 rounded-xl text-xs font-bold shadow-sm">
+                    {{ $room->year_group == 0 ? 'Reception' : 'Year ' . $room->year_group }}
+                </span>
+            @empty
+              @if (auth()->user()->role === 'headteacher')
+                <!-- nothing -->
+              @else
+                <span class="text-xs text-gray-400 font-semibold">No classes</span>
+              @endif
+            @endforelse
+
+            <!-- Delete button -->
+            @if($teacher->id !== auth()->id())
+                <form action="{{ route('headteacher.teachers.destroy', $teacher->id) }}" method="POST" class="m-0 ml-2 border-l border-gray-200 pl-3" onsubmit="return confirm('Are you sure you want to delete {{ $teacher->name }}? This action cannot be undone.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" title="Delete Teacher" class="w-8 h-8 flex items-center justify-center bg-white border-2 border-red-200 text-red-400 rounded-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </form>
+            @endif
+        </div>
+
+      </div>
+      @endforeach
+
+    </div>
+  </div>
+  @endif
   <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-[#755f5420] space-y-6">
     <!-- Classes -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
@@ -149,17 +209,27 @@
       @empty
 
         <!-- if classes are empty -->
-        <div class="col-span-full w-full bg-[#755f540a] border-2 border-dashed border-[#755f5430] rounded-3xl p-12 flex flex-col items-center justify-center text-center">
-          <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10 text-primary/40">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-            </svg>
+        @if (auth()->user()->role === 'headteacher')
+          <!-- do nothing -->
+          <div class="col-span-full w-full bg-[#755f540a] border-2 border-dashed border-[#755f5430] rounded-3xl p-12 flex flex-col items-center justify-center text-center">
+            <h3 class="text-xl font-bold text-primary">No classes assigned</h3>
+            <p class="text-primary/60 mt-2 max-w-sm">
+              You're the headteacher! Create teachers and they will be able to create classrooms!
+            </p>
           </div>
-          <h3 class="text-xl font-bold text-primary">No classes assigned yet</h3>
-          <p class="text-primary/60 mt-2 max-w-sm">
-            You haven't created any classrooms. Click "Create Class" to get started!
-          </p>
-        </div>
+        @else
+          <div class="col-span-full w-full bg-[#755f540a] border-2 border-dashed border-[#755f5430] rounded-3xl p-12 flex flex-col items-center justify-center text-center">
+            <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10 text-primary/40">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-primary">No classes assigned yet</h3>
+            <p class="text-primary/60 mt-2 max-w-sm">
+              You haven't created any classrooms. Click "Create Class" to get started!
+            </p>
+          </div>
+        @endif
 
       @endforelse
 

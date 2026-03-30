@@ -33,4 +33,10 @@ class School extends Model
     {
         return $this->hasMany(User::class)->where('role', 'student');
     }
+
+    // school can ban many books
+    public function bannedBooks()
+    {
+        return $this->belongsToMany(Book::class, 'book_school_ban')->withTimestamps();
+    }
 }
