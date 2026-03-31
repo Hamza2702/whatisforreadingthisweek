@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Classroom; 
 use App\Models\Student;
 use App\Models\Book;  
+use Illuminate\Support\Facades\DB;
 
 class ReadingController extends Controller
 {
@@ -52,13 +53,16 @@ class ReadingController extends Controller
             ];
 
             // fetch books based on filters
-            $fetchBooks = function($targetColour, $isLiked, $limit) use ($likedGenresIds, &$recommended) {
+            $fetchBooks = function($targetColour, $isLiked, $limit) use ($likedGenresIds, &$recommended, $student) {
                 if ($limit <= 0 || !$targetColour) return; // skip
 
-                // query
+                // query, doesnt get banned books
                 $query = Book::with(['genres', 'phonics'])
                     ->where('ort_colour', $targetColour)
-                    ->whereNotIn('id', $recommended->pluck('id')->toArray());
+                    ->whereNotIn('id', $recommended->pluck('id')->toArray())
+                    ->whereDoesntHave('bannedBySchools', function($q) use ($student) {
+                        $q->where('school_id', $student->school_id);
+                    });
 
                 // apply genre preference filtering
                 if (!empty($likedGenresIds)) {
@@ -88,9 +92,14 @@ class ReadingController extends Controller
             $missingCount = 10 - $recommended->count();
             if ($missingCount > 0) {
                 $searchColours = array_filter([$belowColour, $sameColour, $aboveColour]);
+
+                // dont add banned books
                 $fillerBooks = Book::with(['genres', 'phonics'])
                     ->whereIn('ort_colour', $searchColours)
                     ->whereNotIn('id', $recommended->pluck('id')->toArray())
+                    ->whereDoesntHave('bannedBySchools', function($q) use ($student) {
+                        $q->where('school_id', $student->school_id);
+                    })
                     ->inRandomOrder()->take($missingCount)->get();
                 $recommended = $recommended->concat($fillerBooks);
             }
@@ -117,17 +126,23 @@ class ReadingController extends Controller
             // get already read book ids
             $alreadyReadIds = $student->books->pluck('id')->toArray();
 
-            // try matching a book (same colour, liked genre and unread)
+            // try matching a book (same colour, liked genre, unread and not banned)
             $book = Book::where('ort_colour', $ortColour)
                 ->whereNotIn('id', $alreadyReadIds)
+                ->whereDoesntHave('bannedBySchools', function($q) use ($student) {
+                    $q->where('school_id', $student->school_id);
+                })
                 ->whereHas('genres', fn($q) => $q->whereIn('genres.id', $likedGenresIds))
                 ->inRandomOrder()
                 ->first();
 
-            // fall back, any unread book in the same colour
+            // fall back, any unread book in the same colour that isnt banned
             if (!$book) {
                 $book = Book::where('ort_colour', $ortColour)
                     ->whereNotIn('id', $alreadyReadIds)
+                    ->whereDoesntHave('bannedBySchools', function($q) use ($student) {
+                        $q->where('school_id', $student->school_id);
+                    })
                     ->inRandomOrder()
                     ->first();
             }
@@ -170,6 +185,15 @@ class ReadingController extends Controller
         $request->validate([
             'book_id' => 'required|exists:books,id'
         ]);
+        // check if the book is banned for this school
+        $isBanned = DB::table('book_school_ban')
+            ->where('school_id', $student->school_id)
+            ->where('book_id', $request->book_id)
+            ->exists();
+
+        if ($isBanned) {
+            return back()->with('error', 'Cannot assign a banned or restricted book to a student.');
+        }
 
         // mark currently reading book as completed
         $currentBooks = $student->books()->wherePivot('status', 'reading')->get();
@@ -200,7 +224,7 @@ class ReadingController extends Controller
             8 => 'Purple',
             9 => 'Gold',
             10 => 'White', 
-            1 => 'Lime', 
+            11 => 'Lime', 
             12 => 'Lime+',
             13, 14 => 'Grey',
             15, 16 => 'Dark Blue', 

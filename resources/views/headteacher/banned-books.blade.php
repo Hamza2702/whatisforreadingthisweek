@@ -57,9 +57,11 @@
                         <div>
                             <label class="block text-[10px] font-bold text-primary/60 tracking-widest mb-2">BAN STATUS</label>
                             <select name="status" form="filter-form" onchange="submitFilters()" class="w-full bg-[#755f540a] border border-[#755f5420] text-primary text-sm font-bold rounded-2xl px-4 py-3 outline-none cursor-pointer focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors">
-                                <option value="" {{ request('status') == '' ? 'selected' : '' }}>Show All Books</option>
-                                <option value="banned" {{ request('status') == 'banned' ? 'selected' : '' }}>Only Banned Books</option>
-                                <option value="unbanned" {{ request('status') == 'unbanned' ? 'selected' : '' }}>Only Unbanned Books</option>
+                                <option value="" {{ request('status') == '' ? 'selected' : '' }}>Show all books</option>
+                                <option value="banned" {{ request('status') == 'banned' ? 'selected' : '' }}>All banned books</option>
+                                <option value="restricted" {{ request('status') == 'restricted' ? 'selected' : '' }}>Unreadable only</option>
+                                <option value="hidden" {{ request('status') == 'hidden' ? 'selected' : '' }}>Hidden only</option>
+                                <option value="unbanned" {{ request('status') == 'unbanned' ? 'selected' : '' }}>Only unbanned books</option>
                             </select>
                         </div>
 
@@ -152,17 +154,19 @@
                     @forelse($books as $book)
                         @php
                             // check if the book is banned for this school
-                            $isBanned = $school->bannedBooks->contains('id', $book->id);
+                            $bannedRecord = $school->bannedBooks->firstWhere('id', $book->id);
+                            $isBanned = $bannedRecord !== null;
+                            $banType = $isBanned ? $bannedRecord->pivot->ban_type : null;
                         @endphp
 
-                        <div class="bg-white border {{ $isBanned ? 'border-red-500 bg-red-100/90' : 'border-[#755f5420] hover:border-[#755f5430]' }} rounded-3xl p-3 sm:p-3.5 shadow-sm flex flex-col group transition-all duration-200 h-full">
+                        <div class="bg-white border {{ $isBanned ? ($banType === 'hide' ? 'border-red-500 bg-red-50/50' : 'border-orange-400 bg-orange-50/50') : 'border-[#755f5420] hover:border-[#755f5430]' }} rounded-3xl p-3 sm:p-3.5 shadow-sm flex flex-col group transition-all duration-200 h-full">
 
                             <!-- Book cover -->
                             <div class="relative w-full aspect-[2/3] bg-[#755f540a] border border-[#755f5410] rounded-2xl overflow-hidden flex items-center justify-center p-3 {{ $isBanned ? 'opacity-60 grayscale group-hover:grayscale-0 transition-all' : '' }}">
                                 
                                 <!-- if book is banned -->
                                 @if($isBanned)
-                                    <div class="absolute inset-0 bg-red-900/10 z-20 pointer-events-none"></div>
+                                    <div class="absolute inset-0 {{ $banType === 'hide' ? 'bg-red-900/10' : 'bg-orange-900/10' }} z-20 pointer-events-none"></div>
                                 @endif
 
                                 @if($book->cover_id && str_starts_with($book->cover_id, 'LOCAL_'))
@@ -208,12 +212,18 @@
                                 <form action="{{ route('headteacher.toggle-ban', $book->id) }}" method="POST" class="w-full m-0">
                                     @csrf
                                     @if($isBanned)
-                                        <button type="submit" class="w-full py-2.5 bg-red-500 hover:bg-red-600 text-white font-black text-[10px] sm:text-[11px] uppercase tracking-widest rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5">
-                                            BANNED
+                                        <div class="text-[9px] text-center font-bold uppercase tracking-widest {{ $banType === 'hide' ? 'text-red-500' : 'text-orange-500' }} mb-1">
+                                            Currently: {{ $banType === 'hide' ? 'Hidden Entirely' : 'Unreadable' }}
+                                        </div>
+                                        <button type="submit" name="action" value="unban" class="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-[10px] sm:text-[11px] uppercase tracking-widest rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5">
+                                            UNBAN BOOK
                                         </button>
                                     @else
-                                        <button type="submit" class="w-full flex items-center justify-center bg-[#755f540a] hover:bg-red-500 hover:text-white text-red-600 font-black text-[10px] sm:text-[11px] tracking-widest py-2.5 rounded-xl transition-colors">
-                                            BAN BOOK
+                                        <button type="submit" name="action" value="restrict" class="w-full flex items-center justify-center bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-600 font-black text-[9px] sm:text-[10px] tracking-widest py-2 rounded-xl transition-colors mb-1.5" title="Keep visible, disable reading">
+                                            MAKE UNREADABLE
+                                        </button>
+                                        <button type="submit" name="action" value="hide" class="w-full flex items-center justify-center bg-red-50 hover:bg-red-500 hover:text-white text-red-600 font-black text-[9px] sm:text-[10px] tracking-widest py-2 rounded-xl transition-colors" title="Hide book entirely from the school">
+                                            HIDE ENTIRELY
                                         </button>
                                     @endif
                                 </form>

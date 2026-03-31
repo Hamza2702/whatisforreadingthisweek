@@ -69,6 +69,17 @@ class HeadteacherController extends Controller
                 $query->whereHas('bannedBySchools', function($q) use ($school) {
                     $q->where('school_id', $school->id);
                 });
+                // restricted
+            } elseif ($request->status === 'restricted') {
+                $query->whereHas('bannedBySchools', function($q) use ($school) {
+                    $q->where('school_id', $school->id)->where('ban_type', 'restrict');
+                });
+                // hidden
+            } elseif ($request->status === 'hidden') {
+                $query->whereHas('bannedBySchools', function($q) use ($school) {
+                    $q->where('school_id', $school->id)->where('ban_type', 'hide');
+                });
+                // unbanned
             } elseif ($request->status === 'unbanned') {
                 $query->whereDoesntHave('bannedBySchools', function($q) use ($school) {
                     $q->where('school_id', $school->id);
@@ -108,9 +119,22 @@ class HeadteacherController extends Controller
     public function toggleBan(Request $request, Book $book)
     {
         $school = School::findOrFail(auth()->user()->school_id);
-        $school->bannedBooks()->toggle($book->id);
-        $status = $school->bannedBooks()->where('book_id', $book->id)->exists() ? 'banned' : 'unbanned';
+        $action = $request->input('action'); // unban, restrict, hide
 
+        // validation
+        if ($action === 'unban') {
+            $school->bannedBooks()->detach($book->id);
+            $status = 'unbanned';
+        } else {
+            // add/update pivot table with the ban type
+            $school->bannedBooks()->syncWithoutDetaching([
+                $book->id => ['ban_type' => $action]
+            ]);
+            $school->bannedBooks()->updateExistingPivot($book->id, ['ban_type' => $action]);
+
+            // message status
+            $status = $action === 'hide' ? 'hidden entirely' : 'made unreadable';
+        }
         return back()->with('success', "Book successfully {$status}.");
     }
 

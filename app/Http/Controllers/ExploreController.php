@@ -22,9 +22,9 @@ class ExploreController extends Controller {
         if (Auth::check() && Auth::user()->school_id) {
             $schoolId = Auth::user()->school_id;
             
-            // only get non banned books by the specific school
+            // only hide if the book is banned with option 2
             $query->whereDoesntHave('bannedBySchools', function($q) use ($schoolId) {
-                $q->where('school_id', $schoolId);
+                $q->where('school_id', $schoolId)->where('ban_type', 'hide');
             });
         }
 
@@ -121,13 +121,25 @@ class ExploreController extends Controller {
     {
         $book = Book::with(['genres', 'phonics', 'reviews.student.user'])->findOrFail($id);
 
-        // stop direct access if book is banned
-        if (Auth::check() && Auth::user()->school_id) {
-            $isBanned = $book->bannedBySchools()->where('school_id', Auth::user()->school_id)->exists();
+        // set the bantype to null as default
+        $banType = null;
 
-            // if book is banned, block access for non headteachers
-            if ($isBanned && Auth::user()->role !== 'headteacher' && !Auth::user()->isAdmin()) {
-                abort(403, 'This book has been restricted by your headteacher');
+        if (Auth::check() && Auth::user()->school_id) {
+            
+            // query pivot table, checking for book id and school id and get it
+            $banRecord = DB::table('book_school_ban')
+                ->where('book_id', $book->id)
+                ->where('school_id', Auth::user()->school_id)
+                ->first();
+
+            if ($banRecord) {
+                // assign ban type, restrict/hide
+                $banType = $banRecord->ban_type;
+
+                // only allow headteachers/teachers/admins
+                if ($banType === 'hide' && Auth::user()->role !== 'headteacher' && !Auth::user()->isAdmin() && Auth::user()->role !== 'teacher') {
+                    abort(403, 'This book has been hidden by school administrators');
+                }
             }
         }
 
@@ -169,7 +181,7 @@ class ExploreController extends Controller {
 
         $currentSort = $sort;
 
-        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort'));
+        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort', 'banType'));
     }
 
     // Create book

@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Set BST timezone
+    'timezone' => 'Europe/London',
 
     /*
     |--------------------------------------------------------------------------

@@ -99,27 +99,62 @@
                 </div>
                 
                 <!-- Add book, read book, favourite -->
-                <div class="mt-auto pt-4 flex flex-col sm:flex-row gap-4">
+                <div class="mt-auto pt-4 flex flex-col gap-3">
                     
-                    @if(!str_starts_with($book->ol_key, 'NO_OL_'))
-                        <!-- openlibrary interactive reader -->
-                        <div class="flex flex-col">
-                            <a href="https://archive.org/details/{{ $book->ol_key }}/mode/2up?view=theater" target="_blank" rel="noopener noreferrer" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-black text-xs tracking-widest py-4 px-6 rounded-xl shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                                </svg>
-                                READ BOOK ONLINE
+                    <!-- Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 w-full items-stretch">        
+                        <!-- Add to reading list / banned book -->
+                        @if($banType)
+                            <!-- Book banned -->
+                            <div class="flex-1 bg-red-200 border border-red-500 text-red-600 font-black text-[10px] sm:text-xs tracking-widest py-4 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm text-center">
+                                BOOK BANNED BY ADMINISTRATOR
+                            </div>
+                        @else
+                            <!-- Add to reading list -->
+                            <a href="" class="flex-1 bg-primary hover:bg-secondary border-2 border-primary hover:border-secondary text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer">
+                                ADD TO READING LIST
                             </a>
-                            <p class="text-primary mt-2 text-xs">Need help with borrowing books?<a href="https://help.archive.org/help/borrowing-from-the-lending-library/#:~:text=How%20do%20I%20get%20set%20up%20to%20borrow%20books%20through%20archive.org%3F" target="_blank" class="font-black underline-offset-4 underline ml-1">Check this out</a></p>
-                        </div>
+                        @endif
+
+                        <!-- Read online openlibrary -->
+                        @if(!str_starts_with($book->ol_key, 'NO_OL_'))
+                            <!-- openlibrary interactive reader -->
+                            @if($banType)
+                                <!-- disabled -->
+                                <button disabled class="flex-1 bg-green-500 text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 opacity-50 cursor-not-allowed border-2 border-green-500 text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                                    </svg>
+                                    READ BOOK ONLINE
+                                </button>
+                            @else
+                                <!-- available -->
+                                <a href="https://archive.org/details/{{ $book->ol_key }}/mode/2up?view=theater" target="_blank" rel="noopener noreferrer" class="flex-1 bg-green-500 hover:bg-green-600 border-2 border-green-500 hover:border-green-600 text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                                    </svg>
+                                    READ BOOK ONLINE
+                                </a>
+                            @endif
+                        @endif
+                        
+                        <!-- Add to favourites -->
+                        <button @if($banType) disabled @endif class="flex-1 bg-white border border-[#755f5420] text-primary font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 @if($banType) opacity-50 cursor-not-allowed @else hover:border-primary hover:text-secondary hover:-translate-y-0.5 @endif">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                            </svg>
+                            ADD TO FAVOURITE
+                        </button>
+
+                    </div>
+
+                    <!-- Online book help -->
+                    @if(!str_starts_with($book->ol_key, 'NO_OL_'))
+                        <p class="text-primary text-[10px] sm:text-xs text-center mt-1 w-full">
+                            Need help with borrowing books?<a href="https://help.archive.org/help/borrowing-from-the-lending-library/#:~:text=How%20do%20I%20get%20set%20up%20to%20borrow%20books%20through%20archive.org%3F" target="_blank" class="font-black underline-offset-4 underline ml-1 hover:text-secondary transition-colors">Check this out</a>
+                        </p>
                     @endif
-                    
-                    <button class="flex-1 bg-white border-2 border-[#755f5420] hover:border-primary hover:text-secondary text-primary font-black text-xs tracking-widest py-4 px-6 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 h-fit">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                        </svg>
-                        ADD TO FAVOURITE
-                    </button>
+
                 </div>
             </div>
         </div>

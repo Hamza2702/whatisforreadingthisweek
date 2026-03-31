@@ -28,7 +28,7 @@
     <div class="flex items-center space-x-5">
       @if (Auth::check() && Auth::user()->isAdmin())
         <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
-      @elseif (Auth::check() && Auth::user()->role === 'Teacher' || Auth::check() && Auth::user()->role === 'headteacher')
+      @elseif (Auth::check() && Auth::user()->role === 'teacher' || Auth::check() && Auth::user()->role === 'headteacher')
         <x-nav-link href="{{ route('teacher.index') }} " class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
       @else 
         <x-nav-link href='/dashboard'> Dashboard </x-nav-link>
@@ -66,6 +66,7 @@
       {{ $slot }}
   </main>
 
+  <!-- FOOTER -->
   <footer class="bg-primary w-full p-6 text-white">
     <div class="flex flex-wrap justify-center space-y-6 md:space-y-0 md:flex-nowrap">
       <div class="w-full md:w-1/3 text-center flex flex-col items-center">
@@ -74,14 +75,14 @@
           <li class="font-semibold">Pages</li>
           <li>
             @if (Auth::check() && Auth::user()->isAdmin())
-              <a href='/admin/index' class="hover:underline">Dashboard</a>
-            @elseif (Auth::check() && Auth::user()->role === 'Teacher' || Auth::check() && Auth::user()->role === 'headteacher')
-              <a href="{{ route('teacher.index') }} " class="hover:underline">Dashboard</a>
+              <a href='/admin/index' class="hover:underline"> Dashboard </a>
+            @elseif (Auth::check() && Auth::user()->role === 'teacher' || Auth::check() && Auth::user()->role === 'headteacher')
+              <a href="{{ route('teacher.index') }} " class="hover:underline"> Dashboard </a>
             @else 
-              <a href='/dashboard' class="hover:underline">Dashboard</a>
+              <a href='/dashboard' class="hover:underline text-white"> Dashboard </a>
             @endif
           </li>
-          <li><a href="/explore" class="hover:underline">Explore</a></li>
+          <li><a href="/explore" class="hover:underline text-white">Explore</a></li>
           <li><a href="/assignments" class="hover:underline">Assignments</a></li>
           <li><a href="/progress" class="hover:underline">Progress</a></li>
           <li><a href="/leaderboard" class="hover:underline">Leaderboard</a></li>

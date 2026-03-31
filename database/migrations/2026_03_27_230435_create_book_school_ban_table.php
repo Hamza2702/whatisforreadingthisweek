@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('school_id')->constrained()->cascadeOnDelete();
             $table->foreignId('book_id')->constrained()->cascadeOnDelete();
+            $table->string('ban_type')->nullable();
             $table->timestamps();
             $table->unique(['school_id', 'book_id']);
         });

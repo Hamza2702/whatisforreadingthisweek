@@ -37,6 +37,6 @@ class School extends Model
     // school can ban many books
     public function bannedBooks()
     {
-        return $this->belongsToMany(Book::class, 'book_school_ban')->withTimestamps();
+        return $this->belongsToMany(Book::class, 'book_school_ban')->withPivot('ban_type')->withTimestamps();
     }
 }
