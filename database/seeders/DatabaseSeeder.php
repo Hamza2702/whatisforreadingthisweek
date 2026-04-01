@@ -13,6 +13,7 @@ use App\Models\Genre;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
+use App\Models\StudentWeeklyGoal;
 
 class DatabaseSeeder extends Seeder
 {
@@ -192,6 +193,14 @@ class DatabaseSeeder extends Seeder
                     'level' => fake()->numberBetween(1, 20),
                     'date_of_birth' => now()->subYears(5 + $classroom->year_group)->subDays(rand(0, 365)),
                     'pfp' => $pfpPath,
+                ]);
+
+                // ASSIGN WEEKLY BOOK GOAL
+                StudentWeeklyGoal::create([
+                    'school_id' => $school->id,
+                    'classroom_id' => $classroom->id,
+                    'student_id' => $student->id,
+                    'target' => rand(1, 3),
                 ]);
 
                 // ASSIGN LIKED GENRES
