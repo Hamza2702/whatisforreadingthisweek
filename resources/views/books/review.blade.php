@@ -122,7 +122,7 @@
                     <!-- Description -->
                     <div>
                         <label for="reviewtext" class="block text-[10px] font-black text-primary/60 tracking-widest mb-2">REVIEW DETAILS</label>
-                        <textarea id="reviewtext" name="description" class="w-full p-4 border border-[#755f5420] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none text-sm font-medium text-primary bg-[#755f540a]" placeholder="What did you enjoy about this book? Would you recommend it to others?" rows="5" minlength="10" maxlength="280" required>{{ old('description', $existingReview->description ?? '') }}</textarea>
+                        <textarea id="reviewtext" name="description" class="w-full p-4 border border-[#755f5420] rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition resize-none text-sm font-medium text-primary bg-[#755f540a]" placeholder="What did you enjoy about this book? Would you recommend it to others?" rows="5" minlength="3" maxlength="280" required>{{ old('description', $existingReview->description ?? '') }}</textarea>
                         <p class="text-[10px] font-bold text-primary/30 mt-1 text-right"><span id="char-count">0</span>/280</p>
                     </div>
 

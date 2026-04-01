@@ -11,6 +11,7 @@ use App\Http\Controllers\BookReviewController;
 use App\Http\Controllers\HeadteacherController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Middleware\IsHeadteacher;
+use App\Http\Controllers\AssignmentController;
 
 Route::get('/', function () {
     return view('Site/index');
@@ -65,6 +66,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/student/announcements/{id}/hide', [ClassroomController::class, 'hideAnnouncement'])->name('student.announcements.hide');
     Route::post('/student/announcements/restore', [ClassroomController::class, 'restoreAnnouncements'])->name('student.announcements.restore');
 
+    
+    // View assignments
+    Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+
+    // Mark a book as completed
+    Route::post('/assignments/{book}/complete', [AssignmentController::class, 'markCompleted'])->name('assignments.complete');
+
+    // Notify teacher
+    Route::post('/assignments/notify', [AssignmentController::class, 'notifyTeacher'])->name('assignments.notify');
 });
 
 

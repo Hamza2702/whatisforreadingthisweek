@@ -36,7 +36,7 @@ class BookReviewController extends Controller
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'title' => 'required|string|min:1|max:80',
-            'description' => 'nullable|string|min:10|max:280',
+            'description' => 'nullable|string|min:3|max:280',
         ]);
 
         $book = Book::findOrFail($id);

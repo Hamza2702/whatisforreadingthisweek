@@ -115,6 +115,7 @@
                       $q->whereNull('announcements.student_id')
                         ->orWhere('announcements.student_id', $student->id);
                   })
+                  ->where('announcements.message', 'not like', '%has completed their books and is waiting to be assigned another!%') // hide studet's own message
                   ->select(
                       'announcements.*',
                       'classrooms.name as class_name',
