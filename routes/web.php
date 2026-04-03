@@ -33,9 +33,7 @@ Route::post('forgot-password', [UserController::class, 'forgotPassword'])->middl
 // ==========================================
 Route::middleware(['auth'])->group(function () {
     
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    });
+    Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
 
     // Explore page
     Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 
