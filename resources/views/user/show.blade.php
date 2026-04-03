@@ -1,5 +1,5 @@
 <x-layout title="{{ $user->username }}'s Profile">
-    <div class="w-full lg:w-3/5 xl:w-1/2 mx-auto px-6 py-8 flex flex-col gap-6">
+    <div class="w-full lg:w-3/5 xl:w-full mx-auto px-6 py-8 flex flex-col gap-6">
         <!-- ========================================= -->
         <!-- Profile header -->
         <div class="bg-[#755f540a] border border-[#755f5420] rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-sm relative overflow-hidden">
@@ -52,8 +52,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 text-orange-500 mb-1">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" />
                 </svg>
-                <span class="text-2xl font-black text-primary leading-none">12</span>
-                <span class="text-[10px] font-bold text-primary/60 uppercase tracking-widest mt-1">Day Streak</span>
+                <span class="text-2xl font-black text-primary leading-none">{{ $streakCount }}</span>
+                <span class="text-[10px] font-bold text-primary/60 uppercase tracking-widest mt-1">Reading Streak</span>
             </div>
 
             <!-- average rating -->
@@ -61,7 +61,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 text-yellow-400 mb-1">
                     <path fill-rule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-2xl font-black text-primary leading-none">4.2</span>
+                <span class="text-2xl font-black text-primary leading-none">{{ $avgRating }}</span>
                 <span class="text-[10px] font-bold text-primary/60 uppercase tracking-widest mt-1">Avg Rating</span>
             </div>
 
@@ -70,8 +70,18 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 text-pink-300 mb-1">
                     <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
                 </svg>
-                <span class="text-sm md:text-base font-black text-background leading-tight truncate w-full">Romance</span>
-                <span class="text-[10px] font-bold text-background/70 uppercase tracking-widest mt-1">Top Genre</span>
+                <span class="text-sm md:text-base font-black text-background leading-tight truncate w-full" title="{{ $topGenreText }}">{{ $topGenreText }}</span>
+                @php
+
+                $genres = "genre";
+
+                if (strpos($topGenreText, '&') !== false){
+                    $genres = "genres";
+                } else {
+                    $genres = "genre";
+                }
+                @endphp
+                <span class="text-[10px] font-bold text-background/70 uppercase tracking-widest mt-1">Top {{ $genres }}</span>
             </div>
         </div>
 
@@ -188,9 +198,9 @@
             <!-- Genres liked and phonics mastered -->
             <div class="flex flex-col gap-6 h-[350px]">
                 
-                <!-- liked genres -->
+                <!-- genres explored -->
                 <div class="bg-white border border-[#755f5420] rounded-3xl p-5 flex-1 flex flex-col">
-                    <h3 class="font-bold text-primary text-sm mb-3 uppercase tracking-widest text-center md:text-left">Liked Genres</h3>
+                    <h3 class="font-bold text-primary text-sm mb-3 uppercase tracking-widest text-center md:text-left">Genres Explored</h3>
                     
                     <div class="flex flex-wrap gap-2 justify-center md:justify-start overflow-y-auto max-h-[120px] custom-scrollbar pr-2 pb-1">
                         @php
@@ -207,18 +217,24 @@
                     </div>
                 </div>
                 <!-- phonics mastered -->
-                <div class="bg-[#755f540a] border border-[#755f5420] rounded-3xl p-5 flex flex-col overflow-hidden">
+                <div class="bg-white border border-[#755f5420] rounded-3xl p-5 flex-1 flex flex-col">
                     <h3 class="font-bold text-primary text-sm mb-3 uppercase tracking-widest text-center md:text-left">Phonics Mastered</h3>
-                    <div class="flex flex-row gap-2 justify-start overflow-x-auto custom-scrollbar-x pb-2">
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                        <span class="flex-shrink-0 px-4 py-4 bg-white text-primary rounded-lg text-xs font-black border border-[#755f5420]">ch</span>
-                    </div>
+                    <div class="flex flex-wrap gap-2 justify-center md:justify-start overflow-y-auto max-h-[120px] custom-scrollbar pr-2 pb-1">
+                    @php
+                        if ($level >= 8){
+                            $phonicMessage = "This user has mastered all phonics! Amazing work!";
+                        } else if ($level < 8) {
+                            $phonicMessage = "This user has not mastered any phonics yet. Encourage them to keep reading to master new phonics!";
+                        }
+                    @endphp
+                    @forelse($phonicsMastered as $phonic)
+                        <span class="px-3 py-1 bg-orange-50 border border-orange-100 text-primary rounded-full text-xs font-bold shadow-sm">
+                            {{ $phonic }}
+                        </span>
+                    @empty
+                        <p class="text-lg text-primary/60 font-medium mt-2">{{ $phonicMessage }}</p>
+                    @endforelse
+                </div>
                 </div>
             </div>
         </div>

@@ -13,6 +13,8 @@ use App\Models\Genre;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
+use App\Models\StudentWeeklyGoal;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -194,6 +196,14 @@ class DatabaseSeeder extends Seeder
                     'pfp' => $pfpPath,
                 ]);
 
+                // ASSIGN WEEKLY BOOK GOAL
+                StudentWeeklyGoal::create([
+                    'school_id' => $school->id,
+                    'classroom_id' => $classroom->id,
+                    'student_id' => $student->id,
+                    'target' => rand(1, 3),
+                ]);
+
                 // ASSIGN LIKED GENRES
                 if ($allGenreIds->isNotEmpty()) {
                     $randomGenres = $allGenreIds->random(rand(1, 3));
@@ -205,6 +215,16 @@ class DatabaseSeeder extends Seeder
                     
                     $student->preferredGenres()->attach($pivotData);
                 }
+
+                DB::table('student_streaks')->insert([
+                    'school_id' => $school->id,
+                    'classroom_id' => $classroom->id,
+                    'student_id' => $student->id,
+                    'streak_count' => rand(0, 7),
+                    'last_read_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
                 $students->push($student);
             }

@@ -29,7 +29,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
                 </svg>
-                Romance
+                {{ $topGenreText }}
               </span>
               <!-- Reading Level -->
               <span class="px-4 py-1.5 rounded-full text-sm font-bold bg-level-{{ Auth::user()->student->level ?? '0' }} text-level-{{ Auth::user()->student->level ?? '0' }} flex items-center gap-1.5">
@@ -49,22 +49,25 @@
             <span class="text-sm font-black text-orange-600 flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 text-orange-500 mb-1">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" />
-                </svg>
-
-              10 Days
+              </svg>
+              {{ $streakCount }}
             </span>
           </div>
           <!-- Days -->
           <div class="flex items-center justify-between gap-2 md:gap-4">
-            <!-- Filled days -->
-            <div class="h-10 md:h-12 flex-1 bg-orange-400 rounded-xl shadow-inner"></div>
-            <div class="h-10 md:h-12 flex-1 bg-orange-400 rounded-xl shadow-inner"></div>
-            <div class="h-10 md:h-12 flex-1 bg-orange-400 rounded-xl shadow-inner"></div>
-            <div class="h-10 md:h-12 flex-1 bg-orange-400 rounded-xl shadow-inner"></div>
-            <!-- Empty days -->
-            <div class="h-10 md:h-12 flex-1 bg-orange-100 rounded-xl"></div>
-            <div class="h-10 md:h-12 flex-1 bg-orange-100 rounded-xl"></div>
-            <div class="h-10 md:h-12 flex-1 bg-orange-100 rounded-xl"></div>
+            @php
+                $filledBlocks = $streakCount == 0 ? 0 : ($streakCount % 7 == 0 ? 7 : $streakCount % 7);
+            @endphp
+
+            @for($i = 1; $i <= 7; $i++)
+                @if($i <= $filledBlocks)
+                    <!-- Filled days -->
+                    <div class="h-10 md:h-12 flex-1 bg-orange-400 rounded-xl shadow-inner transition-all"></div>
+                @else
+                    <!-- Empty days -->
+                    <div class="h-10 md:h-12 flex-1 bg-orange-100 rounded-xl transition-all"></div>
+                @endif
+            @endfor
           </div>
         </div>
       </div>
@@ -78,7 +81,7 @@
         </div>
         <!-- Average rating -->
         <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-          <span class="text-5xl font-black text-primary mb-2">3.5</span>
+          <span class="text-5xl font-black text-primary mb-2">{{ $avgRating }}</span>
           <span class="text-sm font-bold text-primary/70 tracking-widest">AVERAGE RATING</span>
         </div>
         <!-- Genres explored -->
@@ -115,6 +118,7 @@
                       $q->whereNull('announcements.student_id')
                         ->orWhere('announcements.student_id', $student->id);
                   })
+                  ->where('announcements.message', 'not like', '%has completed their books and is waiting to be assigned another!%') // hide studet's own message
                   ->select(
                       'announcements.*',
                       'classrooms.name as class_name',
