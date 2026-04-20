@@ -12,6 +12,7 @@ use App\Http\Controllers\HeadteacherController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Middleware\IsHeadteacher;
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\LeaderboardController;
 
 Route::get('/', function () {
     return view('Site/index');
@@ -43,10 +44,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Progress Page
     Route::get('/progress', [ProgressController::class, 'index'])->name('progress');
-
     Route::patch('/user', [UserController::class, 'update']);
-    
     Route::post('/logout', [SessionController::class, 'destroy']);
+
+    // Leaderboard page
+    Route::get('/leaderboard/{classroom?}', [LeaderboardController::class, 'show'])->name('leaderboard');
 
     // user profile, anyone logged in can visit
     Route::get('/user/{id}', [UserController::class, 'show'])->name('user.show');

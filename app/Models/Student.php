@@ -46,6 +46,12 @@ class Student extends Model
             ->withTimestamps();
     }
 
+    // student reviews
+    public function reviews()
+    {
+        return $this->hasMany(BookReview::class, 'student_id');
+    }
+
     // genres student likes
     public function preferredGenres()
     {

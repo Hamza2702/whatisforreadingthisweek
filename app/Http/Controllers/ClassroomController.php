@@ -207,7 +207,7 @@ class ClassroomController extends Controller
             // update old classroom as progressed
             $oldClassroom->update(['is_progressed' => true]);
 
-            // C. Find the archive record to figure out who was in the old class
+            // find archive record to figure out who was in old class
             $archive = DB::table('archive_classrooms')
                 ->where('classroom_id', $oldClassroom->id)
                 ->orderBy('created_at', 'desc')
@@ -217,18 +217,20 @@ class ClassroomController extends Controller
                 $studentIds = json_decode($archive->student_ids, true);
 
                 if (!empty($studentIds)) {
-                    // D. Update the students table to place them in the NEW classroom
+                    // update students table to place them in new classroom
                     Student::whereIn('id', $studentIds)->update([
                         'classroom_id' => $newClassroom->id
                     ]);
 
-                    // E. Insert brand new records into the classroom_student pivot table
+                    // insert new records into classroom_student pivot table
                     $pivotData = [];
                     foreach ($studentIds as $studentId) {
                         $pivotData[] = [
                             'school_id'    => $newClassroom->school_id,
                             'classroom_id' => $newClassroom->id,
                             'student_id'   => $studentId,
+                            'starts_on'   => now(),
+                            'ends_on'     => now()->addYear(),
                             'active'       => 1,
                             'created_at'   => now(),
                             'updated_at'   => now(),
