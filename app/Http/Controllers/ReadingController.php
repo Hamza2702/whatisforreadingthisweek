@@ -127,7 +127,8 @@ class ReadingController extends Controller
             $alreadyReadIds = $student->books->pluck('id')->toArray();
 
             // try matching a book (same colour, liked genre, unread and not banned)
-            $book = Book::where('ort_colour', $ortColour)
+            $book = Book::with(['genres', 'phonics'])
+                ->where('ort_colour', $ortColour)
                 ->whereNotIn('id', $alreadyReadIds)
                 ->whereDoesntHave('bannedBySchools', function($q) use ($student) {
                     $q->where('school_id', $student->school_id);
@@ -138,7 +139,8 @@ class ReadingController extends Controller
 
             // fall back, any unread book in the same colour that isnt banned
             if (!$book) {
-                $book = Book::where('ort_colour', $ortColour)
+                $book = Book::with(['genres', 'phonics'])
+                    ->where('ort_colour', $ortColour)
                     ->whereNotIn('id', $alreadyReadIds)
                     ->whereDoesntHave('bannedBySchools', function($q) use ($student) {
                         $q->where('school_id', $student->school_id);
@@ -160,6 +162,15 @@ class ReadingController extends Controller
                     'status' => 'reading',
                     'school_id' => $student->school_id 
                 ]);
+
+                // add genres with schoolid to pivot table to track preferred genres
+                if ($book->genres->isNotEmpty()) {
+                    $genreSyncData = [];
+                    foreach ($book->genres->pluck('id') as $genreId) {
+                        $genreSyncData[$genreId] = ['school_id' => $student->school_id];
+                    }
+                    $student->preferredGenres()->syncWithoutDetaching($genreSyncData);
+                }
             }
         }
         
@@ -194,6 +205,8 @@ class ReadingController extends Controller
         if ($isBanned) {
             return back()->with('error', 'Cannot assign a banned or restricted book to a student.');
         }
+        // get books with genres and phonics
+        $book = Book::with(['genres', 'phonics'])->find($request->book_id);
 
         // mark currently reading book as completed
         $currentBooks = $student->books()->wherePivot('status', 'reading')->get();
@@ -202,10 +215,18 @@ class ReadingController extends Controller
         }
 
         // assign new book
-        $student->books()->attach($request->book_id, [
+        $student->books()->attach($book->id, [
             'status' => 'reading',
             'school_id' => $student->school_id 
         ]);
+        // add genres with schoolid to pivot table to track preferred genres
+        if ($book->genres->isNotEmpty()) {
+            $genreSyncData = [];
+            foreach ($book->genres->pluck('id') as $genreId) {
+                $genreSyncData[$genreId] = ['school_id' => $student->school_id];
+            }
+            $student->preferredGenres()->syncWithoutDetaching($genreSyncData);
+        }
 
         return back()->with('success', 'Book manually assigned to ' . $student->first_name);
     }

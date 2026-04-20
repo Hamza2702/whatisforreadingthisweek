@@ -210,6 +210,7 @@ class HeadteacherController extends Controller
             'name'      => $validated['name'],
             'username'  => $validated['username'],
             'email'     => $validated['email'],
+            'email_verified_at' => now(),
             'phone'     => $validated['phone'],
             'password'  => Hash::make($validated['password']),
             'role'      => 'teacher', 

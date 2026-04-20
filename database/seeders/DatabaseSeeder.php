@@ -87,14 +87,21 @@ class DatabaseSeeder extends Seeder
             'pfp' => '/images/pfp/cat.png',
         ]);
 
-        // Montgomery school
-        $school = School::firstOrCreate([
-            'urn' => '138864',
-        ], [
-            'name' => 'Montgomery Primary School',
-            'town' => 'Birmingham',
-            'postcode' => 'B11 1EH',
+        $randomSchool = School::where('id', '!=', $school->id)->inRandomOrder()->first();
+
+        $randomHeadteacher = User::factory()->create([
+            'username'  => 'randomheadteacher',
+            'name'      => 'John Doe',
+            'email'     => 'johnedoe@' . strtolower(str_replace(' ', '', $randomSchool->name)) . '.com',
+            'phone'     => '07123456789',
+            'role'      => 'headteacher',
+            'school_id' => $randomSchool->id,
+            'isAdmin'   => false,
+            'pfp'       => '/images/pfp/cat.png',
         ]);
+
+        // montgomery school
+        $school = School::where('urn', '138864')->first();
 
         // Montgomery -- HEADTEACHER
         $headteacher = User::factory()->create([
@@ -137,6 +144,8 @@ class DatabaseSeeder extends Seeder
                     'name' => $baseName,
                     'stage' => $stage,
                     'academic_year' => '2025/2026',
+                    'academic_start' => '2026',
+                    'academic_end' => '2027',
                     'active' => true,
                 ]
             );
