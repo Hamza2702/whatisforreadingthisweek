@@ -3,7 +3,30 @@
     <!-- Invisible filter form -->
     <form action="{{ route('explore') }}" method="GET" id="explore-form"></form>
 
-    <div class="w-full px-4 sm:px-6 md:px-10 py-6 sm:py-8 flex flex-col gap-6 lg:gap-8">
+            <div class="w-full px-4 sm:px-6 md:px-10 py-6 sm:py-8 flex flex-col gap-6 lg:gap-8">
+
+        <!-- success / error messages -->
+        @if(session('success'))
+            <div class="bg-green-100 border border-green-300 text-green-800 px-5 py-4 rounded-2xl font-bold text-sm shadow-sm w-full">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="bg-red-100 border border-red-300 text-red-800 px-5 py-4 rounded-2xl font-bold text-sm shadow-sm w-full">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="bg-red-100 border border-red-300 text-red-800 px-5 py-4 rounded-2xl font-bold text-sm shadow-sm w-full">
+                <ul class="flex flex-col gap-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         <!-- Top bar -->
         <div class="bg-white border border-[#755f5420] rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm w-full">
@@ -12,22 +35,6 @@
                     <span class="flex items-center justify-center w-12 h-12 rounded-full bg-secondary text-white text-xs">{{ $books->total() }}</span>
                     Books found
                 </div>
-                
-                @if(session('success'))
-                    <div class="px-4 py-2.5 bg-green-100 text-green-700 rounded-xl text-xs font-bold text-center flex items-center">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                @if($errors->any())
-                    <div class="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl text-xs font-bold flex items-center">
-                        <ul class="flex flex-col gap-1">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
             </div>
             <!-- Right side of top bar -->
             <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
@@ -290,23 +297,123 @@
                                 <p class="text-[10px] font-bold text-primary/50 uppercase tracking-widest mt-1.5 truncate" title="{{ html_entity_decode($book->author ?? '', ENT_QUOTES) }}">{{ html_entity_decode($book->author ?? '', ENT_QUOTES) }}</p>
                             </div>
 
-                            <!-- Actions -->
+                            <!-- Actions and calculcate stock-->
+                            @php
+                                $user = Auth::user();
+                                $schoolId = $user?->school_id ?? $user?->student?->school_id ?? $user?->teacher?->school_id ?? null;
+                                $availableStock = 0;
+                                
+                                if ($schoolId) {
+                                    // total stock for book in this school
+                                    $totalStock = DB::table('book_school_stocks')
+                                        ->where('school_id', $schoolId)
+                                        ->where('book_id', $book->id)
+                                        ->value('stock') ?? 0;
+                                        
+                                    // get amount of students currently reading book in school    
+                                    $readingCount = DB::table('book_student')
+                                        ->where('school_id', $schoolId)
+                                        ->where('book_id', $book->id)
+                                        ->where('status', 'reading')
+                                        ->count();
+                                        
+                                    // available
+                                    $availableStock = max(0, $totalStock - $readingCount);
+                                }
+                            @endphp
+
                             <div class="mt-4 pt-3.5 border-t border-[#755f5410] flex flex-col gap-2">
+                                
+                                <!-- View -->
                                 <a href="{{ route('books.show', $book->id) }}" class="w-full flex items-center justify-center bg-[#755f540a] hover:bg-primary hover:text-white text-primary font-black text-xs tracking-widest py-3 rounded-xl transition-colors">
                                     VIEW
                                 </a>
 
-                                <div class="flex items-center gap-1.5 sm:gap-2">
-                                    <button type="button" class="flex-1 flex items-center justify-center bg-[#755f540a] hover:bg-primary hover:text-white text-primary font-black text-[9px] sm:text-[10px] tracking-widest py-2.5 rounded-xl transition-colors">
-                                        QUICK ADD
-                                    </button>
+                                <!-- Quick add and favourites (FOR STUDENTS) -->
+                                @if(Auth::user()?->student)
+                                    @php
+                                        // check if the book is in users favourites
+                                        $isFavourited = isset($favouritedBookIds) && in_array($book->id, $favouritedBookIds);
 
-                                    <button type="button" class="flex items-center justify-center bg-[#755f540a] hover:bg-primary hover:text-white text-primary p-2.5 rounded-xl transition-colors group" title="Favourite">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 group-hover:fill-current">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                                        </svg>
-                                    </button>
-                                </div>
+                                        // Check if already requested or reading
+                                        $alreadyRequested = DB::table('student_reading_lists')
+                                            ->where('student_id', Auth::user()->student->id)
+                                            ->where('book_id', $book->id)
+                                            ->where('status', 'pending')
+                                            ->exists();
+
+                                        $alreadyReading = DB::table('book_student')
+                                            ->where('student_id', Auth::user()->student->id)
+                                            ->where('book_id', $book->id)
+                                            ->where('status', 'reading')
+                                            ->exists();
+                                            
+                                        $alreadyAdded = $alreadyRequested || $alreadyReading;
+                                    @endphp
+
+                                    <div class="flex items-center gap-1.5 sm:gap-2">
+                                        
+                                        <!-- Quick add/ added -->
+                                        @if($alreadyAdded)
+                                            <button disabled type="button" class="flex-1 flex items-center justify-center bg-[#755f5410] border border-[#755f5415] text-primary/40 font-black text-[9px] sm:text-[10px] tracking-widest py-2.5 rounded-xl cursor-not-allowed">
+                                                ADDED
+                                            </button>
+                                        @elseif($availableStock > 0)
+                                            <form action="{{ route('explore.requestBook', $book->id) }}" method="POST" class="flex-1 m-0 flex">
+                                                @csrf
+                                                <button type="submit" class="w-full flex items-center justify-center bg-[#755f540a] hover:bg-primary hover:text-white text-primary font-black text-[9px] sm:text-[10px] tracking-widest py-2.5 rounded-xl transition-colors">
+                                                    QUICK ADD
+                                                </button>
+                                            </form>
+                                        @else
+                                            <button disabled type="button" class="flex-1 flex items-center justify-center bg-[#755f5410] border border-[#755f5415] text-primary/40 font-black text-[9px] sm:text-[10px] tracking-widest py-2.5 rounded-xl cursor-not-allowed">
+                                                UNAVAILABLE
+                                            </button>
+                                        @endif
+
+                                        <form action="{{ route('favourites.toggle', $book->id) }}" method="POST" class="m-0 flex">
+                                            @csrf
+                                            <!-- favourited heart -->
+                                            <button type="submit" class="flex items-center justify-center bg-[#755f540a] hover:bg-primary hover:text-white text-primary p-2.5 rounded-xl transition-colors group/heart" 
+                                                title="{{ $isFavourited ? 'Remove from Favourites' : 'Add to Favourites' }}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="{{ $isFavourited ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 {{ !$isFavourited ? 'group-hover/heart:fill-current' : '' }}">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endif
+
+                                <!-- Stock amount -->
+                                @if(Auth::user()?->isTeacher())
+                                    <!-- Teachers can change stock amount on book -->
+                                    <div class="flex items-center justify-between bg-[#755f540a] border border-[#755f5410] rounded-xl mt-1 overflow-hidden">
+                                        <form action="{{ route('explore.updateStock', $book->id) }}" method="POST" class="m-0 flex">
+                                            @csrf
+                                            <input type="hidden" name="action" value="decrease">
+                                            <button type="submit" class="px-3.5 py-2 hover:bg-primary hover:text-white text-primary transition-colors flex items-center justify-center" title="Decrease Stock">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" /></svg>
+                                            </button>
+                                        </form>
+
+                                        <div class="font-black text-[10px] sm:text-[11px] text-center {{ $availableStock > 0 ? 'text-green-600' : 'text-red-500' }}">
+                                            {{ $availableStock }} copies
+                                        </div>
+
+                                        <form action="{{ route('explore.updateStock', $book->id) }}" method="POST" class="m-0 flex">
+                                            @csrf
+                                            <input type="hidden" name="action" value="increase">
+                                            <button type="submit" class="px-3.5 py-2 hover:bg-primary hover:text-white text-primary transition-colors flex items-center justify-center" title="Increase Stock">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <!-- Student stock -->
+                                    <div class="flex items-center justify-center bg-[#755f540a] border border-[#755f5410] font-black text-[11px] px-3 py-2.5 rounded-xl mt-1 {{ $availableStock > 0 ? 'text-green-600' : 'text-red-500' }}">
+                                        {{ $availableStock }} copies available
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @empty

@@ -42,6 +42,10 @@ Route::middleware(['auth'])->group(function () {
     // Individual books
     Route::get('/books/{id}', [ExploreController::class, 'show'])->name('books.show');
 
+    Route::post('/explore/books/{book}/request', [ExploreController::class, 'requestBook'])->name('explore.requestBook');
+    // favourite toggle
+    Route::post('/explore/books/{book}/favourite', [ExploreController::class, 'toggleFavourite'])->name('favourites.toggle');
+
     // Progress Page
     Route::get('/progress', [ProgressController::class, 'index'])->name('progress');
     Route::patch('/user', [UserController::class, 'update']);
@@ -99,12 +103,12 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     Route::get('/teacher/classes/{classroom}/view', [TeacherController::class, 'classView'])
         ->name('teacher.classes.view');
 
-    // Students in classroom
+    // Manage classroom
     Route::get('/teacher/classes/{classroom}/students', [TeacherController::class, 'classStudents'])
         ->name('teacher.classes.students');
 
     // Reading list
-    Route::get('/teacher/classes/{classroom}/reading-list', [TeacherController::class, 'classReadingList'])
+    Route::get('/teacher/classes/{classroom}/reading-list', [ReadingController::class, 'generateList'])
         ->name('teacher.classes.readingList');
 
     // Create class
@@ -150,6 +154,9 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
 
     // Delete book
     Route::delete('/explore/book/{book}', [ExploreController::class, 'deleteBook'])->name('explore.deleteBook');
+
+    // Update book stock
+    Route::post('/explore/books/{book}/stock', [ExploreController::class, 'updateStock'])->name('explore.updateStock');
     
     // Reading list
     Route::prefix('teacher/classes/{classroom}/reading')->name('teacher.reading.')->group(function () {

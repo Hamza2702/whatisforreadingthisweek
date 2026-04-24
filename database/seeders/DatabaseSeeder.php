@@ -158,8 +158,39 @@ class DatabaseSeeder extends Seeder
         ]);
         $this->command->info('Books and genres synced');
 
+        // ADD STOCK TO BOOKS
+        $this->command->info('Adding stock to books');
+        
+        // chunk books by id
+        DB::table('books')->orderBy('id')->chunk(1000, function ($books) use ($school) {
+            $payload = [];
+            $now = now()->toDateTimeString(); // get timestamp once per chunk
+            
+            // 1000 books at a time
+            foreach ($books as $book) {
+                $payload[] = [
+                    'book_id'    => $book->id,
+                    'school_id'  => $school->id,
+                    'stock'      => rand(0, 2),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            // add to table
+            DB::table('book_school_stocks')->upsert(
+                $payload, 
+                ['book_id', 'school_id'],
+                ['stock', 'updated_at']
+            );
+        });
+        
+        $this->command->info('Stock added to books');
+
         // Fetch all genre ids from db
         $allGenreIds = Genre::pluck('id');
+        // all book ids
+        $allBookIds = DB::table('books')->pluck('id');
 
         // Make sure pfp directory exists
         Storage::disk('public')->makeDirectory('pfp/kittens');
@@ -200,7 +231,7 @@ class DatabaseSeeder extends Seeder
                     'classroom_id' => $classroom->id,
                     'first_name' => $firstName,
                     'last_name' => $lastName,
-                    'level' => fake()->numberBetween(1, 20),
+                    'level' => fake()->numberBetween(7, 14), // level 7 = year 2, lvl 14 = year 3 at max
                     'date_of_birth' => now()->subYears(5 + $classroom->year_group)->subDays(rand(0, 365)),
                     'pfp' => $pfpPath,
                 ]);
@@ -225,6 +256,78 @@ class DatabaseSeeder extends Seeder
                     $student->preferredGenres()->attach($pivotData);
                 }
 
+                // ===================================================================
+                // COLOURS
+                // ===================================================================
+                $colourBands = [
+                    'Light Purple', 'Pink', 'Red', 'Yellow', 'Light Blue', 'Green', 'Orange', 
+                    'Turquoise', 'Purple', 'Gold', 'White', 'Lime', 'Lime+', 'Grey', 'Dark Blue', 'Dark Red'
+                ];
+
+                $studentColour = match ((int)$student->level) {
+                    0 => 'Light Purple', 1 => 'Pink', 2 => 'Red', 3 => 'Yellow', 4 => 'Light Blue',
+                    5 => 'Green', 6 => 'Orange', 7 => 'Turquoise', 8 => 'Purple', 9 => 'Gold',
+                    10 => 'White', 11 => 'Lime', 12 => 'Lime+', 13, 14 => 'Grey',
+                    15, 16 => 'Dark Blue', 17, 18, 19, 20 => 'Dark Red',
+                    default => 'Dark Red',
+                };
+
+                $currentIndex = array_search($studentColour, $colourBands);
+                if ($currentIndex === false) $currentIndex = 1;
+
+                $validColours = [];
+                $validColours[] = $colourBands[$currentIndex]; // same level
+                if ($currentIndex > 0) $validColours[] = $colourBands[$currentIndex - 1]; // level below
+                if ($currentIndex < count($colourBands) - 1) $validColours[] = $colourBands[$currentIndex + 1]; // level above
+
+                // filter available books by book colours within students range
+                $validBookIds = DB::table('books')
+                    ->whereIn('id', $allBookIds)
+                    ->whereIn('ort_colour', $validColours)
+                    ->pluck('id');
+
+                // ASSIGN READING LIST
+                if ($validBookIds->isNotEmpty()) {
+                    $readingListCount = rand(1, min(5, $validBookIds->count()));
+                    // get random books from filter
+                    $randomReadingListBooks = $validBookIds->random($readingListCount);
+                    
+                    $readingListPayload = [];
+                    foreach ($randomReadingListBooks as $bookId) {
+                        $readingListPayload[] = [
+                            'school_id'    => $school->id,
+                            'classroom_id' => $classroom->id,
+                            'student_id'   => $student->id,
+                            'book_id'      => $bookId,
+                            'status'       => fake()->randomElement(['pending', 'reading', 'completed']),
+                            'created_at'   => now(),
+                            'updated_at'   => now(),
+                        ];
+                    }
+                    DB::table('student_reading_lists')->insert($readingListPayload);
+                }
+
+                // ASSIGN FAVOURITE BOOKS
+                if ($validBookIds->isNotEmpty()) {
+                    $favesCount = rand(1, min(10, $validBookIds->count()));
+                    // get random books from filter
+                    $randomFavesBooks = $validBookIds->random($favesCount);
+                    
+                    $favesPayload = [];
+                    foreach ($randomFavesBooks as $bookId) {
+                        $favesPayload[] = [
+                            'school_id'    => $school->id,
+                            'classroom_id' => $classroom->id,
+                            'student_id'   => $student->id,
+                            'book_id'      => $bookId,
+                            'created_at'   => now(),
+                            'updated_at'   => now(),
+                        ];
+                    }
+                    DB::table('student_favourite_books')->insert($favesPayload);
+                }
+
+                // STUDENT STREAKS
                 DB::table('student_streaks')->insert([
                     'school_id' => $school->id,
                     'classroom_id' => $classroom->id,
