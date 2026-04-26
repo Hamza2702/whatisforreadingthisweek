@@ -86,4 +86,16 @@ class Student extends Model
             ->withPivot('school_id', 'book_id')
             ->withTimestamps();
     }
+
+    // reading list entries
+    public function readingListEntries()
+    {
+        return $this->hasMany(StudentReadingList::class);
+    }
+
+    // student weekly goal
+    public function weeklyGoal()
+    {
+        return $this->hasOne(StudentWeeklyGoal::class, 'student_id');
+    }
 }

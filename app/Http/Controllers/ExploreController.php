@@ -113,23 +113,64 @@ class ExploreController extends Controller {
         // ordered phonics alphabetically
         $phonics = Phonic::orderBy('sound')->get(); 
 
-        return view('explore', compact('books', 'genres', 'phonics'));
+        // favourite book ids
+        $favouritedBookIds = [];
+        if (Auth::check() && Auth::user()->student) {
+            $favouritedBookIds = DB::table('student_favourite_books')
+                ->where('student_id', Auth::user()->student->id)
+                ->pluck('book_id')
+                ->toArray();
+        }
+
+        return view('explore', compact('books', 'genres', 'phonics', 'favouritedBookIds'));
     }
 
     // show individual book page
     public function show($id, Request $request)
     {
         $book = Book::with(['genres', 'phonics', 'reviews.student.user'])->findOrFail($id);
+        
+        $user = Auth::user();
+        $schoolId = $user?->school_id ?? $user?->student?->school_id ?? $user?->teacher?->school_id ?? null;
+        
+        $totalStock = 0;
+        $readingCount = 0;
+        $requestedCount = 0;
+        $availableStock = 0;
+        
+        if ($schoolId) {
+            // total stock for book in this school
+            $totalStock = DB::table('book_school_stocks')
+                ->where('school_id', $schoolId)
+                ->where('book_id', $book->id)
+                ->value('stock') ?? 0;
+                
+            // get amount of students currently reading book in school
+            $readingCount = DB::table('book_student')
+                ->where('school_id', $schoolId)
+                ->where('book_id', $book->id)
+                ->where('status', 'reading')
+                ->count();
+                
+            // get amount of students who have requested this book
+            $requestedCount = DB::table('student_reading_lists')
+                ->where('school_id', $schoolId)
+                ->where('book_id', $book->id)
+                ->where('status', 'pending')
+                ->count();
+                
+            // available stock calculation
+            $availableStock = max(0, $totalStock - $readingCount);
+        }
 
         // set the bantype to null as default
         $banType = null;
 
-        if (Auth::check() && Auth::user()->school_id) {
-            
+        if ($schoolId) {
             // query pivot table, checking for book id and school id and get it
             $banRecord = DB::table('book_school_ban')
                 ->where('book_id', $book->id)
-                ->where('school_id', Auth::user()->school_id)
+                ->where('school_id', $schoolId)
                 ->first();
 
             if ($banRecord) {
@@ -137,7 +178,7 @@ class ExploreController extends Controller {
                 $banType = $banRecord->ban_type;
 
                 // only allow headteachers/teachers/admins
-                if ($banType === 'hide' && Auth::user()->role !== 'headteacher' && !Auth::user()->isAdmin() && Auth::user()->role !== 'teacher') {
+                if ($banType === 'hide' && $user->role !== 'headteacher' && !$user->isAdmin() && $user->role !== 'teacher') {
                     abort(403, 'This book has been hidden by school administrators');
                 }
             }
@@ -155,8 +196,8 @@ class ExploreController extends Controller {
                 break;
 
             case 'classroom':
-                if (Auth::check() && Auth::user()->student) {
-                    $classroomID = Auth::user()->student->classroom_id;
+                if (Auth::check() && $user->student) {
+                    $classroomID = $user->student->classroom_id;
                     $reviews = $reviews->filter(function ($review) use ($classroomID) {
                         return $review->student && $review->student->classroom_id === $classroomID;
                     })->sortByDesc('created_at')->values();
@@ -172,7 +213,7 @@ class ExploreController extends Controller {
         // upvoted review ids
         $upvotedReviewIds = [];
         if (Auth::check()) {
-            $upvotedReviewIds = Auth::user()
+            $upvotedReviewIds = $user
                 ->upvotedReviews()
                 ->whereIn('book_review_id', $reviews->pluck('id'))
                 ->pluck('book_review_id')
@@ -181,7 +222,7 @@ class ExploreController extends Controller {
 
         $currentSort = $sort;
 
-        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort', 'banType'));
+        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort', 'banType', 'totalStock', 'availableStock', 'readingCount', 'requestedCount'));
     }
 
     // Create book
@@ -345,5 +386,216 @@ class ExploreController extends Controller {
         $book->delete();
 
         return redirect()->back()->with('success', 'Custom book removed successfully!');
+    }
+
+    // Add book to reading list
+    public function requestBook(Request $request, Book $book)
+    {
+        $user = Auth::user();
+
+        // ensure the user is a student
+        if (!$user || !$user->student) {
+            return back()->with('error', 'Only students can request to read books.');
+        }
+
+        $student = $user->student;
+
+        // validate reading level - if book is level 5, student level must be 4, 5, 6
+        $studentLevel = (int) $student->level;
+        $bookLevel = (int) $book->ort_level;
+
+        // reading level error message
+        if (abs($bookLevel - $studentLevel) > 1) {
+            return back()->with('error', 'This book is not suitable for your reading level. You need to be a similar reading level');
+        }
+
+        // validate stock
+        $totalStock = DB::table('book_school_stocks')
+            ->where('school_id', $student->school_id)
+            ->where('book_id', $book->id)
+            ->value('stock') ?? 0;
+            
+        $readingCount = DB::table('book_student')
+            ->where('school_id', $student->school_id)
+            ->where('book_id', $book->id)
+            ->where('status', 'reading')
+            ->count();
+            
+        // stock message error
+        if (($totalStock - $readingCount) <= 0) {
+            return back()->with('error', 'This book is currently unavailable');
+        }
+
+        // already reading
+        $alreadyReading = DB::table('book_student')
+            ->where('student_id', $student->id)
+            ->where('book_id', $book->id)
+            ->where('status', 'reading')
+            ->exists();
+
+        if ($alreadyReading) {
+            return back()->with('error', 'You are already reading this book!');
+        }
+
+        // already read
+        $alreadyRead = DB::table('book_student')
+            ->where('student_id', $student->id)
+            ->where('book_id', $book->id)
+            ->where('status', 'completed')
+            ->exists();
+        
+        if($alreadyRead) {
+            return back()->with('error', 'You have already read this book!');
+        }
+
+        // already requested
+        $alreadyRequested = DB::table('student_reading_lists')
+            ->where('student_id', $student->id)
+            ->where('book_id', $book->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($alreadyRequested) {
+            return back()->with('error', 'You have already requested this book. Please wait for your teacher to approve it.');
+        }
+
+        // reading list limit
+        $currentListCount = DB::table('student_reading_lists')
+            ->where('student_id', $student->id)
+            ->whereIn('status', ['pending', 'reading']) // active - pending/reading
+            ->count();
+
+        // reading list error
+        if ($currentListCount >= 5) {
+            return back()->with('error', 'Your reading list is full! You can only have 5 active books on your list at one time. Try removing a different book in your dashboard.');
+        }
+
+        // Insert into db
+        DB::transaction(function () use ($student, $book) {
+            // add to reading list
+            DB::table('student_reading_lists')->insert([
+                'school_id'    => $student->school_id,
+                'classroom_id' => $student->classroom_id,
+                'student_id'   => $student->id,
+                'book_id'      => $book->id,
+                'status'       => 'pending',
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+
+            // announcement for teacher
+            if ($student->classroom_id) {
+                DB::table('announcements')->insert([
+                    'school_id'    => $student->school_id,
+                    'classroom_id' => $student->classroom_id,
+                    'student_id'   => $student->id, 
+                    'message'      => "Reading request: {$student->first_name} {$student->last_name} has requested to read '{$book->title}'.",
+                    'created_at'   => now(),
+                    'updated_at'   => now(),
+                ]);
+            }
+            
+        });
+
+        return back()->with('success', 'Book requested successfully! Your teacher has been notified.');
+    }
+
+    // Update book stock
+    public function updateStock(Request $request, Book $book)
+    {
+        $user = Auth::user();
+        $schoolId = $user->school_id ?? $user->teacher->school_id ?? null;
+
+        if (!$schoolId) {
+            return back()->with('error', 'No school assigned to your account');
+        }
+
+        // increase/decrease
+        $action = $request->input('action');
+
+        // get current stock
+        $stockRecord = DB::table('book_school_stocks')
+            ->where('book_id', $book->id)
+            ->where('school_id', $schoolId)
+            ->first();
+
+        $currentStock = $stockRecord ? $stockRecord->stock : 0;
+        $newStock = $currentStock;
+
+        // if increase
+        if ($action === 'increase') {
+            $newStock = $currentStock + 1;
+        } elseif ($action === 'decrease') {
+            // if decrease, check how many are currently reading it
+            $readingCount = DB::table('book_student')
+                ->where('school_id', $schoolId)
+                ->where('book_id', $book->id)
+                ->where('status', 'reading')
+                ->count();
+
+            // decrease if stock is greater than currently reading
+            if ($currentStock > $readingCount) {
+                $newStock = $currentStock - 1;
+            } else {
+                return back()->withErrors(['stock' => 'Cannot decrease stock below the number of students currently reading this book']);
+            }
+        }
+
+        // update/insert stock
+        if ($stockRecord) {
+            DB::table('book_school_stocks')
+                ->where('id', $stockRecord->id)
+                ->update(['stock' => $newStock, 'updated_at' => now()]);
+        } else {
+            DB::table('book_school_stocks')->insert([
+                'book_id' => $book->id,
+                'school_id' => $schoolId,
+                'stock' => $newStock,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return back();
+    }
+
+    // toggle favourite book
+    public function toggleFavourite(Book $book)
+    {        
+        $user = Auth::user();
+
+        if (!$user || !$user->student) {
+            return back()->with('error', 'Only students can favourite books!');
+        }
+
+        $student = $user->student;
+
+        // check if already favourited
+        $existingFavourite = DB::table('student_favourite_books')
+            ->where('student_id', $student->id)
+            ->where('book_id', $book->id)
+            ->first();
+
+        // if already favourited
+        if ($existingFavourite) {
+            //  removed from favourite
+            DB::table('student_favourite_books')
+                ->where('id', $existingFavourite->id)
+                ->delete();
+
+            return back()->with('success', 'Book removed from favourites!');
+        } else {
+            // insert into db
+            DB::table('student_favourite_books')->insert([
+                'school_id'    => $student->school_id,
+                'classroom_id' => $student->classroom_id,
+                'student_id'   => $student->id,
+                'book_id'      => $book->id,
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+
+            return back()->with('success', 'Book added to favourites!');
+        }
     }
 }

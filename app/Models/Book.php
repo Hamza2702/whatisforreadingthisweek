@@ -41,4 +41,19 @@ class Book extends Model
     {
         return $this->belongsToMany(School::class, 'book_school_ban');
     }
+
+    // book stocks per school
+    public function schoolStocks()
+    {
+        return $this->belongsToMany(School::class, 'book_school_stocks')->withPivot('stock')->withTimestamps();
+    }
+
+    // school stocks
+    public function scopeInStockForSchool($query, $schoolId)
+    {
+        return $query->whereHas('schoolStocks', function ($q) use ($schoolId) {
+            $q->where('school_id', $schoolId)
+            ->where('stock', '>', 0);
+        });
+    }
 }

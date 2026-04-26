@@ -9,6 +9,19 @@
             EXPLORE MORE BOOKS
         </a>
 
+        <!-- error / scucess messages -->
+        @if(session('success'))
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl font-bold text-sm shadow-sm">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl font-bold text-sm shadow-sm">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <!-- Book card -->
         <div class="bg-white border border-[#755f5420] rounded-3xl p-6 md:p-10 shadow-sm flex flex-col md:flex-row gap-8 lg:gap-12 relative overflow-hidden">
             
@@ -50,8 +63,22 @@
                 
                 <!-- title and auth -->
                 <div>
-                    <h1 class="text-3xl md:text-5xl font-black text-primary leading-tight">{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}</h1>
-                    <p class="text-base md:text-lg font-bold text-primary/50 uppercase tracking-widest mt-2">{{ html_entity_decode($book->author ?? '', ENT_QUOTES) }}</p>
+                    <!-- title and author -->
+                    <div class="flex md:text-left items-center gap-6">
+                        <h1 class="text-3xl md:text-5xl font-black text-primary leading-tight">{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}</h1>
+                        <p class="text-base md:text-lg font-bold text-primary/50 uppercase tracking-widest mt-2">{{ html_entity_decode($book->author ?? '', ENT_QUOTES) }}</p>
+                    </div>
+                    <!-- current stock -->
+                    <p class="text-base md:text-sm font-bold text-primary/50 uppercase tracking-widest mt-2">{{ $availableStock }} {{ Str::plural('COPY', $availableStock) }} AVAILABLE</p>
+                    <p class="text-base md:text-sm font-bold text-primary/50 uppercase tracking-widest mt-2">{{ $readingCount }} {{ Str::plural('STUDENT', $readingCount) }} IS READING THIS BOOK</p>
+                    
+                    <!-- reading list students -->
+                    @if($requestedCount > 0)
+                        <p class="text-base md:text-sm font-bold text-orange-500 uppercase tracking-widest mt-2">
+                            {{ $requestedCount }} {{ Str::plural('STUDENT', $requestedCount) }} {{ $requestedCount === 1 ? 'HAS' : 'HAVE' }} THIS BOOK ON THEIR READING LIST
+                        </p>
+                    @endif
+                    
                 </div>
 
                 <!-- genres -->
@@ -102,18 +129,33 @@
                 <div class="mt-auto pt-4 flex flex-col gap-3">
                     
                     <!-- Buttons -->
-                    <div class="flex flex-col sm:flex-row gap-4 w-full items-stretch">        
+                    <div class="flex flex-col sm:flex-row gap-4 w-full items-stretch"> 
+                        
                         <!-- Add to reading list / banned book -->
                         @if($banType)
                             <!-- Book banned -->
-                            <div class="flex-1 bg-red-200 border border-red-500 text-red-600 font-black text-[10px] sm:text-xs tracking-widest py-4 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm text-center">
+                            <div class="flex-1 bg-red-200 border border-red-500 text-red-600 font-black text-[10px] sm:text-xs tracking-widest py-4 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm text-center w-full">
                                 BOOK BANNED BY ADMINISTRATOR
                             </div>
+                        @elseif($availableStock <= 0)
+                            <!-- Out of stock -->
+                            <button disabled class="flex-1 w-full bg-[#755f5410] border-2 border-[#755f5420] text-primary/50 font-black text-[10px] sm:text-xs tracking-widest py-4 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm text-center cursor-not-allowed" title="All copies are currently being read by other students">
+                                UNAVAILABLE (0 LEFT)
+                            </button>
                         @else
                             <!-- Add to reading list -->
-                            <a href="" class="flex-1 bg-primary hover:bg-secondary border-2 border-primary hover:border-secondary text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer">
-                                ADD TO READING LIST
-                            </a>
+                            <form action="{{ route('explore.requestBook', $book->id) }}" method="POST" class="flex-1 flex w-full">
+                                @csrf
+                                @if (!Auth::user()?->student)
+                                    <button disabled class="w-full bg-[#755f5410] border-2 border-[#755f5420] text-primary/50 font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed" title="Only students can add books to their reading list">
+                                        ADD TO READING LIST ({{ $availableStock }} LEFT)
+                                    </button>
+                                @else
+                                    <button type="submit" class="w-full bg-primary hover:bg-secondary border-2 border-primary hover:border-secondary text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer">
+                                        ADD TO READING LIST ({{ $availableStock }} LEFT)
+                                    </button>
+                                @endif
+                            </form>
                         @endif
 
                         <!-- Read online openlibrary -->
@@ -121,7 +163,7 @@
                             <!-- openlibrary interactive reader -->
                             @if($banType)
                                 <!-- disabled -->
-                                <button disabled class="flex-1 bg-green-500 text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 opacity-50 cursor-not-allowed border-2 border-green-500 text-center">
+                                <button disabled class="flex-1 w-full bg-green-500 text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 opacity-50 cursor-not-allowed border-2 border-green-500 text-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                                     </svg>
@@ -129,7 +171,7 @@
                                 </button>
                             @else
                                 <!-- available -->
-                                <a href="https://archive.org/details/{{ $book->ol_key }}/mode/2up?view=theater" target="_blank" rel="noopener noreferrer" class="flex-1 bg-green-500 hover:bg-green-600 border-2 border-green-500 hover:border-green-600 text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
+                                <a href="https://archive.org/details/{{ $book->ol_key }}/mode/2up?view=theater" target="_blank" rel="noopener noreferrer" class="flex-1 w-full bg-green-500 hover:bg-green-600 border-2 border-green-500 hover:border-green-600 text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                                     </svg>
@@ -139,12 +181,23 @@
                         @endif
                         
                         <!-- Add to favourites -->
-                        <button @if($banType) disabled @endif class="flex-1 bg-white border border-[#755f5420] text-primary font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 @if($banType) opacity-50 cursor-not-allowed @else hover:border-primary hover:text-secondary hover:-translate-y-0.5 @endif">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                            </svg>
-                            ADD TO FAVOURITE
-                        </button>
+                        @if(Auth::user()?->student)
+                            @php
+                                $isFavourited = DB::table('student_favourite_books')
+                                    ->where('student_id', Auth::user()->student->id)
+                                    ->where('book_id', $book->id)
+                                    ->exists();
+                            @endphp
+                            <form action="{{ route('favourites.toggle', $book->id) }}" method="POST" class="flex-1 flex w-full">
+                                @csrf
+                                <button type="submit" @if($banType) disabled @endif class="w-full bg-white border border-[#755f5420] text-primary font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 group @if($banType) opacity-50 cursor-not-allowed @else hover:border-primary hover:text-secondary hover:-translate-y-0.5 @endif">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="{{ $isFavourited ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0 {{ !$isFavourited ? 'group-hover:fill-current' : '' }}">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                                    </svg>
+                                    {{ $isFavourited ? 'REMOVE FAVOURITE' : 'ADD TO FAVOURITE' }}
+                                </button>
+                            </form>
+                        @endif
 
                     </div>
 
@@ -205,26 +258,43 @@
                     <!-- Write a review -->
                     <div class="border-t border-[#755f5415] pt-6">
                         @php
-                            $student = Auth::check() ? Auth::user()->student : null;
+                            $user = Auth::user();
+                            $student = $user ? $user->student : null;
                             $existingReview = $student ? $reviews->where('student_id', $student->id)->first() : null;
                             $hasRead = $student ? DB::table('book_student')->where('student_id', $student->id)->where('book_id', $book->id)->exists() : false;
+                            
+                            // check if user is teacher/admin
+                            $isTeacher = $user ? $user->isTeacher() : false;
+                            $isAdmin = $user ? $user->isAdmin() : false;
                         @endphp
+                        
                         <!-- Existing reviews -->
                         <h3 class="font-black text-primary text-sm mb-1">
                             {{ $existingReview ? 'Edit your review' : 'Review this book' }}
                         </h3>
                         <p class="text-xs text-primary/50 mb-4">
-                            @if(!$student)
+                            @if(!$user)
                                 Log in to express your thoughts on this book
+                            @elseif($isTeacher || $isAdmin)
+                                Only students can leave book reviews
                             @elseif(!$hasRead)
                                 You must read this book before you can review it
                             @else
                                 {{ $existingReview ? 'Update your thoughts about this book' : 'Share your thoughts with other students' }}
                             @endif
                         </p>
-                        @if(!$student)
+
+                        @if(!$user)
                             <button disabled class="w-full text-center bg-[#755f5410] border-2 border-[#755f5420] text-primary/40 font-black text-xs tracking-widest py-3 px-4 rounded-xl cursor-not-allowed">
                                 LOG IN TO REVIEW
+                            </button>
+                        @elseif($isTeacher || $isAdmin)
+                            <button disabled class="w-full text-center bg-[#755f5410] border-2 border-[#755f5420] text-primary/40 font-black text-xs tracking-widest py-3 px-4 rounded-xl cursor-not-allowed">
+                                TEACHERS CANNOT REVIEW
+                            </button>
+                        @elseif(!$student)
+                            <button disabled class="w-full text-center bg-[#755f5410] border-2 border-[#755f5420] text-primary/40 font-black text-xs tracking-widest py-3 px-4 rounded-xl cursor-not-allowed">
+                                ONLY STUDENTS CAN REVIEW
                             </button>
                         @elseif(!$hasRead)
                             <button disabled class="w-full flex items-center justify-center gap-2 bg-[#755f5410] border-2 border-[#755f5420] text-primary/40 font-black text-xs tracking-widest py-3 px-4 rounded-xl cursor-not-allowed" title="Read the book first!">
