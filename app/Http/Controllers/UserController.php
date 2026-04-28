@@ -58,14 +58,39 @@ class UserController extends Controller
         // load school and student relationships for user
         $user->load('school', 'student');
 
-        // get average rating and streak count and top genre
+        // get variables
+        $booksReadCount = 0;
+        $genresExploredCount = 0;
+        $phonicsMasteredCount = 0;
         $avgRating = 0;
         $streakCount = 0;
         $topGenreText = 'None';
+        $phonicsMastered =[];
+        $level = $user->student ? $user->student->level : 0;
+        $favouriteBooks = collect();
 
         // check if user has a student profile
         if ($user->student) {
-            // average rating for completed books only
+            // total books read
+            $booksReadCount = DB::table('book_student')
+                ->where('student_id', $user->student->id)
+                ->where('status', 'completed')
+                ->count();
+
+            // phonics mastered
+            $phonicsMastered = DB::table('book_student')
+                ->where('book_student.student_id', $user->student->id)
+                ->where('book_student.status', 'completed')
+                ->join('book_phonic', 'book_student.book_id', '=', 'book_phonic.book_id')
+                ->join('phonics', 'book_phonic.phonic_id', '=', 'phonics.id')
+                ->select('phonics.sound')
+                ->distinct()
+                ->pluck('sound')
+                ->toArray();
+                
+            $phonicsMasteredCount = count($phonicsMastered);
+
+            // average rating for completed books
             $avgRating = DB::table('book_reviews')
                 ->join('book_student', 'book_reviews.book_id', '=', 'book_student.book_id')
                 ->where('book_reviews.student_id', $user->student->id)
@@ -104,6 +129,7 @@ class UserController extends Controller
                 ->orderByDesc('total')
                 ->get();
 
+            $genresExploredCount = $genres->count();
             // find highest count of genres or any tied genres 
             if ($genres->isNotEmpty()) {
                 $highestCount = $genres->first()->total;
@@ -116,12 +142,20 @@ class UserController extends Controller
                     $topGenreText = $topGenres->first();
                 }
             }
+            // get 20 favourite books
+            $favouriteBooks = DB::table('student_favourite_books')
+                ->join('books', 'student_favourite_books.book_id', '=', 'books.id')
+                ->where('student_favourite_books.student_id', $user->student->id)
+                ->select('books.id', 'books.title', 'books.author', 'books.cover_id')
+                ->latest('student_favourite_books.created_at')
+                ->take(20)
+                ->get();
         }
             
         // average rating
         $avgRating = number_format($avgRating, 1);
 
-        return view('dashboard', compact('user', 'avgRating', 'streakCount', 'topGenreText'));
+        return view('dashboard', compact('user', 'avgRating', 'streakCount', 'topGenreText', 'phonicsMastered', 'level', 'favouriteBooks', 'booksReadCount', 'genresExploredCount', 'phonicsMasteredCount'));
     }
 
     public function show($id){
@@ -134,6 +168,7 @@ class UserController extends Controller
         $topGenreText = 'None';
         $phonicsMastered = [];
         $level = $user->student ? $user->student->level : 0;
+        $favouriteBooks = collect();
 
         // check if user has a student profile
         if ($user->student) {
@@ -166,6 +201,15 @@ class UserController extends Controller
                     $streakCount = $streakRecord->streak_count;
                 }
             }
+
+            // get 20 favourite books
+            $favouriteBooks = DB::table('student_favourite_books')
+                ->join('books', 'student_favourite_books.book_id', '=', 'books.id')
+                ->where('student_favourite_books.student_id', $user->student->id)
+                ->select('books.id', 'books.title', 'books.author', 'books.cover_id')
+                ->latest('student_favourite_books.created_at')
+                ->take(20) 
+                ->get();
 
             // get top genre
             $genres = DB::table('genre_student')
@@ -206,11 +250,11 @@ class UserController extends Controller
 
         // allow if user is visiting own profile
         if ($currentUser->id === $user->id){
-            return view('user.show', compact('user', 'avgRating', 'streakCount', 'topGenreText', 'phonicsMastered', 'level'));
+            return view('user.show', compact('user', 'avgRating', 'streakCount', 'topGenreText', 'phonicsMastered', 'level', 'favouriteBooks'));
         }
 
         if ($currentUser->isAdmin()) {
-            return view('user.show', compact('user', 'avgRating', 'streakCount', 'topGenreText', 'phonicsMastered', 'level'));
+            return view('user.show', compact('user', 'avgRating', 'streakCount', 'topGenreText', 'phonicsMastered', 'level', 'favouriteBooks' ));
         }
 
         // make sure both users belong to a school
@@ -220,7 +264,7 @@ class UserController extends Controller
 
         // allow if they belong to the same school
         if ($currentUser->school_id === $user->school_id) {
-            return view('user.show', compact('user', 'avgRating', 'streakCount', 'topGenreText', 'phonicsMastered', 'level'));
+            return view('user.show', compact('user', 'avgRating', 'streakCount', 'topGenreText', 'phonicsMastered', 'level', 'favouriteBooks'));
         }
 
         // if not allowed, deny access

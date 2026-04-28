@@ -265,7 +265,7 @@
                                     $bgClass   = 'bg-level-'   . str_replace(' ', '', $book->ort_level);
                                     $textClass = 'text-level-' . str_replace(' ', '', $book->ort_level ?? '0');
                                 @endphp
-                                <div class="absolute top-2.5 right-2.5 {{ $bgClass }} {{ $textClass }} text-[9px] sm:text-[10px] font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 border-white flex items-center gap-1 z-10" style="background-color: {{ $book->ort_colour ?? '' }}">
+                                <div class="absolute top-2.5 right-2.5 {{ $bgClass }} {{ $textClass }} text-[9px] sm:text-[10px] font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 border-white flex items-center gap-1 z-10">
                                     LVL {{ $book->ort_level }}
                                 </div>
 

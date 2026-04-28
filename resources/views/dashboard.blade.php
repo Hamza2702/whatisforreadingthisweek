@@ -74,26 +74,26 @@
 
       <!-- Reading progress statistics -->
       <div class="lg:col-span-4 grid grid-cols-2 gap-4 lg:gap-6">
-        <!-- Books read-->
-        <div class="bg-primary rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-md ">
-          <span class="text-5xl font-black text-background mb-2">15</span>
-          <span class="text-sm font-bold text-background/80 tracking-widest">BOOKS READ</span>
-        </div>
-        <!-- Average rating -->
-        <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-          <span class="text-5xl font-black text-primary mb-2">{{ $avgRating }}</span>
-          <span class="text-sm font-bold text-primary/70 tracking-widest">AVERAGE RATING</span>
-        </div>
-        <!-- Genres explored -->
-        <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-          <span class="text-5xl font-black text-primary mb-2">6</span>
-          <span class="text-sm font-bold text-primary/70 tracking-widest">GENRES EXPLORED</span>
-        </div>
-        <!-- Phonics mastered -->
-        <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-          <span class="text-5xl font-black text-primary mb-2">7</span>
-          <span class="text-sm font-bold text-primary/70 tracking-widest">PHONICS MASTERED</span>
-        </div>
+          <!-- Books read-->
+          <div class="bg-primary rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-md ">
+              <span class="text-5xl font-black text-background mb-2">{{ $booksReadCount }}</span>
+              <span class="text-sm font-bold text-background/80 tracking-widest">BOOKS READ</span>
+          </div>
+          <!-- Average rating -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
+              <span class="text-5xl font-black text-primary mb-2">{{ $avgRating }}</span>
+              <span class="text-sm font-bold text-primary/70 tracking-widest">AVERAGE RATING</span>
+          </div>
+          <!-- Genres explored -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
+              <span class="text-5xl font-black text-primary mb-2">{{ $genresExploredCount }}</span>
+              <span class="text-sm font-bold text-primary/70 tracking-widest">GENRES EXPLORED</span>
+          </div>
+          <!-- Phonics mastered -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
+              <span class="text-5xl font-black text-primary mb-2">{{ $phonicsMasteredCount }}</span>
+              <span class="text-sm font-bold text-primary/70 tracking-widest">PHONICS MASTERED</span>
+          </div>
       </div>
 
       <!-- ========================================= -->

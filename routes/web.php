@@ -13,10 +13,9 @@ use App\Http\Controllers\ProgressController;
 use App\Http\Middleware\IsHeadteacher;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\LeaderboardController;
+use App\Http\Controllers\SiteController;
 
-Route::get('/', function () {
-    return view('Site/index');
-});
+Route::get('/', [SiteController::class, 'index'])->name('index');
 
 // Login
 Route::get('/login', [SessionController::class, 'show'])->name('login')->middleware('guest');
@@ -41,6 +40,10 @@ Route::middleware(['auth'])->group(function () {
 
     // Individual books
     Route::get('/books/{id}', [ExploreController::class, 'show'])->name('books.show');
+
+    // Edit book
+    Route::put('/books/{book}/update', [ExploreController::class, 'updateBook'])->name('explore.updateBook')->middleware('auth');
+    
 
     Route::post('/explore/books/{book}/request', [ExploreController::class, 'requestBook'])->name('explore.requestBook');
     // favourite toggle

@@ -75,6 +75,16 @@ class DatabaseSeeder extends Seeder
 
         $school = School::inRandomOrder()->first();
 
+        // create an admin school
+        $adminSchool = School::firstOrCreate(
+            ['urn' => '000000'],
+            [
+                'name' => 'Admin Academy',
+                'town' => 'Birmingham',
+                'postcode' => 'B1 234',
+            ]
+        );
+
         // Testuser -- ADMIN
         User::factory()->create([
             'username' => 'testuser',
@@ -82,7 +92,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
             'phone' => '07123456789',
             'role' => 'admin',
-            'school_id' => $school?->id,
+            'school_id' => $adminSchool->id,
             'isAdmin' => true,
             'pfp' => '/images/pfp/cat.png',
         ]);
@@ -180,6 +190,28 @@ class DatabaseSeeder extends Seeder
             // add to table
             DB::table('book_school_stocks')->upsert(
                 $payload, 
+                ['book_id', 'school_id'],
+                ['stock', 'updated_at']
+            );
+        });
+
+        // ADD STOCK TO BOOKS FOR ADMIN SCHOOL
+        DB::table('books')->orderBy('id')->chunk(1000, function ($books) use ($adminSchool) {
+            $payload = [];
+            $now = now()->toDateTimeString();
+            
+            foreach ($books as $book) {
+                $payload[] = [
+                    'book_id'    => $book->id,
+                    'school_id'  => $adminSchool->id,
+                    'stock'      => rand(1, 5),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            DB::table('book_school_stocks')->upsert(
+                $payload,
                 ['book_id', 'school_id'],
                 ['stock', 'updated_at']
             );
@@ -349,7 +381,11 @@ class DatabaseSeeder extends Seeder
         }
         
         $this->command->info('Created test user and synced books and classrooms');
-        $this->call([BookReviewSeeder::class]);
+
+        $this->call([
+            SyntheticSeeder::class,
+            BookReviewSeeder::class,
+        ]);
     }
 
     // Create student usernames

@@ -21,7 +21,7 @@
 
             <h1 class="font-display text-pink-200 text-4xl mb-4">Bookworms</h1>
             <p class="font-script text-center text-lg max-w-md">
-                Really cool slogan 
+                Between the books
             </p>
         </div>
 
