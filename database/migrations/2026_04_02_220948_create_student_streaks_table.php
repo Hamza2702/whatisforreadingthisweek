@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('school_id')->constrained('schools')->onDelete('cascade');
             $table->foreignId('classroom_id')->constrained('classrooms')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
+            $table->unique('student_id');
             $table->integer('streak_count')->default(0);
             $table->timestamp('last_read_at')->nullable();
             $table->timestamps();

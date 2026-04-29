@@ -153,7 +153,7 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => $baseName,
                     'stage' => $stage,
-                    'academic_year' => '2025/2026',
+                    'academic_year' => '2026/2027',
                     'academic_start' => '2026',
                     'academic_end' => '2027',
                     'active' => true,

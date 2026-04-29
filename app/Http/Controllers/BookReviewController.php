@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Book;
 use App\Models\BookReview;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class BookReviewController extends Controller
 {
@@ -35,6 +36,7 @@ class BookReviewController extends Controller
         // validation
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
+            'difficulty' => 'required|in:easy,okay,hard',
             'title' => 'required|string|min:1|max:80',
             'description' => 'nullable|string|min:3|max:280',
         ]);
@@ -56,6 +58,7 @@ class BookReviewController extends Controller
         if ($existingReview) {
             $existingReview->update([
                 'rating' => $request->rating,
+                'difficulty' => $request->difficulty,
                 'title' => $request->title,
                 'description' => $request->description,
             ]);
@@ -67,11 +70,15 @@ class BookReviewController extends Controller
         BookReview::create([
             'school_id' => $student->school_id,
             'rating' => $request->rating,
+            'difficulty' => $request->difficulty,
             'title' => $request->title,
             'description' => $request->description,
             'student_id' => $student->id,
             'book_id' => $book->id,
         ]);
+
+        // bust the difficulty cache
+        Cache::forget('book_difficulty_map');
 
         return redirect('/books/' . $book->id)->with('success', 'Review submitted successfully!');
     }
@@ -91,6 +98,9 @@ class BookReviewController extends Controller
             ->firstOrFail();
 
         $review->delete();
+
+        // bust the difficulty cache
+        Cache::forget('book_difficulty_map');
 
         return redirect('/books/' . $bookId)->with('success', 'Review deleted successfully');
     }

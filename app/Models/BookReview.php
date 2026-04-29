@@ -8,6 +8,17 @@ class BookReview extends Model
 {
     protected $guarded = [];
 
+    protected $fillable = [
+    'school_id',
+    'student_id',
+    'book_id',
+    'rating',
+    'difficulty',
+    'title',
+    'description',
+    'upvotes',
+];
+
     public function student()
     {
         return $this->belongsTo(Student::class);

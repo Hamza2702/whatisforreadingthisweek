@@ -338,7 +338,7 @@
                                 @endfor
                             </div>
                             <!-- Ratings -->
-                            <p class="text-xs font-bold text-primary/40 tracking-widest mt-1">{{ $reviews->count() }} {{ Str::plural('RATING', $reviews->count()) }}</p>
+                            <p class="text-xs font-bold text-primary/40 tracking-widest mt-1">{{ $totalReviewCount }} {{ Str::plural('RATING', $totalReviewCount) }}</p>
                         </div>
                     </div>
 
@@ -423,6 +423,15 @@
                     </div>
 
                     <!-- Reviews -->
+                    @if($reviews->count() > 0 && ($currentSort ?? '') !== 'classroom' && $totalReviewCount > $reviews->count())
+                        <div class="flex items-center justify-between pb-3 border-b border-[#755f5415]">
+                            <p class="text-[10px] font-black text-primary/40 tracking-widest">
+                                SHOWING TOP {{ $reviews->count() }} OF {{ $totalReviewCount }} REVIEWS
+                            </p>
+                        </div>
+                    @endif
+
+                    <!-- Reviews -->
                     <div class="space-y-6 max-h-[500px] overflow-y-auto pr-2">
                         <!-- Loop through reviews -->
                         @if($reviews->count() > 0)
@@ -452,8 +461,8 @@
                                     </div>
 
                                     <div class="ml-[52px]">
-                                        <!-- Rating and Title -->
-                                        <div class="flex items-center gap-2 mb-1">
+                                        <!-- Rating, Title, and Difficulty -->
+                                        <div class="flex items-center gap-2 mb-1 flex-wrap">
                                             <h5 class="font-black text-primary text-sm">{{ $review->title }}</h5>
                                             <div class="flex">
                                                 @for ($i = 0; $i < $review->rating; $i++)
@@ -463,6 +472,23 @@
                                                     <span style="color: transparent; text-shadow: 0 0 #c4b5a4;">⭐</span>
                                                 @endfor
                                             </div>
+
+                                            <!-- Difficulty badge -->
+                                            @if($review->difficulty)
+                                                @php
+                                                    $difficultyConfig = [
+                                                        'easy' => ['emoji' => '😊', 'label' => 'Easy', 'classes' => 'bg-green-50 text-green-700 border-green-200'],
+                                                        'okay' => ['emoji' => '🙂', 'label' => 'Okay', 'classes' => 'bg-amber-50 text-amber-700 border-amber-200'],
+                                                        'hard' => ['emoji' => '😅', 'label' => 'Hard', 'classes' => 'bg-red-50 text-red-700 border-red-200'],
+                                                    ];
+                                                    $diff = $difficultyConfig[$review->difficulty] ?? null;
+                                                @endphp
+                                                @if($diff)
+                                                    <span class="text-[10px] font-black tracking-widest border px-2 py-1 rounded-lg {{ $diff['classes'] }}">
+                                                        {{ $diff['emoji'] }} {{ strtoupper($diff['label']) }}
+                                                    </span>
+                                                @endif
+                                            @endif
                                         </div>
 
                                         <!-- Description -->

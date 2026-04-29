@@ -16,9 +16,10 @@ return new class extends Migration
         Schema::create('book_reviews', function (Blueprint $table) {
             $table->id();
             $table->foreignId('school_id')->constrained('schools')->cascadeOnDelete();
-            $table->foreignIdFor(Student::class, 'student_id');
-            $table->foreignIdFor(Book::class, 'book_id');
+            $table->foreignIdFor(Student::class, 'student_id')->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Book::class, 'book_id')->constrained()->cascadeOnDelete();
             $table->integer('rating')->unsigned();
+            $table->enum('difficulty', ['easy', 'okay', 'hard'])->default('okay');
             $table->string('title');
             $table->string('description')->nullable();
             $table->integer('upvotes')->default(0);

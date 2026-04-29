@@ -193,13 +193,34 @@ class ExploreController extends Controller {
 
         $reviews = $book->reviews;
 
+        // calculcate stats from all reviews before limiting
+        $totalReviewCount = $reviews->count();
+        $averageRating = $totalReviewCount > 0 ? round($reviews->avg('rating'), 1) : 0;
+
+        // rating disitribution
+        $ratingDistribution = [
+            5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0,
+        ];
+        foreach ($reviews as $review) {
+            if (isset($ratingDistribution[$review->rating])) {
+                $ratingDistribution[$review->rating]++;
+            }
+        }
+        // convert to percentages
+        $ratingPercentages = [];
+        foreach ($ratingDistribution as $star => $count) {
+            $ratingPercentages[$star] = $totalReviewCount > 0 
+                ? round(($count / $totalReviewCount) * 100) 
+                : 0;
+        }
+
         // get the sort parameter and set default to top
         $sort = $request->query('sort', 'top');
 
         // sort reviews based on the filters
         switch ($sort) {
             case 'recent':
-                $reviews = $reviews->sortByDesc('created_at')->values();
+                $reviews = $reviews->sortByDesc('created_at')->take(20)->values();
                 break;
 
             case 'classroom':
@@ -208,12 +229,14 @@ class ExploreController extends Controller {
                     $reviews = $reviews->filter(function ($review) use ($classroomID) {
                         return $review->student && $review->student->classroom_id === $classroomID;
                     })->sortByDesc('created_at')->values();
+                } else {
+                    $reviews = collect();
                 }
                 break;
 
             case 'top':
             default:
-                $reviews = $reviews->sortByDesc('upvotes')->values();
+                $reviews = $reviews->sortByDesc('upvotes')->take(20)->values();
                 break;
         }
         
@@ -229,7 +252,7 @@ class ExploreController extends Controller {
 
         $currentSort = $sort;
 
-        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort', 'banType', 'totalStock', 'availableStock', 'readingCount', 'requestedCount', 'editMode'));
+        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort', 'banType', 'totalStock', 'availableStock', 'readingCount', 'requestedCount', 'editMode', 'totalReviewCount', 'averageRating', 'ratingPercentages'));
     }
 
     // Create book

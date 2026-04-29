@@ -31,6 +31,7 @@ class ProgressController extends Controller
         $avgRating = 0.0;
         $chartData = [];
         $maxBooksInMonth = 0;
+        $avgDifficulty = 0.0;
 
         if ($student) {
             // get completed and total books
@@ -66,6 +67,26 @@ class ProgressController extends Controller
                 ->avg('book_reviews.rating') ?? 0;
                 
             $avgRating = number_format($avgRating, 1);
+
+            // average difficulty for completd books only
+            $avgDifficultyScore = DB::table('book_reviews')
+                ->join('book_student', 'book_reviews.book_id', '=', 'book_student.book_id')
+                ->where('book_reviews.student_id', $student->id)
+                ->where('book_student.student_id', $student->id)
+                ->whereIn('book_student.status', ['completed', 'reading'])
+                ->avg(DB::raw("CASE 
+                    WHEN book_reviews.difficulty = 'easy' THEN 1
+                    WHEN book_reviews.difficulty = 'okay' THEN 2
+                    WHEN book_reviews.difficulty = 'hard' THEN 3
+                END")) ?? 0;
+
+            // convert to label
+            $avgDifficulty = match (true) {
+                $avgDifficultyScore == 0 => 'N/A',
+                $avgDifficultyScore < 1.67 => 'easy',
+                $avgDifficultyScore < 2.34 => 'okay',
+                default => 'hard',
+            }; // 1.0 - easy - 1.67 - medium - 2.34 - hard - 3.0
 
             // activity graph for past 6 months
             for ($i = 5; $i >= 0; $i--) {
@@ -150,7 +171,8 @@ class ProgressController extends Controller
             'avgRating',
             'chartData',
             'maxBooksInMonth',
-            'reviewedBookIds'
+            'reviewedBookIds',
+            'avgDifficulty'
         ));
     }
 }

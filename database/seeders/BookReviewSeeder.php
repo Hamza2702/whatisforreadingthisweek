@@ -62,12 +62,20 @@ class BookReviewSeeder extends Seeder
         ];
 
         $ratingWeights = [1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5];
+        $difficultyWeights = [
+            'easy', 'easy', 'easy', // 30%
+            'okay', 'okay', 'okay', 'okay', 'okay', // 50%
+            'hard', 'hard', // 20%
+        ];
         $now = Carbon::now();
         $reviewBatch = [];
         $batchLimit = 5000;
         $totalInserted = 0;
 
         DB::table('book_reviews')->truncate();
+
+        $students = DB::table('students')->select('id', 'school_id')->get();
+        $bookIds = DB::table('books')->pluck('id');
 
         // chunk student books
         DB::table('book_student')
@@ -81,6 +89,7 @@ class BookReviewSeeder extends Seeder
                 $titles,
                 $descriptions,
                 $ratingWeights,
+                $difficultyWeights,
                 $now
             ) {
                 foreach ($assignments as $assignment) {
@@ -94,6 +103,7 @@ class BookReviewSeeder extends Seeder
 
                     $reviewBatch[] = [
                         'rating' => $ratingWeights[array_rand($ratingWeights)],
+                        'difficulty' => $difficultyWeights[array_rand($difficultyWeights)],
                         'title' => $titles[array_rand($titles)],
                         'description' => $descriptions[array_rand($descriptions)],
                         'upvotes' => rand(0, 25),

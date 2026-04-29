@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('archive_classrooms', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('school_id');
-            $table->foreignId('classroom_id');
+            $table->foreignId('school_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('classroom_id')->constrained()->cascadeOnDelete();
             // json - store array of ids in a column
             $table->json('student_ids'); 
             $table->string('academic_year')->nullable();
