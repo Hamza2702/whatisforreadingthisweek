@@ -42,8 +42,7 @@
     npm run dev    # Runs the debug server for the website
 
     # Open the second terminal and type:
-    php artisan migrate
-    php artisan db:seed
+    php artisan migrate:fresh --seed
     php artisan storage:link
     php artisan serve
     ```
