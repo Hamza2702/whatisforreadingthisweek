@@ -15,6 +15,7 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\ManageController;
+use App\Http\Controllers\UserManageController;
 
 Route::get('/', [SiteController::class, 'index'])->name('index');
 
@@ -52,7 +53,6 @@ Route::middleware(['auth'])->group(function () {
     // Edit book
     Route::put('/books/{book}/update', [ExploreController::class, 'updateBook'])->name('explore.updateBook')->middleware('auth');
     
-
     Route::post('/explore/books/{book}/request', [ExploreController::class, 'requestBook'])->name('explore.requestBook');
     // favourite toggle
     Route::post('/explore/books/{book}/favourite', [ExploreController::class, 'toggleFavourite'])->name('favourites.toggle');
@@ -81,6 +81,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/student/announcements/{id}/hide', [ClassroomController::class, 'hideAnnouncement'])->name('student.announcements.hide');
     Route::post('/student/announcements/restore', [ClassroomController::class, 'restoreAnnouncements'])->name('student.announcements.restore');
 
+    // Manage profile
+    Route::get('/users/{user}/manage', [UserManageController::class, 'edit'])
+        ->name('user.manage.edit');
+    
+    // Update profile
+    Route::patch('/users/{user}/manage/field', [UserManageController::class, 'updateField'])
+        ->name('user.manage.updateField');
     
     // View assignments
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');

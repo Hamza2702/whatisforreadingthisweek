@@ -58,7 +58,7 @@
             <a href='{{ route("user.show", ["id" => Auth::id()]) }}'><img src="{{ Auth::user()->pfp ?? '/images/Placeholder.jpeg' }}" alt="Pfp icon" class="h-6 lg:h-8 hover:opacity-75 rounded-full border border-gray-200 bg-white"></a>
           </x-nav-link>
           <div class="group-hover:flex absolute top-[28px] right-0 mt-1 w-max rounded-lg shadow-lg flex-col z-10 py-2 px-4 space-y-2 hidden bg-white border border-gray-100">
-            <a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="hover:text-primary w-full text-right text-gray-700">Manage</a>
+            <a href="{{ route('user.manage.edit', Auth::id()) }}" class="text-gray-700 hover:text-primary font-medium">Manage</a>
             <form class="m-0" method="POST" action="/logout">
               @csrf
               <button type="submit" class="hover:text-primary w-full text-right text-gray-700">Log Out</button>
@@ -141,7 +141,7 @@
       
       <!-- manage/logout -->
       <div class="flex flex-col space-y-3 items-end w-full border-t border-secondary pt-4">
-        <a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="text-gray-600 hover:text-primary font-medium">Manage Account</a>
+        <a href="{{ route('user.manage.edit', Auth::id()) }}" class="text-gray-600 hover:text-primary font-medium">Manage Account</a>
         <form class="m-0 w-full text-right" method="POST" action="/logout">
           @csrf
           <button type="submit" class="text-gray-600 hover:text-primary font-medium w-full text-right">Log Out</button>
@@ -191,7 +191,7 @@
         
         <!-- Auth -->
         @auth
-        <li><a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Manage Account</a></li>
+        <li><a href="{{ route('user.manage.edit', Auth::id()) }}" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Manage Account</a></li>
         <li>
           <form method="POST" action="/logout" class="m-0 p-0 inline-block">
             @csrf
