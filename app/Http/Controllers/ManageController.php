@@ -269,15 +269,26 @@ class ManageController extends Controller
             ->toArray();
     }
 
+    // Teacher must own the classroom
+    private function ensureOwnsClassroom(Classroom $classroom): void
+    {
+        abort_unless($classroom->teacher_id === auth()->id(), 403);
+    }
+
     // Update student account details
     public function updateField(Request $request, $userId)
     {
         // get student
         $student = Student::where('user_id', $userId)->with('user')->firstOrFail();
 
+        // find the student's active classroom
+        $classroom = $student->classrooms()
+            ->wherePivot('active', true)
+            ->first();
+
         // verify ownership
-        $classroom = Classroom::findOrFail($student->classroom_id);
-        abort_unless($classroom->teacher_id === auth()->id(), 403, 'Unauthorised action');
+        abort_unless($classroom !== null, 404, 'Student is not in a classroom');
+        $this->ensureOwnsClassroom($classroom);
 
         $field = $request->input('field');
 

@@ -87,7 +87,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Update profile
     Route::patch('/users/{user}/manage/field', [UserManageController::class, 'updateField'])
-        ->name('user.manage.updateField');
+        ->name('account.updateField');
     
     // View assignments
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
