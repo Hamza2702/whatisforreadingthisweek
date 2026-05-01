@@ -26,23 +26,23 @@
     <div class="flex items-center space-x-5">
       @if (Auth::check() && Auth::user()->isAdmin())
         <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
-      @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         <x-nav-link href="{{ route('teacher.index') }}" class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
       @else 
         <x-nav-link href='/dashboard'> Dashboard </x-nav-link>
       @endif
       <x-nav-link href='/explore'> Explore </x-nav-link>
-      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         
       @else
         <x-nav-link href='/assignments'> Assignments </x-nav-link>
       @endif
-      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         
       @else
         <x-nav-link href='/progress'> Progress </x-nav-link>
       @endif
-      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacschooladminher'))
         
       @else
         <x-nav-link href='/leaderboard'> Leaderboard </x-nav-link>
@@ -58,7 +58,7 @@
             <a href='{{ route("user.show", ["id" => Auth::id()]) }}'><img src="{{ Auth::user()->pfp ?? '/images/Placeholder.jpeg' }}" alt="Pfp icon" class="h-6 lg:h-8 hover:opacity-75 rounded-full border border-gray-200 bg-white"></a>
           </x-nav-link>
           <div class="group-hover:flex absolute top-[28px] right-0 mt-1 w-max rounded-lg shadow-lg flex-col z-10 py-2 px-4 space-y-2 hidden bg-white border border-gray-100">
-            <a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="hover:text-primary w-full text-right text-gray-700">Manage</a>
+            <a href="{{ route('user.manage.edit', Auth::id()) }}" class="text-gray-700 hover:text-primary font-medium">Manage</a>
             <form class="m-0" method="POST" action="/logout">
               @csrf
               <button type="submit" class="hover:text-primary w-full text-right text-gray-700">Log Out</button>
@@ -96,24 +96,24 @@
     <div class="flex flex-col p-6 space-y-5 items-end flex-grow overflow-y-auto">
       @if (Auth::check() && Auth::user()->isAdmin())
         <a href='/admin/index' class="text-red-700 font-black text-lg"> Dashboard </a>
-      @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         <a href="{{ route('teacher.index') }}" class="text-red-700 font-black text-lg"> Dashboard </a>
       @else 
         <a href='/dashboard' class="text-lg text-gray-800 font-medium hover:text-primary"> Dashboard </a>
       @endif
       
       <a href='/explore' class="text-lg text-gray-800 font-medium hover:text-primary"> Explore </a>
-      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         
       @else
         <a href='/assignments' class="text-lg text-gray-800 font-medium hover:text-primary"> Assignments </a>
       @endif
-      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         
       @else
         <a href='/progress' class="text-lg text-gray-800 font-medium hover:text-primary"> Progress </a>
       @endif
-      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         
       @else
         <a href='/leaderboard' class="text-lg text-gray-800 font-medium hover:text-primary"> Leaderboard </a>
@@ -141,7 +141,7 @@
       
       <!-- manage/logout -->
       <div class="flex flex-col space-y-3 items-end w-full border-t border-secondary pt-4">
-        <a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="text-gray-600 hover:text-primary font-medium">Manage Account</a>
+        <a href="{{ route('user.manage.edit', Auth::id()) }}" class="text-gray-600 hover:text-primary font-medium">Manage Account</a>
         <form class="m-0 w-full text-right" method="POST" action="/logout">
           @csrf
           <button type="submit" class="text-gray-600 hover:text-primary font-medium w-full text-right">Log Out</button>
@@ -168,7 +168,7 @@
         <!-- Dashboard -->
         @if (Auth::check() && Auth::user()->isAdmin())
           <li><a href='/admin/index' class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Dashboard</a></li>
-        @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
           <li><a href="{{ route('teacher.index') }}" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Dashboard</a></li>
         @else 
           <li><a href='/dashboard' class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Dashboard</a></li>
@@ -176,7 +176,7 @@
         
         <!-- Main-->
         <li><a href="/explore" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Explore</a></li>
-        @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
         
         @else
           <li><a href="/assignments" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Assignments</a></li>
@@ -191,7 +191,7 @@
         
         <!-- Auth -->
         @auth
-        <li><a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Manage Account</a></li>
+        <li><a href="{{ route('user.manage.edit', Auth::id()) }}" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Manage Account</a></li>
         <li>
           <form method="POST" action="/logout" class="m-0 p-0 inline-block">
             @csrf

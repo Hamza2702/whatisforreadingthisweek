@@ -26,7 +26,7 @@
         </a>
         <!-- start reading -->
         <div class="hidden md:flex items-center gap-4 md:gap-6">
-            @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+            @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'schooladmin'))
                 <a href="{{ route('teacher.index') }}" class="bg-[#755f54] hover:bg-[#5c4a41] text-white text-sm md:text-base font-bold px-5 md:px-7 py-2.5 rounded-full shadow-sm transition-all transform hover:scale-105">
                     Start Reading
                 </a>

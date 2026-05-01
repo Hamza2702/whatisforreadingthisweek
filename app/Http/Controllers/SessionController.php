@@ -38,7 +38,7 @@ class SessionController extends Controller
 
         return match ($role) {
             'admin' => redirect('/admin'),
-            'teacher', 'headteacher' => redirect('/teacher'),
+            'teacher', 'schooladmin' => redirect('/teacher'),
             default => redirect('/dashboard'),
         };
     }

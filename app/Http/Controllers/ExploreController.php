@@ -184,8 +184,8 @@ class ExploreController extends Controller {
                 // assign ban type, restrict/hide
                 $banType = $banRecord->ban_type;
 
-                // only allow headteachers/teachers/admins
-                if ($banType === 'hide' && $user->role !== 'headteacher' && !$user->isAdmin() && $user->role !== 'teacher') {
+                // only allow schooladmins/teachers/admins
+                if ($banType === 'hide' && $user->role !== 'schooladmin' && !$user->isAdmin() && $user->role !== 'teacher') {
                     abort(403, 'This book has been hidden by school administrators');
                 }
             }

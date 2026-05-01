@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 
-class HeadteacherController extends Controller
+class SchoolAdminController extends Controller
 {
     public function bannedBooks(Request $request)
     {
@@ -112,7 +112,7 @@ class HeadteacherController extends Controller
         $genres = Genre::orderBy('name')->get();
         $phonics = Phonic::orderBy('sound')->get(); 
 
-        return view('headteacher.banned-books', compact('school', 'books', 'genres', 'phonics'));
+        return view('schooladmin.banned-books', compact('school', 'books', 'genres', 'phonics'));
     }
 
     // Toggle ban of book
@@ -141,7 +141,7 @@ class HeadteacherController extends Controller
     // Create teacher
     public function createTeacher()
     {
-        // get all year groups from classrooms of current headteacher
+        // get all year groups from classrooms of current schooladmin
         $yearGroups = Classroom::query()
             ->where('teacher_id', auth()->id())
             ->withCount('students')
@@ -157,7 +157,7 @@ class HeadteacherController extends Controller
                 'is_progressed' => $c->is_progressed,
             ])->toArray();
 
-        return view('headteacher.teachers.create', compact('yearGroups'));
+        return view('schooladmin.teachers.create', compact('yearGroups'));
     }
 
     // Store teacher

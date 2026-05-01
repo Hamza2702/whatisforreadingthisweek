@@ -1,4 +1,4 @@
-<x-teacher.layout :yearGroups="$yearGroups" title="Headteacher - Create Teacher">
+<x-teacher.layout :yearGroups="$yearGroups" title="School Admin - Create Teacher">
 
     <div class="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-[#755f5420] max-w-3xl mx-auto">
         
@@ -8,7 +8,7 @@
         </div>
 
         <!-- Create new teacher form, enctype="multipart/form-data" is for pfps -->
-        <form action="{{ route('headteacher.teachers.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+        <form action="{{ route('schooladmin.teachers.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

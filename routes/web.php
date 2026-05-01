@@ -8,13 +8,14 @@ use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\ReadingController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\BookReviewController;
-use App\Http\Controllers\HeadteacherController;
+use App\Http\Controllers\SchoolAdminController;
 use App\Http\Controllers\ProgressController;
-use App\Http\Middleware\IsHeadteacher;
+use App\Http\Middleware\IsSchoolAdmin;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\ManageController;
+use App\Http\Controllers\UserManageController;
 
 Route::get('/', [SiteController::class, 'index'])->name('index');
 
@@ -52,7 +53,6 @@ Route::middleware(['auth'])->group(function () {
     // Edit book
     Route::put('/books/{book}/update', [ExploreController::class, 'updateBook'])->name('explore.updateBook')->middleware('auth');
     
-
     Route::post('/explore/books/{book}/request', [ExploreController::class, 'requestBook'])->name('explore.requestBook');
     // favourite toggle
     Route::post('/explore/books/{book}/favourite', [ExploreController::class, 'toggleFavourite'])->name('favourites.toggle');
@@ -81,6 +81,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/student/announcements/{id}/hide', [ClassroomController::class, 'hideAnnouncement'])->name('student.announcements.hide');
     Route::post('/student/announcements/restore', [ClassroomController::class, 'restoreAnnouncements'])->name('student.announcements.restore');
 
+    // Manage profile
+    Route::get('/users/{user}/manage', [UserManageController::class, 'edit'])
+        ->name('user.manage.edit');
+    
+    // Update profile
+    Route::patch('/users/{user}/manage/field', [UserManageController::class, 'updateField'])
+        ->name('user.manage.updateField');
     
     // View assignments
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
@@ -225,18 +232,18 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
 
 
 // ==========================================
-// HEADTEACHER ROUTES
+// schooladmin ROUTES
 // ==========================================
-// Headteacher
-Route::middleware(['auth', IsHeadteacher::class])->group(function () {
+// schooladmin
+Route::middleware(['auth', IsSchoolAdmin::class])->group(function () {
     // Banned books
-    Route::get('/headteacher/banned-books', [HeadteacherController::class, 'bannedBooks'])->name('headteacher.banned-books');
-    Route::post('/headteacher/banned-books/{book}/toggle', [HeadteacherController::class, 'toggleBan'])->name('headteacher.toggle-ban');
+    Route::get('/schooladmin/banned-books', [SchoolAdminController::class, 'bannedBooks'])->name('schooladmin.banned-books');
+    Route::post('/schooladmin/banned-books/{book}/toggle', [SchoolAdminController::class, 'toggleBan'])->name('schooladmin.toggle-ban');
 
     // Create teacher
-    Route::get('/headteacher/teachers/create', [HeadteacherController::class, 'createTeacher'])->name('headteacher.teachers.create');
-    Route::post('/headteacher/teachers/create', [HeadteacherController::class, 'storeTeacher'])->name('headteacher.teachers.store');
+    Route::get('/schooladmin/teachers/create', [SchoolAdminController::class, 'createTeacher'])->name('schooladmin.teachers.create');
+    Route::post('/schooladmin/teachers/create', [SchoolAdminController::class, 'storeTeacher'])->name('schooladmin.teachers.store');
 
     // Delete teacher
-    Route::delete('/headteacher/teachers/{id}', [App\Http\Controllers\HeadteacherController::class, 'destroyTeacher'])->name('headteacher.teachers.destroy');
+    Route::delete('/schooladmin/teachers/{id}', [App\Http\Controllers\SchoolAdminController::class, 'destroyTeacher'])->name('schooladmin.teachers.destroy');
 });
