@@ -126,12 +126,12 @@ class DatabaseSeeder extends Seeder
 
         $randomSchool = School::where('id', '!=', $school->id)->inRandomOrder()->first();
 
-        $randomHeadteacher = User::factory()->create([
-            'username'  => 'randomheadteacher',
+        $randomSchoolAdmin = User::factory()->create([
+            'username'  => 'randomSchoolAdmin',
             'name'      => 'John Doe',
             'email'     => 'johnedoe@' . strtolower(str_replace(' ', '', $randomSchool->name)) . '.com',
             'phone'     => '07123456789',
-            'role'      => 'headteacher',
+            'role'      => 'schooladmin',
             'school_id' => $randomSchool->id,
             'isAdmin'   => false,
             'pfp'       => '/images/pfp/cat.png',
@@ -140,13 +140,13 @@ class DatabaseSeeder extends Seeder
         // montgomery school
         $school = School::where('urn', '138864')->first();
 
-        // Montgomery -- HEADTEACHER
-        $headteacher = User::factory()->create([
-            'username' => 'montgomeryheadteacher',
-            'name' => 'Montgomery Headteacher',
-            'email' => 'headteacher@montgomery.com',
+        // Montgomery -- schooladmin
+        $schooladmin = User::factory()->create([
+            'username' => 'montgomeryschooladmin',
+            'name' => 'Montgomery Admin',
+            'email' => 'schooladmin@montgomery.com',
             'phone' => '07123456789',
-            'role' => 'headteacher',
+            'role' => 'schooladmin',
             'school_id' => $school->id,
             'isAdmin' => false,
             'pfp' => '/images/pfp/lamb.png',

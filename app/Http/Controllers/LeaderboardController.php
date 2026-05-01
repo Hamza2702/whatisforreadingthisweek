@@ -16,7 +16,7 @@ class LeaderboardController extends Controller
         $user = auth()->user();
         
         // check whose accessing leaderboard
-        if (in_array(strtolower($user->role), ['teacher', 'headteacher'])) {
+        if (in_array(strtolower($user->role), ['teacher', 'schooladmin'])) {
             if (!$classroomId) {
                 abort(403, 'You must specify a classroom to view its leaderboard.');
             }

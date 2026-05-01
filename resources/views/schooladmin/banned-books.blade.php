@@ -1,7 +1,7 @@
 <x-teacher.layout title="Manage Banned Books">
 
     <!-- Invisible filter form -->
-    <form action="{{ route('headteacher.banned-books') }}" method="GET" id="filter-form"></form>
+    <form action="{{ route('schooladmin.banned-books') }}" method="GET" id="filter-form"></form>
     <!-- success messages -->
     @if(session('success'))
         <div class="mb-6 p-4 bg-green-100 border border-green-300 text-green-800 rounded-2xl font-bold flex items-center gap-2 shadow-sm">
@@ -140,7 +140,7 @@
                         @endif
 
                         <!-- Clear -->
-                        <a href="{{ route('headteacher.banned-books') }}" class="flex items-center justify-center font-bold bg-primary px-6 py-3 rounded-2xl text-xs tracking-widest text-white hover:bg-secondary transition-colors text-center">
+                        <a href="{{ route('schooladmin.banned-books') }}" class="flex items-center justify-center font-bold bg-primary px-6 py-3 rounded-2xl text-xs tracking-widest text-white hover:bg-secondary transition-colors text-center">
                             CLEAR ALL FILTERS
                         </a>
                     </div>
@@ -209,7 +209,7 @@
 
                             <!-- Actions -->
                             <div class="mt-4 pt-3.5 border-t border-[#755f5410] flex flex-col gap-2">
-                                <form action="{{ route('headteacher.toggle-ban', $book->id) }}" method="POST" class="w-full m-0">
+                                <form action="{{ route('schooladmin.toggle-ban', $book->id) }}" method="POST" class="w-full m-0">
                                     @csrf
                                     @if($isBanned)
                                         <div class="text-[9px] text-center font-bold uppercase tracking-widest {{ $banType === 'hide' ? 'text-red-500' : 'text-orange-500' }} mb-1">
@@ -238,7 +238,7 @@
                             </span>
                             <h3 class="text-xl font-black text-primary">No Books Found</h3>
                             <p class="text-sm font-medium text-primary/60 mt-2 max-w-sm">There are no books matching your current search or filters.</p>
-                            <a href="{{ route('headteacher.banned-books') }}" class="mt-6 px-6 py-3 bg-primary text-white text-xs font-bold tracking-widest rounded-xl hover:bg-secondary transition-colors">
+                            <a href="{{ route('schooladmin.banned-books') }}" class="mt-6 px-6 py-3 bg-primary text-white text-xs font-bold tracking-widest rounded-xl hover:bg-secondary transition-colors">
                                 CLEAR ALL FILTERS
                             </a>
                         </div>

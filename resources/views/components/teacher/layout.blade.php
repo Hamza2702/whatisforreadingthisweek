@@ -4,9 +4,9 @@
   // get teacher and class counts
   $htTeacherCount = 0;
   $htClassCount = 0;
-  if (auth()->check() && auth()->user()->role === 'headteacher') {
+  if (auth()->check() && auth()->user()->role === 'schooladmin') {
       $schoolId = auth()->user()->school_id;
-      $htTeacherCount = \App\Models\User::where('school_id', $schoolId)->whereIn('role', ['teacher', 'headteacher'])->count();
+      $htTeacherCount = \App\Models\User::where('school_id', $schoolId)->whereIn('role', ['teacher', 'schooladmin'])->count();
       $htClassCount = \App\Models\Classroom::where('school_id', $schoolId)->count();
   }
 @endphp
@@ -50,11 +50,11 @@
             <h2 class="text-lg md:text-3xl font-sans text-primary">Create Class</h2>
             <p class="text-xs md:text-sm text-primary/70 mt-1">Set up a classroom!</p>
           <!-- banned books -->
-          @elseif (request()->routeIs('headteacher.banned-books'))
+          @elseif (request()->routeIs('schooladmin.banned-books'))
             <h2 class="text-lg md:text-3xl font-sans text-primary">Manage Banned Books</h2>
             <p class="text-xs md:text-sm text-primary/70 mt-1">Manage banned books for your school</p>
           <!-- create teacher page -->
-          @elseif (request()->routeIs('headteacher.teachers.create'))
+          @elseif (request()->routeIs('schooladmin.teachers.create'))
             <h2 class="text-lg md:text-3xl font-sans text-primary">Create Teacher</h2>
             <p class="text-xs md:text-sm text-primary/70 mt-1">Set up a staff account!</p>
             <!-- students page -->
@@ -93,12 +93,12 @@
         <!-- =================== INDEX / CREATE PAGE =================== -->
         @if (request()->routeIs('teacher.index') || request()->routeIs('teacher.classes.create'))
           
-          @if(auth()->user()->role === 'headteacher')
+          @if(auth()->user()->role === 'schooladmin')
           
-          <!-- =================== HEADTEACHER =================== -->
+          <!-- =================== schooladmin =================== -->
             <!-- create teacher -->
           @if (request()->routeIs('teacher.index'))
-            <a href="{{ route('headteacher.teachers.create') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <a href="{{ route('schooladmin.teachers.create') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
               <span class="text-xs font-bold text-background tracking-widest leading-tight">CREATE<br>TEACHER</span>
             </a>
           @else
@@ -108,7 +108,7 @@
             </a>
           @endif
           <!-- managed banned books -->
-          <a href="{{ route('headteacher.banned-books') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+          <a href="{{ route('schooladmin.banned-books') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
             <span class="text-xs font-bold text-background tracking-widest leading-tight">MANAGE<br>BANNED BOOKS</span>
           </a>
 
@@ -184,12 +184,12 @@
               </form>
             @endif
           @endif
-        <!-- =================== HEADTEACHER PAGES =================== -->
-        @elseif (request()->routeIs('headteacher.teachers.create'))
+        <!-- =================== schooladmin PAGES =================== -->
+        @elseif (request()->routeIs('schooladmin.teachers.create'))
           <a href="{{ route('teacher.index') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
             <span class="text-xs font-bold text-background tracking-widest leading-tight">BACK TO<br>DASHBOARD</span>
           </a>
-        @elseif (request()->routeIs('headteacher.banned-books'))
+        @elseif (request()->routeIs('schooladmin.banned-books'))
           <a href="{{ route('teacher.index') }}" class="bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
             <span class="text-xs font-bold text-background tracking-widest leading-tight">BACK TO<br>DASHBOARD</span>
           </a>

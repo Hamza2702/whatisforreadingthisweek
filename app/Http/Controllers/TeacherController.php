@@ -75,26 +75,26 @@ class TeacherController extends Controller
         $teacherId  = auth()->id();
         $yearGroups = $this->yearGroupsForTeacher($teacherId);
 
-        $headteacherStats = null;
+        $schooladminStats = null;
 
-        if ($user->role === 'headteacher') {
+        if ($user->role === 'schooladmin') {
             $schoolId = $user->school_id;
 
             // get all teachers in the school with their classrooms
             $teachers = User::where('school_id', $schoolId)
-                ->whereIn('role', ['teacher', 'headteacher'])
+                ->whereIn('role', ['teacher', 'schooladmin'])
                 ->with('classrooms') 
                 ->get();
 
-            // get stats for headteacher dashboard
-            $headteacherStats = [
+            // get stats for schooladmin dashboard
+            $schooladminStats = [
                 'total_teachers' => $teachers->count(),
                 'total_classrooms' => Classroom::where('school_id', $schoolId)->count(),
                 'teachers_data' => $teachers,
             ];
         }
 
-        return view('teacher.index', compact('yearGroups', 'headteacherStats'));
+        return view('teacher.index', compact('yearGroups', 'schooladminStats'));
     }
 
     // Display list of students in the class

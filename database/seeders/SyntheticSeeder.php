@@ -143,7 +143,7 @@ class SyntheticSeeder extends Seeder
             $teacherFirst = fake()->firstName();
             $teacherLast = fake()->lastName();
             $teacherUsername = strtolower($teacherFirst . $teacherLast . rand(100, 999));
-            $teacherRole = fake()->randomElement(['teacher', 'headteacher']);
+            $teacherRole = fake()->randomElement(['teacher', 'schooladmin']);
 
             $teacherId = DB::table('users')->insertGetId([
                 'name' => $teacherFirst . ' ' . $teacherLast,
