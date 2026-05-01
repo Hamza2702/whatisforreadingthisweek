@@ -14,37 +14,33 @@ class SessionController extends Controller
     }
 
     // Handle login
-    public function create(){
-
-        // Validate form
+    public function create()
+    {
         $credentials = request()->validate([
-            'login'=>'required',
-            'password'=>'required',
+            'login'    => 'required',
+            'password' => 'required',
         ]);
 
-        // map login to username col in db
         $attempt = [
             'username' => $credentials['login'],
             'password' => $credentials['password'],
         ];
 
-        // Try to authenticate
         if (!Auth::attempt($attempt)) {
             throw ValidationException::withMessages([
-                'invalid'=>'The provided credentials do not match',
+                'invalid' => 'The provided credentials do not match',
             ]);
         }
-        // Regenerate session
+
         request()->session()->regenerate();
 
-        // if teacher/admin/headteacher, redirect to dashboards
-        if (Auth::user()->isAdmin()) {
-            return redirect('/admin');
-        } elseif (Auth::user()->isTeacher() || Auth::user()->role === 'headteacher') {
-            return redirect('/teacher');
-        } else {
-            return redirect()->intended('/dashboard');
-        }
+        $role = strtolower(Auth::user()->role ?? '');
+
+        return match ($role) {
+            'admin' => redirect('/admin'),
+            'teacher', 'headteacher' => redirect('/teacher'),
+            default => redirect('/dashboard'),
+        };
     }
 
     // Handle logout

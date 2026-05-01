@@ -103,10 +103,22 @@
       @endif
       
       <a href='/explore' class="text-lg text-gray-800 font-medium hover:text-primary"> Explore </a>
-      <a href='/assignments' class="text-lg text-gray-800 font-medium hover:text-primary"> Assignments </a>
-      <a href='/progress' class="text-lg text-gray-800 font-medium hover:text-primary"> Progress </a>
-      <a href='/leaderboard' class="text-lg text-gray-800 font-medium hover:text-primary"> Leaderboard </a>
-      
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <a href='/assignments' class="text-lg text-gray-800 font-medium hover:text-primary"> Assignments </a>
+      @endif
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <a href='/progress' class="text-lg text-gray-800 font-medium hover:text-primary"> Progress </a>
+      @endif
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <a href='/leaderboard' class="text-lg text-gray-800 font-medium hover:text-primary"> Leaderboard </a>
+      @endif
+
       @guest
       <div class="mt-4 w-full border-t border-gray-200 pt-4 text-right">
         <a href="{{ route('login') }}" class="text-lg text-primary font-bold"> Login </a>

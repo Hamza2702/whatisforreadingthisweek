@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('level')->default(1);
             $table->date('date_of_birth')->nullable();
             $table->boolean('active')->default(true);
-            $table->boolean('is_special')->default(false);
+            $table->boolean('is_exceptional')->default(false);
             $table->string('pfp')->nullable();
             $table->timestamps();
             $table->index(['school_id', 'active']);

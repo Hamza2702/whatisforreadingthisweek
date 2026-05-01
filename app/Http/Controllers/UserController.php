@@ -275,4 +275,85 @@ class UserController extends Controller
     public function profile(){
         return redirect()->route('user.show', ['id' => Auth::id()]);
     }
+
+    // Show forgot password form
+    public function showForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
+
+    // Submit forgot password (create announcement)
+    public function submitForgotPassword(Request $request)
+    {
+        $request->validate([
+            'username' => ['required', 'string', 'max:255'],
+        ]);
+
+        // find user by username
+        $user = User::where('username', $request->username)->first();
+
+        // not a user
+        if (!$user) {
+            return back()->withErrors([
+                'username' => 'No account found with that username. Please check the spelling and try again.'
+            ])->withInput();
+        }
+
+        // student table
+        $student = DB::table('students')
+            ->where('user_id', $user->id)
+            ->where('active', 1)
+            ->first();
+
+        // not a student acc
+        if (!$student) {
+            return back()->withErrors([
+                'username' => 'This account is not a student account. Only students can request password resets.'
+            ])->withInput();
+        }
+
+        // not assigned to classroom
+        if (!$student->classroom_id) {
+            return back()->withErrors([
+                'username' => 'You are not currently assigned to a classroom. Please contact your school administrator.'
+            ])->withInput();
+        }
+
+        // find classroom
+        $classroom = DB::table('classrooms')
+            ->where('id', $student->classroom_id)
+            ->first();
+
+        // classroom doesnt exist
+        if (!$classroom) {
+            return back()->withErrors([
+                'username' => 'Your classroom could not be found. Please contact your school administrator.'
+            ])->withInput();
+        }
+
+        // stop spammng (1 per day)
+        $recentRequest = DB::table('announcements')
+            ->where('classroom_id', $student->classroom_id)
+            ->where('student_id', $student->id)
+            ->where('created_at', '>=', now()->subDay())
+            ->exists();
+
+        if ($recentRequest) {
+            return back()->withErrors([
+                'username' => 'A password reset has already been requested in the last 24 hours. Please ask your teacher for help, or try again tomorrow.'
+            ])->withInput();
+        }
+
+        // announce the teacher
+        DB::table('announcements')->insert([
+            'school_id'    => $student->school_id,
+            'classroom_id' => $student->classroom_id,
+            'student_id'   => $student->id,
+            'message'      => "@{$user->username} ({$student->first_name} {$student->last_name}) has requested a password reset. Click the reset button in their profile management to generate a new password for them.",
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
+
+        return back()->with('success', 'Your password reset request has been sent to your teacher. Please ask them in person to reset it for you.');
+    }
 }

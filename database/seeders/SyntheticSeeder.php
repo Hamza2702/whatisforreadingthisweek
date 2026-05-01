@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\School;
 use App\Models\Genre;
+use Carbon\Carbon;
 
 class SyntheticSeeder extends Seeder
 {
@@ -61,12 +62,51 @@ class SyntheticSeeder extends Seeder
         'Turquoise', 'Purple', 'Gold', 'White', 'Lime', 'Lime+', 'Grey', 'Dark Blue', 'Dark Red'
     ];
 
+    // book review titles and descriptions
+    protected array $reviewTitles = [
+        'Loved this book!', 'Great read for kids', 'My child enjoyed it', 'Fantastic story', 'Really engaging',
+        'Perfect for bedtime', 'Wonderful illustrations', 'Highly recommend', 'Good but short', 'A new favourite',
+        'Brilliant book', 'Fun and educational', 'Could not put it down', 'Nice story overall', 'Great for early readers',
+        'Entertaining read', 'Well written', 'Colourful and fun', 'A bit boring', 'Not bad at all',
+        'My kids ask for this every night', 'A lovely little book', 'Good for phonics practice', 'Simple but enjoyable',
+        'One of the best', 'Average book', 'Pretty decent', 'Exceeded expectations', 'Would read again', 'Great value',
+    ];
+
+    protected array $reviewDescriptions = [
+        'My child absolutely loved reading this book. The story kept them engaged from start to finish and they asked to read it again straight away.',
+        'A wonderful book for young readers. The language is accessible and the story is interesting enough to hold their attention throughout.',
+        'We read this together at bedtime and it was perfect. Not too long, not too short, with a lovely story that my child really connected with.',
+        'The illustrations are beautiful and really bring the story to life. My child spent ages looking at every page and pointing things out.',
+        'Great for building confidence in reading. The vocabulary is age-appropriate and the sentences are well structured for early readers.',
+        'A solid book that does what it needs to do. Nothing extraordinary but a reliable choice for reading practice at this level.',
+        'My child was not particularly interested in this one. It took a few attempts to get through it but the story is okay overall.',
+        'Excellent book for this reading level. It challenges without being too difficult and the story is genuinely entertaining for children.',
+        'We have read this one many times now and it never gets old. A real favourite in our household that I would recommend to anyone.',
+        'The story is engaging and my child learned some new words from it. A great addition to our reading collection at home.',
+        'Perfect length for a quick reading session. The plot is simple but effective and my child understood it without any help.',
+        'I was surprised by how much my child enjoyed this. They usually prefer different types of books but this one really captured their imagination.',
+        'A good book for practising phonics sounds. The repetition is helpful without being tedious and the story ties everything together nicely.',
+        'Not our favourite but still a decent read. The story could be more exciting but the language and structure are good for this level.',
+        'My child brought this home from school and we both enjoyed it. Well written with a clear message that children can easily understand.',
+    ];
+
+    // rating and difficulty weights
+    protected array $ratingWeights = [1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5];
+    protected array $difficultyWeights = [
+        'easy', 'easy', 'easy',
+        'okay', 'okay', 'okay', 'okay', 'okay',
+        'hard', 'hard',
+    ];
+
     public function run(): void
     {
         $this->command->info('Starting synthetic seeder');
 
         $now = now()->format('Y-m-d H:i:s');
         $hashedPassword = bcrypt('password');
+
+        // academic year 
+        [$academicStart, $academicEnd] = $this->currentAcademicYear();
 
         $books = DB::table('books')
             ->select('id', 'ort_colour')
@@ -88,14 +128,14 @@ class SyntheticSeeder extends Seeder
         }
 
         foreach ($schools as $school) {
-            $this->seedSchool($school, $allGenreIds, $booksByColour, $allBookIds, $now, $hashedPassword);
+            $this->seedSchool($school, $allGenreIds, $booksByColour, $allBookIds, $now, $hashedPassword, $academicStart, $academicEnd);
         }
 
         $this->command->info('Synthetic seeder complete');
     }
 
     // SEED SCHOOL
-    protected function seedSchool($school, $allGenreIds, $booksByColour, $allBookIds, string $now, string $hashedPassword): void
+    protected function seedSchool($school, $allGenreIds, $booksByColour, $allBookIds, string $now, string $hashedPassword, int $academicStart, int $academicEnd): void
     {
         $teacherCount = rand(5, 10);
 
@@ -136,21 +176,21 @@ class SyntheticSeeder extends Seeder
                     'year_group' => $year,
                     'name' => $classroomName . ' ' . ($c + 1),
                     'stage' => $stage,
-                    'academic_year' => '2025/2026',
-                    'academic_start' => '2026',
-                    'academic_end' => '2027',
+                    'academic_year' => $academicStart . '/' . $academicEnd,
+                    'academic_start' => (string) $academicStart,
+                    'academic_end' => (string) $academicEnd,
                     'active' => 1,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
 
-                $this->seedClassroom($school->id, $classroomId, $year, $allGenreIds, $booksByColour, $allBookIds, $now, $hashedPassword);
+                $this->seedClassroom($school->id, $classroomId, $year, $allGenreIds, $booksByColour, $allBookIds, $now, $hashedPassword, $academicStart, $academicEnd);
             }
         }
     }
 
     // SEED CLASSROOM
-    protected function seedClassroom(int $schoolId, int $classroomId, int $year, $allGenreIds, $booksByColour, $allBookIds,string $now,string $hashedPassword): void
+    protected function seedClassroom(int $schoolId, int $classroomId, int $year, $allGenreIds, $booksByColour, $allBookIds, string $now, string $hashedPassword, int $academicStart, int $academicEnd): void
     {
         $studentCount = rand(20, 30);
 
@@ -187,7 +227,7 @@ class SyntheticSeeder extends Seeder
                 'level' => fake()->numberBetween(7, 18),
                 'date_of_birth' => now()->subYears(5 + $year)->subDays(rand(0, 365))->toDateString(),
                 'active' => 1,
-                'is_special' => fake()->boolean(8) ? 1 : 0,
+                'is_exceptional' => fake()->boolean(8) ? 1 : 0,
                 'pfp' => $pfp,
             ];
         }
@@ -220,7 +260,7 @@ class SyntheticSeeder extends Seeder
                 'level' => $meta['level'],
                 'date_of_birth' => $meta['date_of_birth'],
                 'active' => $meta['active'],
-                'is_special' => $meta['is_special'],
+                'is_exceptional' => $meta['is_exceptional'],
                 'pfp' => $meta['pfp'],
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -247,6 +287,7 @@ class SyntheticSeeder extends Seeder
         $readingRows = [];
         $favouriteRows = [];
         $streakRows = [];
+        $reviewRows = [];
 
         // loop through students
         foreach ($students as $student) {
@@ -286,22 +327,41 @@ class SyntheticSeeder extends Seeder
             $validBookIds = $this->getValidBookIdsForLevel($student->level, $booksByColour, $allBookIds);
 
             // reading count
-            $readingCount = rand(1, min(5, $validBookIds->count()));
+            $readingCount = rand(3, min(12, $validBookIds->count()));
             $readingSelection = $validBookIds->random($readingCount);
             if (!($readingSelection instanceof \Illuminate\Support\Collection)) {
                 $readingSelection = collect([$readingSelection]);
             }
 
-            // reading rows
+            // reading rows with 'real' dates
             foreach ($readingSelection as $bookId) {
+                $status = fake()->randomElement(['completed', 'completed', 'completed', 'reading']); // bias towards completed
+                $bookDate = $this->randomDateInAcademicYear($academicStart, $academicEnd);
+
                 $readingRows[] = [
                     'school_id' => $schoolId,
                     'student_id' => $student->id,
                     'book_id' => $bookId,
-                    'status' => fake()->randomElement(['completed', 'reading']),
-                    'created_at' => $now,
-                    'updated_at' => $now,
+                    'status' => $status,
+                    'created_at' => $bookDate,
+                    'updated_at' => $bookDate,
                 ];
+
+                // 75% of finished/reading books get a review with timestamps matching the read
+                if (rand(1, 100) <= 75) {
+                    $reviewRows[] = [
+                        'school_id' => $schoolId,
+                        'student_id' => $student->id,
+                        'book_id' => $bookId,
+                        'rating' => $this->ratingWeights[array_rand($this->ratingWeights)],
+                        'difficulty' => $this->difficultyWeights[array_rand($this->difficultyWeights)],
+                        'title' => $this->reviewTitles[array_rand($this->reviewTitles)],
+                        'description' => $this->reviewDescriptions[array_rand($this->reviewDescriptions)],
+                        'upvotes' => rand(0, 25),
+                        'created_at' => $bookDate,
+                        'updated_at' => $bookDate,
+                    ];
+                }
             }
 
             // fav count
@@ -342,6 +402,7 @@ class SyntheticSeeder extends Seeder
         $this->insertChunked('book_student', $readingRows);
         $this->insertChunked('student_favourite_books', $favouriteRows);
         $this->insertChunked('student_streaks', $streakRows);
+        $this->insertChunked('book_reviews', $reviewRows);
     }
 
     // get valid book ids for the correct level
@@ -397,5 +458,32 @@ class SyntheticSeeder extends Seeder
             . $this->kittenNames[array_rand($this->kittenNames)]
             . str_pad((string) rand(1, 999), 3, '0', STR_PAD_LEFT)
             . rand(10, 99);
+    }
+
+    // current academic year, sep (curr year) to aug (next year)
+    protected function currentAcademicYear(): array
+    {
+        $month = (int) now()->format('m');
+        $year  = (int) now()->format('Y');
+        $start = $month >= 9 ? $year : $year - 1;
+        return [$start, $start + 1];
+    }
+
+    // random date in year
+    protected function randomDateInAcademicYear(int $academicStart, int $academicEnd): string
+    {
+        $start = Carbon::create($academicStart, 9, 1)->startOfDay();
+        $end   = Carbon::create($academicEnd, 8, 31)->endOfDay();
+
+        $now = Carbon::now();
+        if ($end->gt($now)) {
+            $end = $now;
+        }
+        if ($start->gt($end)) {
+            $start = $now->copy()->subMonths(11);
+        }
+
+        $daysDiff = $start->diffInDays($end);
+        return $start->copy()->addDays(rand(0, max(0, $daysDiff)))->format('Y-m-d H:i:s');
     }
 }

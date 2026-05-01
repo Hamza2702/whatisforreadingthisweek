@@ -14,6 +14,7 @@ use App\Http\Middleware\IsHeadteacher;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\ManageController;
 
 Route::get('/', [SiteController::class, 'index'])->name('index');
 
@@ -25,7 +26,14 @@ Route::post('/login', [SessionController::class, 'create'])->middleware('guest')
 Route::get('/forgot-password', function () {
     return view('auth/forgot-password');
 })->middleware('guest');
-Route::post('forgot-password', [UserController::class, 'forgotPassword'])->middleware('guest');
+
+// Forgot password page
+Route::get('/forgot-password', [UserController::class, 'showForgotPassword'])
+    ->name('password.forgot');
+
+// Forgot password form
+Route::post('/forgot-password', [UserController::class, 'submitForgotPassword'])
+    ->name('password.forgot.submit');
 
 
 // ==========================================
@@ -103,7 +111,7 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     Route::get('/teacher', [TeacherController::class, 'index'])->name('teacher.index');
 
     // Classroom view
-    Route::get('/teacher/classes/{classroom}/view', [TeacherController::class, 'classView'])
+    Route::get('/teacher/classes/{classroom}/view', [ClassroomController::class, 'classView'])
         ->name('teacher.classes.view');
 
     // Manage classroom
@@ -124,6 +132,9 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     Route::get('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'addStudents'])
         ->name('teacher.classes.addStudents');
 
+    // Transfer student
+    Route::delete('/classes/{classroom}/students/{student}/transfer', [TeacherController::class, 'transferStudent'])->name('teacher.classes.transferStudent');
+
     // Remove Student
     Route::delete('/teacher/classes/{classroom}/students/{studentId}', [TeacherController::class, 'removeStudent'])
         ->name('teacher.classes.removeStudent');
@@ -135,6 +146,18 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     // Create Students
     Route::post('/teacher/classes/{classroom}/addStudents', [TeacherController::class, 'storeStudents'])
         ->name('teacher.classes.storeStudents');
+
+    // Manage Students
+    Route::get('/user/{user}/manage', [ManageController::class, 'show'])->name('user.manage');
+
+    // Update student profile fields
+    Route::patch('/user/{user}/manage/update-field', [ManageController::class, 'updateField'])
+        ->name('user.manage.updateField')
+        ->middleware(['auth', 'isTeacher']);
+
+    // Export pupil statistics
+    Route::get('/user/{user}/manage/export', [ManageController::class, 'exportStatistics'])
+    ->name('user.manage.export');
 
     // Export student list CSV
     Route::get('/teacher/classes/{classroom}/export-students', [TeacherController::class, 'exportStudents'])
@@ -180,6 +203,12 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     
     // Restore archived classroom
     Route::patch('/teacher/classes/{id}/restore', [ClassroomController::class, 'restoreClassroom'])->name('teacher.classes.restoreClassroom');
+    
+    // View archived classroom statistics
+    Route::get('/teacher/classes/{id}/stats', [ClassroomController::class, 'showStatistics'])->name('teacher.classes.showStatistics');
+
+    // Export archived classroom CSV
+    Route::get('/teacher/classes/{id}/stats/export', [ClassroomController::class, 'exportStatistics'])->name('teacher.classes.exportStatistics');
 
     // Classroom Announcements
     Route::get('/teacher/classes/{classroom}/announcement', [ClassroomController::class, 'createAnnouncement'])
@@ -187,6 +216,10 @@ Route::middleware(['auth', 'isTeacher'])->group(function () {
     
     Route::post('/teacher/classes/{classroom}/announcement', [ClassroomController::class, 'storeAnnouncement'])
         ->name('teacher.classes.announcements.store');
+
+    // Delete announcement
+    Route::delete('/teacher/announcements/{id}', [ClassroomController::class, 'deleteAnnouncement'])
+    ->name('teacher.announcements.delete');
 
 });
 

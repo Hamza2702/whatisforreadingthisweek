@@ -166,7 +166,7 @@
                             CANCEL
                         </a>
                         <button type="submit" class="flex-1 bg-primary hover:bg-primary/90 text-white font-black text-xs tracking-widest py-4 px-6 rounded-xl shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                            {{ $existingReview ? '✏️ UPDATE REVIEW' : '⭐ SUBMIT REVIEW' }}
+                            {{ $existingReview ? 'UPDATE REVIEW' : 'SUBMIT REVIEW' }}
                         </button>
                     </div>
                 </form>

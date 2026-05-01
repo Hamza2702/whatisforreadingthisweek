@@ -8,7 +8,12 @@
                             <!-- Header -->
                             <h2 class="text-2xl font-semibold text-gray-800">Forgot Password</h2>
                         </div>
-                        <form method="POST" class="space-y-6">
+                        @if(session('success'))
+                            <div class="bg-green-100 border border-green-300 text-green-800 rounded-lg p-4 mb-4">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+                        <form method="POST" action="{{ route('password.forgot.submit') }}" class="space-y-6">
                             @csrf
                             <!-- Username Login -->
                             <div id="loginFields">
@@ -38,7 +43,7 @@
                             </div>
 
                             <div class="text-sm text-gray-600">
-                                Don't have an email address? Contact your school administrator for help.
+                                Forgot your username? Contact your school administrator for help.
                                 <div>
                                     <a href="login" class="text-primary text-sm mt-1 inline-block font-extrabold hover:text-primary/80 transition">Back to login</a>
                                 </div>

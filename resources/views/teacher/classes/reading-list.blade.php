@@ -52,7 +52,7 @@
       
       @forelse($students as $s)
         @php
-          $cardStyle = $s->is_special 
+          $cardStyle = $s->is_exceptional
               ? 'border-2 border-dashed border-green-400 bg-white' 
               : 'border border-[#755f5420] bg-white';
               

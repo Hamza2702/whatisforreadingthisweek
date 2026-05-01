@@ -18,7 +18,7 @@ class ReadingController extends Controller
     {   
         $yearGroups = []; 
         // get students and genres and weekly goals and books
-        $students = $classroom->students()->with(['user', 'preferredGenres', 'weeklyGoal', 'books'])->get();
+        $students = $classroom->students()->wherePivot('active', 1)->with(['user', 'preferredGenres', 'weeklyGoal', 'books'])->get();
         // if no students
         if ($students->isEmpty()) {
             return view('teacher.classes.reading-list', compact('classroom', 'students', 'yearGroups'));
@@ -265,7 +265,7 @@ class ReadingController extends Controller
     public function generateAll(Request $request, Classroom $classroom)
     {
         // get students with genres and current books
-        $students = $classroom->students()->with(['preferredGenres', 'books', 'weeklyGoal'])->get();
+        $students = $classroom->students()->wherePivot('active', 1)->with(['preferredGenres', 'books', 'weeklyGoal'])->get();
         if ($students->isEmpty()) return back()->with('success', 'No students in classroom.');
 
         $schoolId = $students->first()?->school_id;

@@ -127,10 +127,11 @@ class AssignmentController extends Controller
             return redirect()->back()->with('error', 'Could not find a teacher to notify');
         }
 
-        // check db for a notification in the past day to stop spam
+        // check db for a notification in the past day to stop spam - BAD CODE VERY BAD BUT I CBA TO MAKE A TYPE SO IM GOING WEITH IT
         $recentNotification = DB::table('announcements')
             ->where('student_id', $student->id)
             ->where('classroom_id', $student->classroom_id)
+            ->where('message', 'like', '%has completed their books and is waiting to be assigned another%')
             ->where('created_at', '>=', Carbon::now()->subHours(48))
             ->first();
 

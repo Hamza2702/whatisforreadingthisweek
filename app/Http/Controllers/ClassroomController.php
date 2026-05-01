@@ -6,6 +6,7 @@ use App\Models\Classroom;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Student;
+use Carbon\Carbon;
 
 class ClassroomController extends Controller
 {
@@ -16,17 +17,11 @@ class ClassroomController extends Controller
         if($classroom->teacher_id !== auth()->id()){
             abort(403, "Unauthorised action");
         }
-        
-        // unassign students from students table
-        $classroom->students()->update(['classroom_id' => null]);
-
-        // clear classroom_student
+        // detach students from classroom
+        Student::where('classroom_id', $classroom->id)->update(['classroom_id' => null]);
         $classroom->students()->detach();
-
-        // delete classroom's history from archive
+        // delete archive classroom and class
         DB::table('archive_classrooms')->where('classroom_id', $classroom->id)->delete();
-
-        // delete class
         $classroom->delete();
 
         return redirect()->route('teacher.index')->with('success', 'Classroom and archive have been deleted');
@@ -43,8 +38,11 @@ class ClassroomController extends Controller
             return redirect()->back()->with('error', 'This classroom is already archived.');
         }
 
-        // get student ids part of the classroom
-        $studentIds = $classroom->students()->pluck('students.id')->toArray();
+        // get student ids part of the ACTIVE classroom
+        $studentIds = $classroom->students()
+            ->wherePivot('active', 1)
+            ->pluck('students.id')
+            ->toArray();
 
         // database transaction
         DB::transaction(function () use ($classroom, $studentIds) {
@@ -64,9 +62,10 @@ class ClassroomController extends Controller
             // make the classroom inactive
             $classroom->update(['active' => 0]);
 
-            // update pivot table and set end date
+            // update pivot table and set end date for ACTIVE students
             DB::table('classroom_student')
                 ->where('classroom_id', $classroom->id)
+                ->where('active', 1)
                 ->update([
                     'active'  => 0,
                     'ends_on' => now(),
@@ -97,9 +96,18 @@ class ClassroomController extends Controller
             return redirect()->back()->with('error', 'This classroom is already active.');
         }
 
+        // check if classroom has progressed
+        if ($classroom->is_progressed) {
+            return redirect()->back()->with(
+                'error',
+                'This classroom cannot be restored because it has already been progressed. The students are in the next year\'s classroom.'
+            );
+        }
+
+        $skippedStudents = [];
+
         // DB transaction
-        DB::transaction(function () use ($classroom) {
-            
+        DB::transaction(function () use ($classroom, &$skippedStudents) {
             // reactive classroom
             $classroom->update(['active' => 1]);
 
@@ -113,19 +121,38 @@ class ClassroomController extends Controller
                 $studentIds = json_decode($archive->student_ids, true);
 
                 if (!empty($studentIds)) {
-                    // reassign classroom_id to students
-                    Student::whereIn('id', $studentIds)->update([
-                        'classroom_id' => $classroom->id
-                    ]);
-
-                    // update classroom_student and make em active
-                    DB::table('classroom_student')
-                        ->where('classroom_id', $classroom->id)
+                    // reassign classroom_id to students if they're not active elsewhere
+                    $activeElsewhere = DB::table('classroom_student')
                         ->whereIn('student_id', $studentIds)
-                        ->update([
-                            'active'  => 1,
-                            'ends_on' => null,
+                        ->where('classroom_id', '!=', $classroom->id)
+                        ->where('active', 1)
+                        ->pluck('student_id')
+                        ->toArray();
+
+                    if (!empty($activeElsewhere)) {
+                        $skippedStudents = Student::whereIn('id', $activeElsewhere)
+                            ->get()
+                            ->map(fn($s) => "{$s->first_name} {$s->last_name}")
+                            ->toArray();
+                    }
+
+                    $studentIdsToRestore = array_diff($studentIds, $activeElsewhere);
+
+                    // restoring students
+                    if (!empty($studentIdsToRestore)) {
+                        Student::whereIn('id', $studentIdsToRestore)->update([
+                            'classroom_id' => $classroom->id
                         ]);
+
+                        // update students in class
+                        DB::table('classroom_student')
+                            ->where('classroom_id', $classroom->id)
+                            ->whereIn('student_id', $studentIdsToRestore)
+                            ->update([
+                                'active'  => 1,
+                                'ends_on' => null,
+                            ]);
+                    }
                 }
 
                 // delete archive record as the class is back
@@ -133,12 +160,22 @@ class ClassroomController extends Controller
             }
         });
 
-        return redirect()->route('teacher.index')->with(
-            'success', 
-            'Classroom restored! Students have been placed back into the class.'
-        );
+        // success messages
+        $message = 'Classroom restored! Students have been placed back into the class.';
+
+        if (!empty($skippedStudents)) {
+            $count = count($skippedStudents);
+            $names = implode(', ', $skippedStudents);
+            $message .= $count === 1
+                // skipped student
+                ? " Note: 1 student ({$names}) was skipped because they are currently active in another classroom."
+                // skipped students
+                : " Note: {$count} students ({$names}) were skipped because they are currently active in another classroom.";
+        }
+
+        return redirect()->route('teacher.index')->with('success', $message);
     }
-    
+
     // Progress classroom
     public function progressClassroom(Request $request, $id)
     {
@@ -164,10 +201,8 @@ class ClassroomController extends Controller
 
             // if its missing
             if ($currentStart < 2000 || $currentEnd < 2000) {
-                
                 // try get the date
                 preg_match_all('/\d{4}/', $oldClassroom->academic_year, $matches);
-                
                 if (!empty($matches[0]) && count($matches[0]) >= 2) {
                     $currentStart = (int) $matches[0][0];
                     $currentEnd   = (int) $matches[0][1];
@@ -239,7 +274,6 @@ class ClassroomController extends Controller
                     DB::table('classroom_student')->insert($pivotData);
                 }
             }
-            
         });
 
         return redirect()->route('teacher.index')->with(
@@ -257,7 +291,7 @@ class ClassroomController extends Controller
         }
 
         // get all active students for dropdown menu
-        $students = $classroom->students()->orderBy('first_name')->get();
+        $students = $classroom->students()->wherePivot('active', 1)->orderBy('first_name')->get();
 
         return view('teacher.classes.create-announcement', compact('classroom', 'students'));
     }
@@ -283,10 +317,26 @@ class ClassroomController extends Controller
         }
 
         // insert into db
+        $studentId = $request->entire_class ? null : $request->student_id;
+
+        // stop spam!
+        $duplicate = DB::table('announcements')
+            ->where('classroom_id', $classroom->id)
+            ->where('student_id', $studentId)
+            ->where('message', $request->message)
+            ->where('created_at', '>=', now()->subSeconds(10))
+            ->exists();
+
+        if ($duplicate) {
+            return redirect()
+                ->route('teacher.classes.view', $classroom->id)
+                ->with('success', 'Announcement posted successfully!');// successful announcement
+        }
+
         DB::table('announcements')->insert([
             'school_id'    => $classroom->school_id,
             'classroom_id' => $classroom->id,
-            'student_id'   => $request->entire_class ? null : $request->student_id,
+            'student_id'   => $studentId,
             'message'      => $request->message,
             'created_at'   => now(),
             'updated_at'   => now(),
@@ -300,7 +350,7 @@ class ClassroomController extends Controller
     {
         // get student
         $student = auth()->user()->student;
-        
+
         if ($student) {
             DB::table('hidden_announcements')->insertOrIgnore([
                 'school_id'       => $student->school_id,
@@ -310,7 +360,7 @@ class ClassroomController extends Controller
                 'updated_at'      => now(),
             ]);
         }
-        
+
         return back();
     }
 
@@ -318,7 +368,7 @@ class ClassroomController extends Controller
     public function restoreAnnouncements(Request $request)
     {
         $student = auth()->user()->student;
-        
+
         if ($student) {
             // find the ids of announcements created in the last month
             $recentAnnouncementIds = DB::table('announcements')
@@ -331,7 +381,531 @@ class ClassroomController extends Controller
                 ->whereIn('announcement_id', $recentAnnouncementIds)
                 ->delete();
         }
-        
+
         return back();
+    }
+
+    // View archived classroom statistics
+    public function showStatistics(Request $request, $id)
+    {
+        // get classroom
+        $classroom = Classroom::findOrFail($id);
+        $this->ensureOwnsClassroom($classroom);
+
+        // get yeargroups/stats method
+        $yearGroups = $this->yearGroupsForTeacher(auth()->id());
+        $stats = $this->buildClassroomStatistics($classroom);
+
+        // if empty
+        if (isset($stats['noData'])) {
+            return view('teacher.classes.statistics', [
+                'classroom'  => $classroom,
+                'archive'    => $stats['archive'],
+                'yearGroups' => $yearGroups,
+                'noData'     => true,
+            ]);
+        }
+
+        return view('teacher.classes.statistics', array_merge(
+            $stats,
+            compact('classroom', 'yearGroups')
+        ));
+    }
+
+    // Build classroom stat data
+    private function buildClassroomStatistics(Classroom $classroom): array
+    {
+        // archived classrooms
+        $archive = DB::table('archive_classrooms')
+            ->where('classroom_id', $classroom->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // get students
+        $studentIds = DB::table('classroom_student')
+            ->where('classroom_id', $classroom->id)
+            ->distinct()
+            ->pluck('student_id')
+            ->toArray();
+
+        // if no students
+        if (empty($studentIds)) {
+            return ['noData' => true, 'archive' => $archive];
+        }
+
+        $academicStart = (int)($classroom->academic_start ?? (now()->year - 1));
+        $academicEnd   = (int)($classroom->academic_end ?? now()->year);
+        $yearStart     = Carbon::create($academicStart, 9, 1)->startOfDay();
+        $yearEnd       = Carbon::create($academicEnd, 8, 31)->endOfDay();
+
+        // for active classrooms, limit chart to now for no empty future months
+        // archived = cap at archived date
+        if (!$classroom->active && $archive && $archive->created_at) {
+            $archiveDate = Carbon::parse($archive->created_at)->endOfWeek();
+            if ($archiveDate->lt($yearEnd)) {
+                $yearEnd = $archiveDate;
+            }
+        } elseif ($classroom->active) {
+            $now = now()->endOfWeek();
+            if ($now->lt($yearEnd)) {
+                $yearEnd = $now;
+            }
+        }
+
+        $students = Student::whereIn('id', $studentIds)->with(['user'])->get();
+
+        // =====================================
+        // COMPLETED BOOKS
+        $completedBooks = DB::table('book_student')
+            ->whereIn('student_id', $studentIds)
+            ->where('status', 'completed')
+            ->whereBetween('updated_at', [$yearStart, $yearEnd])
+            ->get();
+
+        $totalBooks = $completedBooks->count();
+
+        // =====================================
+        // RATING/DIFFICULTY
+        $avgRating = 0;
+        $avgDifficultyScore = 0;
+        $totalReviews = 0;
+        $avgDifficulty = 'N/A';
+
+        // book reviews
+        $reviews = DB::table('book_reviews')
+            ->whereIn('student_id', $studentIds)
+            ->whereBetween('updated_at', [$yearStart, $yearEnd])
+            ->get();
+
+        // get average rating, reviews and difficulty
+        if ($reviews->isNotEmpty()) {
+            $avgRating = round($reviews->whereNotNull('rating')->avg('rating') ?? 0, 1);
+            $totalReviews = $reviews->whereNotNull('rating')->count();
+
+            $avgDifficulty = $reviews->whereNotNull('difficulty')
+                ->groupBy('difficulty')
+                ->map->count()
+                ->sortDesc()
+                ->keys()
+                ->first() ?? 'N/A';
+        }
+
+        // =====================================
+        // MONTHLY ACTIVITY READING CHART DATA
+        $chartData = [];
+        $cursor = $yearStart->copy();
+        while ($cursor->lte($yearEnd)) {
+            $monthLabel = $cursor->format('M Y');
+            $chartData[$monthLabel] = $completedBooks->filter(function ($b) use ($cursor) {
+                $d = Carbon::parse($b->updated_at);
+                return $d->year === $cursor->year && $d->month === $cursor->month;
+            })->count();
+            $cursor->addMonth();
+        }
+
+        // =====================================
+        // PER STUDENT BOOK COUNTS
+        $studentBookCounts = $completedBooks->groupBy('student_id')->map->count();
+
+        $studentsWithCounts = $students->map(function ($s) use ($studentBookCounts) {
+            $s->books_read = $studentBookCounts[$s->id] ?? 0;
+            return $s;
+        });
+
+        // top readers / needs encouragement
+        $topReaders = $studentsWithCounts->sortByDesc('books_read')->take(5)->values();
+        $needsEncouragement = $studentsWithCounts->sortBy('books_read')->take(5)->values();
+
+        // =====================================
+        // READING LEVEL DISTRIBUTION
+        $levelDistribution = $students->groupBy('level')
+            ->map->count()
+            ->sortKeys()
+            ->toArray();
+
+        // average level
+        $avgLevel = round($students->avg('level') ?? 0, 1);
+
+        // =====================================
+        // WEEKLY GOAK TRACKING
+        $studentGoals = DB::table('student_weekly_goals')
+            ->whereIn('student_id', $studentIds)
+            ->pluck('target', 'student_id')
+            ->toArray();
+
+        $weeks = [];
+        $weekCursor = $yearStart->copy()->startOfWeek();
+        $weekIndex = 1;
+
+        while ($weekCursor->lte($yearEnd) && $weekCursor->lte(now())) {
+            $weekStart = $weekCursor->copy();
+            $weekEnd   = $weekCursor->copy()->endOfWeek();
+
+            // student HIT OR MISS goals
+            $studentsHitGoal = 0;
+            $studentsMissedGoal = 0;
+
+            foreach ($students as $student) {
+                $target = $studentGoals[$student->id] ?? 1;
+
+                $weekBooks = $completedBooks->filter(function ($b) use ($student, $weekStart, $weekEnd) {
+                    $d = Carbon::parse($b->updated_at);
+                    return $b->student_id == $student->id && $d->between($weekStart, $weekEnd);
+                })->count();
+
+                if ($weekBooks >= $target) {
+                    $studentsHitGoal++;
+                } else {
+                    $studentsMissedGoal++;
+                }
+            }
+
+            // total students / hit percentage
+            $totalStudents = $students->count();
+            $hitPercentage = $totalStudents > 0 ? round(($studentsHitGoal / $totalStudents) * 100) : 0;
+
+            // labels
+            $weeks[] = [
+                'label'      => "Week {$weekIndex}",
+                'date_range' => $weekStart->format('M j') . ' - ' . $weekEnd->format('M j'),
+                'hit'        => $studentsHitGoal,
+                'missed'     => $studentsMissedGoal,
+                'percentage' => $hitPercentage,
+                'class_met'  => $hitPercentage >= 75, // class met percentage
+            ];
+
+            $weekCursor->addWeek();
+            $weekIndex++;
+        }
+
+        // =====================================
+        // GENRES BREAKDOWN
+        $genresCount = DB::table('book_student')
+            ->join('books', 'books.id', '=', 'book_student.book_id')
+            ->join('book_genre', 'book_genre.book_id', '=', 'books.id')
+            ->join('genres', 'genres.id', '=', 'book_genre.genre_id')
+            ->whereIn('book_student.student_id', $studentIds)
+            ->where('book_student.status', 'completed')
+            ->whereBetween('book_student.updated_at', [$yearStart, $yearEnd])
+            ->select('genres.name', DB::raw('COUNT(*) as count'))
+            ->groupBy('genres.name')
+            ->orderByDesc('count')
+            ->limit(8)
+            ->pluck('count', 'name')
+            ->toArray();
+
+        // =====================================
+        // PHONICS BREAKDOWN
+        $showPhonics = $students->contains(fn($s) => $s->level > 0 && $s->level < 8);
+        $phonicsCount = [];
+
+        if ($showPhonics) {
+            $phonicsCount = DB::table('book_student')
+                ->join('books', 'books.id', '=', 'book_student.book_id')
+                ->join('book_phonic', 'book_phonic.book_id', '=', 'books.id')
+                ->join('phonics', 'phonics.id', '=', 'book_phonic.phonic_id')
+                ->whereIn('book_student.student_id', $studentIds)
+                ->where('book_student.status', 'completed')
+                ->whereBetween('book_student.updated_at', [$yearStart, $yearEnd])
+                ->select('phonics.sound', DB::raw('COUNT(*) as count'))
+                ->groupBy('phonics.sound')
+                ->orderByDesc('count')
+                ->limit(10)
+                ->pluck('count', 'sound')
+                ->toArray();
+        }
+
+        return compact(
+            'archive',
+            'students',
+            'studentsWithCounts',
+            'topReaders',
+            'needsEncouragement',
+            'totalBooks',
+            'avgDifficulty',
+            'avgDifficultyScore',
+            'avgRating',
+            'totalReviews',
+            'chartData',
+            'levelDistribution',
+            'avgLevel',
+            'weeks',
+            'genresCount',
+            'showPhonics',
+            'phonicsCount',
+            'academicStart',
+            'academicEnd'
+        );
+    }
+
+    // Export classroom statistics as CSV
+    public function exportStatistics($id)
+    {
+        // get classroom
+        $classroom = Classroom::findOrFail($id);
+
+        // verify ownership
+        if ($classroom->teacher_id !== auth()->id()) {
+            abort(403, "Unauthorised action");
+        }
+
+        // get students
+        $studentIds = DB::table('classroom_student')
+            ->where('classroom_id', $classroom->id)
+            ->distinct()
+            ->pluck('student_id')
+            ->toArray();
+
+        // if empty
+        if (empty($studentIds)) {
+            return redirect()->back()->with('error', 'No data to export');
+        }
+
+        // academic start/end
+        $academicStart = (int)($classroom->academic_start ?? (now()->year - 1));
+        $academicEnd   = (int)($classroom->academic_end ?? now()->year);
+        $yearStart     = Carbon::create($academicStart, 9, 1)->startOfDay();
+        $yearEnd       = Carbon::create($academicEnd, 8, 31)->endOfDay();
+
+        // check for archive
+        $archive = DB::table('archive_classrooms')
+            ->where('classroom_id', $classroom->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // if classroom is archived, limit months for charts
+        if (!$classroom->active && $archive && $archive->created_at) {
+            $archiveDate = Carbon::parse($archive->created_at)->endOfWeek();
+            if ($archiveDate->lt($yearEnd)) {
+                $yearEnd = $archiveDate;
+            }
+        }
+
+        // get all students
+        $students = Student::whereIn('id', $studentIds)->get();
+
+        // completed books
+        $completedBooks = DB::table('book_student')
+            ->whereIn('student_id', $studentIds)
+            ->where('status', 'completed')
+            ->whereBetween('updated_at', [$yearStart, $yearEnd])
+            ->get();
+
+        // book reviews
+        $reviews = DB::table('book_reviews')
+            ->whereIn('student_id', $studentIds)
+            ->whereBetween('updated_at', [$yearStart, $yearEnd])
+            ->get();
+
+        // book/review counts and average rating
+        $studentBookCounts   = $completedBooks->groupBy('student_id')->map->count();
+        $studentReviewCounts = $reviews->groupBy('student_id')->map->count();
+        $studentAvgRatings   = $reviews->whereNotNull('rating')
+            ->groupBy('student_id')
+            ->map(fn($r) => round($r->avg('rating'), 1));
+
+        $filename = 'Classroom-' . preg_replace('/[^A-Za-z0-9]/', '_', $classroom->name)
+            . '-' . $academicStart . '-' . $academicEnd . '-Stats.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
+        ];
+
+        $callback = function () use (
+            $classroom, $students, $completedBooks, $reviews,
+            $studentBookCounts, $studentReviewCounts, $studentAvgRatings,
+            $academicStart, $academicEnd, $yearStart, $yearEnd
+        ) {
+            // file output
+            $file = fopen('php://output', 'w');
+            fputs($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            // =====================================
+            // CLASSROOM STATS
+            fputcsv($file, ['CLASSROOM STATISTICS']);
+            fputcsv($file, ['Classroom', $classroom->name]);
+            fputcsv($file, ['Year Group', 'Year ' . $classroom->year_group]);
+            fputcsv($file, ['Academic Year', $academicStart . ' to ' . $academicEnd]);
+            fputcsv($file, ['Total Students', $students->count()]);
+            fputcsv($file, ['Total Books Read', $completedBooks->count()]);
+            fputcsv($file, ['Total Reviews', $reviews->whereNotNull('rating')->count()]);
+            fputcsv($file, ['Average Rating', round($reviews->whereNotNull('rating')->avg('rating') ?? 0, 1)]);
+
+            $avgDifficulty = $reviews->whereNotNull('difficulty')
+                ->groupBy('difficulty')->map->count()->sortDesc()->keys()->first() ?? 'N/A';
+            fputcsv($file, ['Most Common Difficulty', $avgDifficulty]);
+            fputcsv($file, []);
+
+            // =====================================
+            // STUDENT SUMMARY
+            fputcsv($file, ['STUDENT SUMMARY']);
+            fputcsv($file, ['First Name', 'Last Name', 'Reading Level', 'Books Read', 'Reviews Written', 'Average Rating Given']);
+
+            foreach ($students->sortByDesc(fn($s) => $studentBookCounts[$s->id] ?? 0) as $s) {
+                fputcsv($file, [
+                    $s->first_name,
+                    $s->last_name,
+                    $s->level,
+                    $studentBookCounts[$s->id] ?? 0,
+                    $studentReviewCounts[$s->id] ?? 0,
+                    $studentAvgRatings[$s->id] ?? 'N/A',
+                ]);
+            }
+            fputcsv($file, []);
+
+            // =====================================
+            // READING LEVEL DISTRIBUTION
+            fputcsv($file, ['READING LEVEL DISTRIBUTION']);
+            fputcsv($file, ['Level', 'Number of Students']);
+            $levelDist = $students->groupBy('level')->map->count()->sortKeys();
+            foreach ($levelDist as $level => $count) {
+                fputcsv($file, ['Level ' . $level, $count]);
+            }
+            fputcsv($file, []);
+
+            // =====================================
+            // MONTHLY READING ACTIVITY
+            fputcsv($file, ['MONTHLY READING ACTIVITY']);
+            fputcsv($file, ['Month', 'Books Finished']);
+            $cursor = $yearStart->copy();
+            while ($cursor->lte($yearEnd)) {
+                $count = $completedBooks->filter(function ($b) use ($cursor) {
+                    $d = Carbon::parse($b->updated_at);
+                    return $d->year === $cursor->year && $d->month === $cursor->month;
+                })->count();
+                fputcsv($file, [$cursor->format('M Y'), $count]);
+                $cursor->addMonth();
+            }
+            fputcsv($file, []);
+
+            // =====================================
+            // GENRES EXPLORED
+            fputcsv($file, ['GENRES EXPLORED']);
+            fputcsv($file, ['Genre', 'Books Read']);
+            $genres = DB::table('book_student')
+                ->join('books', 'books.id', '=', 'book_student.book_id')
+                ->join('book_genre', 'book_genre.book_id', '=', 'books.id')
+                ->join('genres', 'genres.id', '=', 'book_genre.genre_id')
+                ->whereIn('book_student.student_id', $students->pluck('id'))
+                ->where('book_student.status', 'completed')
+                ->whereBetween('book_student.updated_at', [$yearStart, $yearEnd])
+                ->select('genres.name', DB::raw('COUNT(*) as count'))
+                ->groupBy('genres.name')
+                ->orderByDesc('count')
+                ->get();
+
+            foreach ($genres as $g) {
+                fputcsv($file, [$g->name, $g->count]);
+            }
+            fputcsv($file, []);
+
+            $hasPhonicsReaders = $students->contains(fn($s) => $s->level > 0 && $s->level < 8);
+
+            // =====================================
+            // PHONICS EXPLORED
+            if ($hasPhonicsReaders) {
+                fputcsv($file, ['PHONICS EXPLORED (Levels 1-7)']);
+                fputcsv($file, ['Phonic Sound', 'Books Read']);
+
+                $phonics = DB::table('book_student')
+                    ->join('books', 'books.id', '=', 'book_student.book_id')
+                    ->join('book_phonic', 'book_phonic.book_id', '=', 'books.id')
+                    ->join('phonics', 'phonics.id', '=', 'book_phonic.phonic_id')
+                    ->whereIn('book_student.student_id', $students->pluck('id'))
+                    ->where('book_student.status', 'completed')
+                    ->whereBetween('book_student.updated_at', [$yearStart, $yearEnd])
+                    ->select('phonics.sound', DB::raw('COUNT(*) as count'))
+                    ->groupBy('phonics.sound')
+                    ->orderByDesc('count')
+                    ->get();
+
+                if ($phonics->isEmpty()) {
+                    fputcsv($file, ['No phonics data available', '']);
+                } else {
+                    foreach ($phonics as $p) {
+                        fputcsv($file, [$p->sound, $p->count]);
+                    }
+                }
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    private function ensureOwnsClassroom(Classroom $classroom): void
+    {
+        abort_unless($classroom->teacher_id === auth()->id(), 403);
+    }
+
+    // Get year groups for a teacher
+    private function yearGroupsForTeacher(int $teacherId): array
+    {
+        return Classroom::query()
+            ->where('teacher_id', $teacherId)
+            ->withCount(['students' => fn ($q) => $q->where('classroom_student.active', 1)])
+            ->orderBy('year_group')
+            ->get()
+            ->map(fn ($c) => [
+                'year'          => "{$c->year_group}",
+                'name'          => $c->name,
+                'students'      => $c->students_count,
+                'slug'          => $c->id,
+                'active'        => $c->active,
+                'academic_year' => $c->academic_year,
+                'is_progressed' => $c->is_progressed,
+            ])
+            ->toArray();
+    }
+
+    // Class overiew
+    public function classView(Classroom $classroom)
+    {
+        // verify ownership
+        $this->ensureOwnsClassroom($classroom);
+
+        $yearGroups = $this->yearGroupsForTeacher(auth()->id());
+        $classroom->loadCount('students');
+
+        // get announcements
+        $announcements = DB::table('announcements')
+            ->leftJoin('students', 'announcements.student_id', '=', 'students.id')
+            ->where('announcements.classroom_id', $classroom->id)
+            ->select('announcements.*', 'students.first_name', 'students.last_name')
+            ->orderBy('announcements.created_at', 'desc')
+            ->get();
+
+        $stats = $this->buildClassroomStatistics($classroom);
+
+        return view('teacher.classes.view', array_merge(
+            $stats,
+            compact('classroom', 'yearGroups', 'announcements')
+        ));
+    }
+
+    // Delete announcements
+    public function deleteAnnouncement($id)
+    {
+        $announcement = DB::table('announcements')->where('id', $id)->first();
+
+        if (!$announcement) {
+            abort(404);
+        }
+
+        // verify ownership
+        $classroom = Classroom::findOrFail($announcement->classroom_id);
+        $this->ensureOwnsClassroom($classroom);
+
+        DB::transaction(function () use ($id) {
+            // check hidden announcements too if needed
+            DB::table('hidden_announcements')->where('announcement_id', $id)->delete();
+            DB::table('announcements')->where('id', $id)->delete();
+        });
+
+        return back()->with('success', 'Announcement deleted.');
     }
 }
