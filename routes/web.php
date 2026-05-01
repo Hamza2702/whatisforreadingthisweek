@@ -16,6 +16,7 @@ use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\ManageController;
 use App\Http\Controllers\UserManageController;
+use App\Http\Controllers\FavouriteBookController;
 
 Route::get('/', [SiteController::class, 'index'])->name('index');
 
@@ -43,6 +44,10 @@ Route::post('/forgot-password', [UserController::class, 'submitForgotPassword'])
 Route::middleware(['auth'])->group(function () {
     
     Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
+
+    // Favourite books
+    Route::delete('/favourites/{book}', [FavouriteBookController::class, 'destroy'])
+        ->name('student.favourites.destroy');
 
     // Explore page
     Route::get('/explore', [ExploreController::class, 'index'])->name('explore'); 

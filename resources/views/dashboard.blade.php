@@ -175,8 +175,8 @@
                     <!-- Teacher info -->
                     <div class="flex items-center gap-3">
                         <img src="{{ $announcement->teacher_pfp ? asset($announcement->teacher_pfp) : asset('/images/Placeholder.jpeg') }}" 
-                             alt="{{ $announcement->teacher_name }}" 
-                             class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-white shadow-sm">
+                            alt="{{ $announcement->teacher_name }}" 
+                            class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover ring-2 ring-white shadow-sm">
                         <div class="flex flex-col">
                           <!-- Name -->
                             <span class="text-sm md:text-base font-bold text-primary leading-tight">
@@ -213,6 +213,108 @@
                     </form>
                 @endif
             </div>
+        @endif
+      </div>
+
+      <!-- ========================================= -->
+      <!-- FAVOURITE BOOKS SECTION -->
+      <div class="lg:col-span-12 mt-8">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-2xl md:text-3xl font-display text-primary tracking-tight">
+            My Favourite Books
+          </h2>
+          @if($favouriteBooks->count() > 0)
+            <span class="text-sm font-bold text-primary/60">
+              {{ $favouriteBooks->count() }} {{ Str::plural('book', $favouriteBooks->count()) }}
+            </span>
+          @endif
+        </div>
+
+        @if($favouriteBooks->count() > 0)
+          <div class="bg-[#755f540a] border border-[#755f5420] rounded-3xl p-6">
+            <div class="flex gap-5 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-orange-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+              
+              @foreach($favouriteBooks as $book)
+                <div class="flex-shrink-0 w-40 md:w-48 group relative">
+                  
+                  <!-- Unfavourite button -->
+                  <form action="{{ route('student.favourites.destroy', $book->id) }}" method="POST" 
+                        class="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onsubmit="return confirm('Remove this book from your favourites?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" 
+                            class="bg-white/90 hover:bg-red-500 hover:text-white text-red-500 rounded-full p-2 shadow-md transition-colors"
+                            title="Remove from favourites">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" 
+                          stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" 
+                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                    </button>
+                  </form>
+
+                  <!-- Book cover -->
+                  <a href="{{ route('books.show', $book->id) }}" 
+                    class="block w-40 h-56 md:w-48 md:h-72 relative rounded-2xl overflow-hidden shadow-md border border-[#755f5410] bg-[#755f540a] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    
+                    @if($book->cover_id && str_starts_with($book->cover_id, 'LOCAL_'))
+                      @php $imagePath = str_replace('LOCAL_', '', $book->cover_id); @endphp
+                      <img src="{{ asset('storage/' . $imagePath) }}" 
+                          alt="{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}" 
+                          class="absolute inset-0 w-full h-full object-cover">
+                    
+                    @elseif($book->cover_id && str_starts_with($book->cover_id, 'PLACEHOLDER_'))
+                      @php $bgColor = str_replace('PLACEHOLDER_', '', $book->cover_id); @endphp
+                      <div class="absolute inset-0 w-full h-full flex items-center justify-center p-3 text-center" 
+                          style="background-color: {{ $bgColor }};">
+                        <span class="font-black text-white text-sm drop-shadow-md line-clamp-4">
+                          {{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}
+                        </span>
+                      </div>
+                    
+                    @elseif($book->cover_id)
+                      <img src="https://books.google.com/books/content?id={{ $book->cover_id }}&printsec=frontcover&img=1&zoom=1" 
+                          alt="{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}" 
+                          class="absolute inset-0 w-full h-full object-cover">
+                    
+                    @else
+                      <div class="absolute inset-0 flex items-center justify-center bg-orange-100">
+                        <span class="font-bold text-primary/30 text-xs tracking-widest -rotate-12">NO COVER</span>
+                      </div>
+                    @endif
+                  </a>
+
+                  <!-- Book info -->
+                  <div class="mt-3 px-1">
+                    <h3 class="text-sm font-bold text-primary line-clamp-2 leading-tight">
+                      {{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}
+                    </h3>
+                    <p class="text-xs text-primary/60 font-medium mt-1 line-clamp-1">
+                      {{ html_entity_decode($book->author ?? '', ENT_QUOTES) }}
+                    </p>
+                  </div>
+                </div>
+              @endforeach
+
+            </div>
+          </div>
+        @else
+          <!-- Empty state -->
+          <div class="bg-[#755f540a] border border-[#755f5420] rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" 
+                class="w-12 h-12 text-primary/30 mb-3">
+              <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+            </svg>
+            <h3 class="text-xl font-bold text-primary">No favourite books yet</h3>
+            <p class="text-sm md:text-base text-primary/60 max-w-sm mt-2">
+              Browse the library and tap the heart icon on books you love to add them here!
+            </p>
+            <a href="{{ route('explore') }}" 
+              class="mt-6 inline-flex items-center justify-center px-6 py-3 text-sm bg-primary text-background font-black tracking-widest rounded-xl shadow-sm hover:bg-orange-900 transition-all hover:-translate-y-0.5">
+              EXPLORE LIBRARY
+            </a>
+          </div>
         @endif
       </div>
 
