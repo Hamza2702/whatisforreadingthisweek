@@ -120,7 +120,7 @@
                             </div>
                             
                             <label class="flex items-center gap-1.5 cursor-pointer group/toggle bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 hover:bg-orange-50 transition" title="Allow DOB outside standard year range">
-                                <input type="checkbox" value="1" name="students[\${i}][is_exceptional]" id="students[\${i}][is_exceptional]" class="w-3.5 h-3.5 rounded text-green-500 border-gray-300 focus:ring-green-500 cursor-pointer transition">
+                                <input type="checkbox" value="1" name="students[${i}][is_exceptional]" id="students[${i}][is_exceptional]" class="w-3.5 h-3.5 rounded text-green-500 border-gray-300 focus:ring-green-500 cursor-pointer transition">
                                 <span class="text-[9px] font-bold text-gray-500 group-hover/toggle:text-primary transition-colors uppercase tracking-widest">exceptional DOB</span>
                             </label>
                         </div>
@@ -131,25 +131,25 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1 pl-1">First Name</label>
-                                    <input type="text" name="students[\${i}][first_name]" required class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm placeholder:text-gray-300 placeholder:font-medium" placeholder="First">
+                                    <input type="text" name="students[${i}][first_name]" required class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm placeholder:text-gray-300 placeholder:font-medium" placeholder="First">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1 pl-1">Last Name</label>
-                                    <input type="text" name="students[\${i}][last_name]" required class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm placeholder:text-gray-300 placeholder:font-medium" placeholder="Last">
+                                    <input type="text" name="students[${i}][last_name]" required class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm placeholder:text-gray-300 placeholder:font-medium" placeholder="Last">
                                 </div>
                             </div>
 
                             <!-- DOB Row -->
                             <div>
                                 <label class="block text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1 pl-1">Date of Birth</label>
-                                <input type="date" name="students[\${i}][dob]" required min="\${minDob}" max="\${maxDob}" class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm dob-input">
-                                <p class="text-[10px] font-medium text-primary/50 mt-1 pl-1 leading-tight dob-text">Range: \${minDob} to \${maxDob}</p>
+                                <input type="date" name="students[${i}][dob]" required min="${minDob}" max="${maxDob}" class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm dob-input">
+                                <p class="text-[10px] font-medium text-primary/50 mt-1 pl-1 leading-tight dob-text">Range: ${minDob} to ${maxDob}</p>
                             </div>
 
                             <!-- Level Row -->
                             <div>
                                 <label class="block text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1 pl-1">Reading Level</label>
-                                <input type="number" name="students[\${i}][level]" min="1" max="20" step="1" value="1" required class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm text-center">
+                                <input type="number" name="students[${i}][level]" min="1" max="20" step="1" value="1" required class="w-full rounded-xl border-2 border-primary/10 bg-white px-3 py-2.5 text-sm font-semibold text-primary focus:border-primary focus:ring-0 transition-colors shadow-sm text-center">
                             </div>
                         </div>
                     </div>

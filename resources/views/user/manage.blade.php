@@ -168,7 +168,7 @@
     document.addEventListener('DOMContentLoaded', function () {
 
         // profile editing
-        const updateUrl  = "{{ route('user.manage.updateField', $user->id) }}";
+        const updateUrl  = "{{ route('account.updateField', $user->id) }}";
         const csrfToken  = "{{ csrf_token() }}";
         const messageBox = document.getElementById('profileMessage');
 
