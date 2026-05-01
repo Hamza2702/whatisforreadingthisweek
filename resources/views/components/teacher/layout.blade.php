@@ -57,7 +57,18 @@
           @elseif (request()->routeIs('schooladmin.teachers.create'))
             <h2 class="text-lg md:text-3xl font-sans text-primary">Create Teacher</h2>
             <p class="text-xs md:text-sm text-primary/70 mt-1">Set up a staff account!</p>
-            <!-- students page -->
+          <!-- manage user page -->
+          @elseif (request()->routeIs('user.manage'))
+            <h2 class="text-lg md:text-3xl font-sans text-primary">Manage Student</h2>
+            <p class="text-xs md:text-sm text-primary/70 mt-1">Edit student profile and view statistics</p>
+          <!-- reading list page -->
+          @elseif (request()->routeIs('teacher.classes.readingList'))
+            <h2 class="text-lg md:text-3xl font-sans text-primary">Generate reading list</h2>
+            <p class="text-xs md:text-sm text-primary/70 mt-1">Get perfect recommendations for your pupils</p>
+          @elseif (request()->routeIs('teacher.classes.announcements.create'))
+            <h2 class="text-lg md:text-3xl font-sans text-primary">Create announcements!</h2>
+            <p class="text-xs md:text-sm text-primary/70 mt-1">Post an announcement to all or message to a pupil.</p>
+          <!-- students page -->
           @elseif (request()->routeIs('teacher.classes.students') && $classroom)
             <!-- inactive classroom -->
             @if (!$classroom->active)
@@ -226,12 +237,31 @@
               <button type="button" id="settwenty" class="rounded-lg bg-white border border-primary/10 text-primary font-black shadow-sm hover:bg-orange-50 hover:border-primary/40 transition-all text-sm py-2 hover:-translate-y-0.5">+20</button>
               <button type="button" id="setthirty" class="rounded-lg bg-white border border-primary/10 text-primary font-black shadow-sm hover:bg-orange-50 hover:border-primary/40 transition-all text-sm py-2 hover:-translate-y-0.5">+30</button>
             </div>
-          </div>        
-        </div>        
-      </div>
-        <!-- =================== STUDENTS READING LIST =================== -->
-        <!-- @elseif (request()->routeIs('teacher.classes.reading-list'))
-          ... -->
+          </div>   
+        <!-- =================== STUDENT MANAGE PAGE =================== -->
+        @elseif (request()->routeIs('user.manage'))
+          <!-- back to class -->
+          <a href="{{ route('teacher.classes.students', $classroom->id) }}" class="col-span-2 bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">← BACK TO CLASS</span>
+          </a>     
+        <!-- =================== STUDENT READING LIST PAGE =================== -->
+        @elseif (request()->routeIs('teacher.classes.readingList'))
+          <!-- back to class -->
+          <a href="{{ route('teacher.index', $classroom->id) }}" class="col-span-2 bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">← BACK TO CLASS</span>
+          </a>    
+        <!-- =================== STUDENT ARCHIVED STATS PAGE =================== -->
+        @elseif (request()->routeIs('teacher.classes.showStatistics'))
+          <!-- back to dashboard -->
+          <a href="{{ route('teacher.index') }}" class="col-span-2 bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">← BACK TO DASHBOARD</span>
+          </a>  
+          <!-- =================== CLASSROOM CREATE ANNOUNCE PAGE =================== -->
+        @elseif (request()->routeIs('teacher.classes.announcements.create'))
+          <!-- back to dashboard -->
+          <a href="{{ route('teacher.index') }}" class="col-span-2 bg-primary rounded-xl p-4 flex flex-col justify-center items-center text-center shadow-md transition hover:-translate-y-1 hover:bg-secondary">
+            <span class="text-xs font-bold text-background tracking-widest leading-tight">← BACK TO DASHBOARD</span>
+          </a> 
         @endif
       </div>
     </div>
