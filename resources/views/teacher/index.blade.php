@@ -138,34 +138,47 @@
                 </div>
 
                 @if (!$group['is_progressed'])
-                    @if ($group['year'] == '6')
-                    @else
-                        <!-- Progress button (year 1 to 5)) -->
-                        <form action="{{ route('teacher.classes.progressClassroom', $group['slug']) }}" method="POST" class="inline-block w-full m-0" onsubmit="return confirm('Are you sure you want to progress this class to the next year? A new active classroom will be created for Year {{ $group['year'] + 1 }}, and the students will be moved into it.');">
+                  @if ($group['year'] == '6')
+                      <!-- Progress (not year 6), accidentally archive button -->
+                      <form action="{{ route('teacher.classes.restoreClassroom', $group['slug']) }}" method="POST" class="inline-block w-full m-0" onsubmit="return confirm('Are you sure you want to restore this classroom? All previous students will be added automatically');">
                           @csrf
                           @method('PATCH')
-                          <button type="submit" class="bg-green-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-green-600 w-full shadow-sm transition-colors cursor-pointer border-none outline-none mt-2">
-                              <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">Progress students</span>
+                          <button type="submit" class="bg-amber-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-amber-600 w-full shadow-sm transition-colors cursor-pointer border-none outline-none">
+                              <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">Restore classroom</span>
                           </button>
-                        </form>
-                    @endif
+                      </form>
+                  @else
+                      <!-- Progress button (reception - y5) not progressed -->
+                      <form action="{{ route('teacher.classes.progressClassroom', $group['slug']) }}" method="POST" class="inline-block w-full m-0" onsubmit="return confirm('Are you sure you want to progress this class to the next year? A new active classroom will be created for Year {{ $group['year'] + 1 }}, and the students will be moved into it.');">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="bg-green-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-green-600 w-full shadow-sm transition-colors cursor-pointer border-none outline-none mt-2">
+                            <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">Progress students</span>
+                        </button>
+                      </form>
 
-                @else
-                    <!-- already progressed / year 6 -->
-                    <div class="mt-4 w-full bg-gray-200 rounded-xl p-3 flex justify-center items-center text-center shadow-inner border border-gray-300">
-                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
-                            {{ $group['year'] == '6' ? 'Cannot progress' : 'Already Progressed' }}
-                        </span>
-                    </div>
-                @endif
-                <!-- Restore classroom button -->
-                <form action="{{ route('teacher.classes.restoreClassroom', $group['slug']) }}" method="POST" class="inline-block w-full m-0" onsubmit="return confirm('Are you sure you want to restore this classroom? All previous students will be added automatically');">
-                  @csrf
-                  @method('PATCH')
-                  <button type="submit" class="bg-amber-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-amber-600 w-full shadow-sm transition-colors cursor-pointer border-none outline-none">
-                      <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">Restore classroom</span>
-                  </button>
-                </form>
+                      <!-- restore button before progressing -->
+                      <form action="{{ route('teacher.classes.restoreClassroom', $group['slug']) }}" method="POST" class="inline-block w-full m-0" onsubmit="return confirm('Are you sure you want to restore this classroom? All previous students will be added automatically');">
+                          @csrf
+                          @method('PATCH')
+                          <button type="submit" class="bg-amber-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-amber-600 w-full shadow-sm transition-colors cursor-pointer border-none outline-none">
+                              <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">Restore classroom</span>
+                          </button>
+                      </form>
+                  @endif
+              @else
+                  <!-- locked, no restore -->
+                  <div class="mt-4 w-full bg-gray-200 rounded-xl p-3 flex justify-center items-center text-center shadow-inner border border-gray-300">
+                      <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
+                          Already Progressed
+                      </span>
+                  </div>
+              @endif
+                  <!-- view statistics -->
+                  <a href="{{ route('teacher.classes.showStatistics', $group['slug']) }}" 
+                    class="bg-blue-500 rounded-xl p-3 flex flex-col justify-center items-center text-center hover:bg-blue-600 w-full shadow-sm transition-colors no-underline">
+                      <span class="text-xs font-bold text-white uppercase tracking-widest leading-tight">View Statistics</span>
+                  </a>
               </div>
           @else
             <!-- Active classroom buttons -->

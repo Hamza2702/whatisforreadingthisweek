@@ -61,13 +61,13 @@
       <!-- Students -->
       @forelse($students as $s)
         @php
-          $cardStyle = $s->is_special 
+          $cardStyle = $s->is_exceptional
               ? 'border-2 border-dashed border-green-400 bg-white' 
               : 'border border-[#755f5420] bg-white';
         @endphp
 
         <!-- Student card -->
-        <div class="{{ $cardStyle }} h-full rounded-3xl flex flex-col items-center text-center shadow-sm hover:shadow-md transition hover:-translate-y-1 group relative">
+        <div class="{{ $cardStyle }} h-full rounded-3xl flex flex-col items-center text-center shadow-sm hover:shadow-md group relative">
 
           <!-- avatar -->
           <div class="relative mb-3 mt-2 flex-shrink-0">
@@ -92,7 +92,7 @@
           </div>
 
           <!-- Buttons -->
-          <div class="pt-2 border-t border-[#755f5415] w-full grid grid-cols-3 gap-1">
+          <div class="pt-2 border-t border-[#755f5415] w-full grid grid-cols-4 gap-1">
             
             <!-- view -->
             <a href="{{ route('user.show', $s->user->id) }}" title="View Profile" class="flex flex-col items-center justify-center p-2 text-primary/50 hover:text-primary hover:bg-orange-50 rounded-xl transition">
@@ -103,16 +103,32 @@
               <span class="text-[10px] font-bold mt-1">View</span>
             </a>
 
-            <!-- manager -->
-            <a href="#" title="Manage Student" class="flex flex-col items-center justify-center p-2 text-primary/50 hover:text-primary hover:bg-orange-50 rounded-xl transition">
+            <!-- manage students -->
+            <a href="{{ route('user.manage', $s->user->id) }}" title="Manage Student" class="flex flex-col items-center justify-center p-2 text-primary/50 hover:text-primary hover:bg-orange-50 rounded-xl transition">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
               </svg>
               <span class="text-[10px] font-bold mt-1">Manage</span>
             </a>
 
+            <!-- transfer -->
+            <form action="{{ route('teacher.classes.transferStudent', [$classroom->id, $s->id]) }}" 
+                  method="POST" 
+                  class="m-0 w-full"
+                  onsubmit="return handleTransfer(event, this, '{{ $s->first_name }} {{ $s->last_name }}', '{{ $classroom->name }}')">
+              @csrf
+              @method('DELETE')
+              <button type="submit" title="Transfer student" class="w-full flex flex-col items-center justify-center p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M22 10.5h-6m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+                </svg>
+                <span class="text-[10px] font-bold mt-1">Transfer</span>
+              </button>
+            </form>
+
             <!-- delete -->
-            <form action="{{ route('teacher.classes.removeStudent', [$classroom->id, $s->id]) }}" method="POST" class="m-0 w-full" onsubmit="return confirm('Remove this student? {{ $s->first_name }} {{ $s->last_name }} will no longer be part of {{ $classroom->name }}.')">
+            <form action="{{ route('teacher.classes.removeStudent', [$classroom->id, $s->id]) }}" method="POST" class="m-0 w-full"
+              onsubmit="return confirm('Remove this student? {{ $s->first_name }} {{ $s->last_name }} will no longer be part of {{ $classroom->name }} and will not exist as a user of Bookworms.')">
               @csrf
               @method('DELETE')
               <button type="submit" title="Remove Student" class="w-full flex flex-col items-center justify-center p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
@@ -140,4 +156,14 @@
 
     </div>
   </div>
+  <script>
+  function handleTransfer(event, form, studentName, className) {
+      if (!confirm(`Transfer ${studentName}? A CSV file will be downloaded first, then they will be removed from ${className}.`)) {
+          return false;
+      }
+      // let form submit normally then refresh page after delay
+      setTimeout(() => window.location.reload(), 2000);
+      return true;
+  }
+  </script>
 </x-teacher.layout>

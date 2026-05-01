@@ -74,26 +74,26 @@
 
       <!-- Reading progress statistics -->
       <div class="lg:col-span-4 grid grid-cols-2 gap-4 lg:gap-6">
-        <!-- Books read-->
-        <div class="bg-primary rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-md ">
-          <span class="text-5xl font-black text-background mb-2">15</span>
-          <span class="text-sm font-bold text-background/80 tracking-widest">BOOKS READ</span>
-        </div>
-        <!-- Average rating -->
-        <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-          <span class="text-5xl font-black text-primary mb-2">{{ $avgRating }}</span>
-          <span class="text-sm font-bold text-primary/70 tracking-widest">AVERAGE RATING</span>
-        </div>
-        <!-- Genres explored -->
-        <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-          <span class="text-5xl font-black text-primary mb-2">6</span>
-          <span class="text-sm font-bold text-primary/70 tracking-widest">GENRES EXPLORED</span>
-        </div>
-        <!-- Phonics mastered -->
-        <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-          <span class="text-5xl font-black text-primary mb-2">7</span>
-          <span class="text-sm font-bold text-primary/70 tracking-widest">PHONICS MASTERED</span>
-        </div>
+          <!-- Books read-->
+          <div class="bg-primary rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-md ">
+              <span class="text-5xl font-black text-background mb-2">{{ $booksReadCount }}</span>
+              <span class="text-sm font-bold text-background/80 tracking-widest">BOOKS READ</span>
+          </div>
+          <!-- Average rating -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
+              <span class="text-5xl font-black text-primary mb-2">{{ $avgRating }}</span>
+              <span class="text-sm font-bold text-primary/70 tracking-widest">AVERAGE RATING</span>
+          </div>
+          <!-- Genres explored -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
+              <span class="text-5xl font-black text-primary mb-2">{{ $genresExploredCount }}</span>
+              <span class="text-sm font-bold text-primary/70 tracking-widest">GENRES EXPLORED</span>
+          </div>
+          <!-- Phonics mastered -->
+          <div class="bg-[#755f5415] border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
+              <span class="text-5xl font-black text-primary mb-2">{{ $phonicsMasteredCount }}</span>
+              <span class="text-sm font-bold text-primary/70 tracking-widest">PHONICS MASTERED</span>
+          </div>
       </div>
 
       <!-- ========================================= -->
@@ -272,11 +272,11 @@
               @endif
 
               <!-- Write a Review Button -->
-              <a href="{{ url('/books/' . $currentBook->id . '/review') }}" class="inline-flex items-center justify-center px-8 py-4 text-lg bg-primary text-background font-bold rounded-xl shadow-md hover:bg-orange-900 hover:shadow-lg transition-all duration-200 focus:ring-4 focus:ring-primary/30">
+              <a href="{{ url('/assignments') }}" class="inline-flex items-center justify-center px-8 py-4 text-lg bg-primary text-background font-bold rounded-xl shadow-md hover:bg-orange-900 hover:shadow-lg transition-all duration-200 focus:ring-4 focus:ring-primary/30">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 mr-2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                 </svg>
-                Write a Review
+                Check your Assignments
               </a>
             </div>
           </div>

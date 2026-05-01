@@ -99,38 +99,36 @@
                     favourite books
                 </span>
                 <div class="flex flex-row items-start gap-4 rounded-2xl overflow-x-auto w-full">
-                    <!-- Book -->
-                    <div class="flex flex-col items-center gap-2 w-1/4 sm:w-1/4 flex-shrink-0">
-                        <div class="w-full h-36 bg-red-200 rounded-lg flex items-center justify-center"></div>
-                        <div class="text-center w-full px-1">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary truncate" title="The Very Hungry Caterpillar">The Very Hungry Caterpillar</h4>
-                            <p class="text-[9px] sm:text-[10px] font-semibold text-primary/60 truncate" title="Eric Carle">Eric Carle</p>
-                        </div>
-                    </div>
-                    <!-- Book -->
-                    <div class="flex flex-col items-center gap-2 w-1/4 sm:w-1/4 flex-shrink-0">
-                        <div class="w-full h-36 bg-red-200 rounded-lg flex items-center justify-center"></div>
-                        <div class="text-center w-full px-1">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary truncate" title="The Very Hungry Caterpillar">The Very Hungry Caterpillar</h4>
-                            <p class="text-[9px] sm:text-[10px] font-semibold text-primary/60 truncate" title="Eric Carle">Eric Carle</p>
-                        </div>
-                    </div>
-                    <!-- Book -->
-                    <div class="flex flex-col items-center gap-2 w-1/4 sm:w-1/4 flex-shrink-0">
-                        <div class="w-full h-36 bg-red-200 rounded-lg flex items-center justify-center"></div>
-                        <div class="text-center w-full px-1">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary truncate" title="The Very Hungry Caterpillar">The Very Hungry Caterpillar</h4>
-                            <p class="text-[9px] sm:text-[10px] font-semibold text-primary/60 truncate" title="Eric Carle">Eric Carle</p>
-                        </div>
-                    </div>
-                    <!-- Book -->
-                    <div class="flex flex-col items-center gap-2 w-1/4 sm:w-1/4 flex-shrink-0">
-                        <div class="w-full h-36 bg-red-200 rounded-lg flex items-center justify-center"></div>
-                        <div class="text-center w-full px-1">
-                            <h4 class="text-xs sm:text-sm font-bold text-primary truncate" title="The Very Hungry Caterpillar">The Very Hungry Caterpillar</h4>
-                            <p class="text-[9px] sm:text-[10px] font-semibold text-primary/60 truncate" title="Eric Carle">Eric Carle</p>
-                        </div>
-                    </div>
+                    @forelse($favouriteBooks as $book)
+                        <a href="/books/{{ $book->id }}" class="flex flex-col items-center gap-2 w-28 flex-shrink-0">
+                            <!-- Book cover -->
+                            <div class="relative w-28 h-40 bg-[#755f540a] border border-[#755f5410] rounded-lg overflow-hidden flex items-center justify-center shadow-sm">
+                                @if($book->cover_id && str_starts_with($book->cover_id, 'LOCAL_'))
+                                    @php $imagePath = str_replace('LOCAL_', '', $book->cover_id); @endphp
+                                    <img src="{{ asset('storage/' . $imagePath) }}" alt="{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}" class="absolute inset-0 w-full h-full object-cover">
+                                @elseif($book->cover_id && str_starts_with($book->cover_id, 'PLACEHOLDER_'))
+                                    @php $bgColour = str_replace('PLACEHOLDER_', '', $book->cover_id); @endphp
+                                    <div class="absolute inset-0 w-full h-full flex items-center justify-center p-2 text-center" style="background-color: {{ $bgColour }};">
+                                        <span class="font-black text-white text-xs leading-tight drop-shadow-md line-clamp-4">{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}</span>
+                                    </div>
+                                @elseif($book->cover_id)
+                                    <img src="https://books.google.com/books/content?id={{ $book->cover_id }}&printsec=frontcover&img=1&zoom=1" alt="{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}" class="absolute inset-0 w-full h-full object-cover">
+                                @else
+                                    <span class="font-bold text-primary/30 text-xs tracking-widest -rotate-12 text-center leading-tight">NO<br>COVER</span>
+                                @endif
+                            </div>
+                            <div class="text-center w-full px-1">
+                                <h4 class="text-xs sm:text-sm font-bold text-primary truncate" title="{{ $book->title }}">
+                                    {{ $book->title }}
+                                </h4>
+                                <p class="text-[9px] sm:text-[10px] font-semibold text-primary/60 truncate" title="{{ $book->author }}">
+                                    {{ $book->author }}
+                                </p>
+                            </div>
+                        </a>
+                    @empty
+                        <p class="text-sm text-primary/50">No favourite books yet.</p>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -173,8 +171,10 @@
                             
                             <!-- book info -->
                             <div class="flex-1 min-w-0">
-                                <h4 class="text-sm font-bold text-primary truncate" title="{{ $book->title }}">{{ $book->title }}</h4>
-                                <p class="text-[10px] font-semibold text-primary/60 truncate">by {{ $book->author }}</p>
+                                <a href="/books/{{ $book->id }}">
+                                    <h4 class="text-sm font-bold text-primary truncate hover:text-orange-400" title="{{ $book->title }}">{{ $book->title }}</h4>
+                                    <p class="text-[10px] font-semibold text-primary/60 truncate">by {{ $book->author }}</p>
+                                </a>
                             </div>
                             
                             <!-- date completed -->

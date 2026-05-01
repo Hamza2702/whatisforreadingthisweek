@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ExploreController extends Controller {
     
@@ -133,6 +134,12 @@ class ExploreController extends Controller {
         $user = Auth::user();
         $schoolId = $user?->school_id ?? $user?->student?->school_id ?? $user?->teacher?->school_id ?? null;
         
+
+        // edit book for TEACHERS only and ADDED books and ADMINS
+        $editMode = $request->has('edit') && $user && (
+            ($user->isTeacher() && str_starts_with($book->ol_key, 'NO_OL_CUSTOM_')) || $user->isAdmin()
+        );
+
         $totalStock = 0;
         $readingCount = 0;
         $requestedCount = 0;
@@ -186,13 +193,34 @@ class ExploreController extends Controller {
 
         $reviews = $book->reviews;
 
+        // calculcate stats from all reviews before limiting
+        $totalReviewCount = $reviews->count();
+        $averageRating = $totalReviewCount > 0 ? round($reviews->avg('rating'), 1) : 0;
+
+        // rating disitribution
+        $ratingDistribution = [
+            5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0,
+        ];
+        foreach ($reviews as $review) {
+            if (isset($ratingDistribution[$review->rating])) {
+                $ratingDistribution[$review->rating]++;
+            }
+        }
+        // convert to percentages
+        $ratingPercentages = [];
+        foreach ($ratingDistribution as $star => $count) {
+            $ratingPercentages[$star] = $totalReviewCount > 0 
+                ? round(($count / $totalReviewCount) * 100) 
+                : 0;
+        }
+
         // get the sort parameter and set default to top
         $sort = $request->query('sort', 'top');
 
         // sort reviews based on the filters
         switch ($sort) {
             case 'recent':
-                $reviews = $reviews->sortByDesc('created_at')->values();
+                $reviews = $reviews->sortByDesc('created_at')->take(20)->values();
                 break;
 
             case 'classroom':
@@ -201,12 +229,14 @@ class ExploreController extends Controller {
                     $reviews = $reviews->filter(function ($review) use ($classroomID) {
                         return $review->student && $review->student->classroom_id === $classroomID;
                     })->sortByDesc('created_at')->values();
+                } else {
+                    $reviews = collect();
                 }
                 break;
 
             case 'top':
             default:
-                $reviews = $reviews->sortByDesc('upvotes')->values();
+                $reviews = $reviews->sortByDesc('upvotes')->take(20)->values();
                 break;
         }
         
@@ -222,7 +252,7 @@ class ExploreController extends Controller {
 
         $currentSort = $sort;
 
-        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort', 'banType', 'totalStock', 'availableStock', 'readingCount', 'requestedCount'));
+        return view('book', compact('book', 'reviews', 'upvotedReviewIds', 'currentSort', 'banType', 'totalStock', 'availableStock', 'readingCount', 'requestedCount', 'editMode', 'totalReviewCount', 'averageRating', 'ratingPercentages'));
     }
 
     // Create book
@@ -231,7 +261,7 @@ class ExploreController extends Controller {
         // validate inputs
         $validated = $request->validate([
             'title'         => 'required|string|max:255',
-            'author'        => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s]+$/'], // letters and spaces only
+            'author'        => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s.]+$/'], // letters and spaces only AND full stops
             'ort_level'     => 'required|integer|min:0|max:20',
             'description'   => 'nullable|string',
             'cover_image'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB max
@@ -259,14 +289,14 @@ class ExploreController extends Controller {
 
         // map level to colour
         $ortColours = [
-            0 => "#6A5ACD",  1 => "#FF69B4",  2 => "#FF0000",  3 => "#FFFF00",
-            4 => "#67C5F4",  5 => "#00FA36",  6 => "#FF892E",  7 => "#40e0d0",
-            8 => "#6A1B9A",  9 => "#D4AF37",  10 => "#FFFFFF", 11 => "#bfff00",
-            12 => "#AED581", 13 => "#9E9E9E", 14 => "#9E9E9E", 15 => "#0D47A1",
-            16 => "#0D47A1", 17 => "#B71C1C", 18 => "#B71C1C", 19 => "#B71C1C",
-            20 => "#B71C1C",
+            0 => 'Light Purple', 1 => 'Pink',      2 => 'Red',       3 => 'Yellow',
+            4 => 'Light Blue',   5 => 'Green',      6 => 'Orange',    7 => 'Turquoise',
+            8 => 'Purple',       9 => 'Gold',       10 => 'White',    11 => 'Lime',
+            12 => 'Lime+',       13 => 'Grey',      14 => 'Grey',     15 => 'Dark Blue',
+            16 => 'Dark Blue',   17 => 'Dark Red',  18 => 'Dark Red', 19 => 'Dark Red',
+            20 => 'Dark Red',
         ];
-        $ortColour = $ortColours[$validated['ort_level']] ?? '#FFFFFF';
+        $ortColour = $ortColours[$validated['ort_level']] ?? 'Unknown';
 
         // cover image
         $coverId = null;
@@ -597,5 +627,91 @@ class ExploreController extends Controller {
 
             return back()->with('success', 'Book added to favourites!');
         }
+    }
+
+    // Update book
+    public function updateBook(Request $request, Book $book)
+    {
+        $user = auth()->user();
+
+        if (!$user?->isTeacher() && !$user?->isAdmin()) {
+            abort(403, 'Only teachers and admins can edit books');
+        }
+
+        // teachers can edit added books, admins can edit anything
+        if ($user->isTeacher() && !$user->isAdmin() && !str_starts_with($book->ol_key, 'NO_OL_CUSTOM_')) {
+            abort(403, 'You can only edit manually created books');
+        }
+
+        $validated = $request->validate([
+            'title'         => 'required|string|max:255',
+            'author'        => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s.]+$/'],
+            'ort_level'     => 'required|integer|min:0|max:20',
+            'description'   => 'nullable|string',
+            'cover_image'   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'remove_cover'  => 'nullable',
+            'new_phonics'   => 'nullable|array',
+            'new_phonics.*' => 'string|alpha|max:50',
+        ], [
+            'author.regex'        => 'Author names can only contain letters, spaces and full stops.',
+            'new_phonics.*.alpha' => 'Phonics may only contain letters.',
+        ]);
+
+        // map level to colour
+        $ortColours = [
+            0 => 'Light Purple', 1 => 'Pink',      2 => 'Red',       3 => 'Yellow',
+            4 => 'Light Blue',   5 => 'Green',      6 => 'Orange',    7 => 'Turquoise',
+            8 => 'Purple',       9 => 'Gold',       10 => 'White',    11 => 'Lime',
+            12 => 'Lime+',       13 => 'Grey',      14 => 'Grey',     15 => 'Dark Blue',
+            16 => 'Dark Blue',   17 => 'Dark Red',  18 => 'Dark Red', 19 => 'Dark Red',
+            20 => 'Dark Red',
+        ];
+
+        // cover removal
+        if ($request->has('remove_cover')) {
+            if ($book->cover_id && str_starts_with($book->cover_id, 'LOCAL_')) {
+                $path = str_replace('LOCAL_', '', $book->cover_id);
+                Storage::disk('public')->delete($path);
+            }
+            $rainbowHex = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#6366f1', '#8b5cf6'];
+            $book->cover_id = 'PLACEHOLDER_' . $rainbowHex[array_rand($rainbowHex)];
+        }
+
+        // cover upload
+        if ($request->hasFile('cover_image')) {
+            if ($book->cover_id && str_starts_with($book->cover_id, 'LOCAL_')) {
+                $path = str_replace('LOCAL_', '', $book->cover_id);
+                Storage::disk('public')->delete($path);
+            }
+            $path = $request->file('cover_image')->store('covers', 'public');
+            $book->cover_id = 'LOCAL_' . $path;
+        }
+
+        // update book fields
+        $book->update([
+            'title'       => $validated['title'],
+            'author'      => $validated['author'],
+            'ort_level'   => $validated['ort_level'],
+            'ort_colour'  => $ortColours[$validated['ort_level']] ?? 'Unknown',
+            'description' => $validated['description'],
+            'cover_id'    => $book->cover_id,
+        ]);
+
+        // sync phonics
+        if (!empty($validated['new_phonics'])) {
+            $phonicIds = [];
+            foreach ($validated['new_phonics'] as $sound) {
+                $cleanSound = trim($sound);
+                if ($cleanSound !== '') {
+                    $phonic = Phonic::firstOrCreate(['sound' => $cleanSound]);
+                    $phonicIds[] = $phonic->id;
+                }
+            }
+            $book->phonics()->sync($phonicIds);
+        } else {
+            $book->phonics()->detach();
+        }
+
+        return redirect()->route('books.show', $book->id)->with('success', 'Book updated successfully!');
     }
 }

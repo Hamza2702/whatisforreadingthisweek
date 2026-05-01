@@ -4,21 +4,12 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\Student;
-use App\Models\Book;
 use Carbon\Carbon;
 
 class BookReviewSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('book_reviews')->truncate();
-
-        // Get students with their school_ids
-        $students = Student::select('id', 'school_id')->get();
-        $studentData = $students->keyBy('id')->toArray();
-        $studentIds = $students->pluck('id')->toArray();
-
         $titles = [
             'Loved this book!',
             'Great read for kids',
@@ -70,66 +61,78 @@ class BookReviewSeeder extends Seeder
             'My child brought this home from school and we both enjoyed it. Well written with a clear message that children can easily understand.',
         ];
 
-        $totalBooks = Book::count();
-
-        $chunkSize = 1000;
+        $ratingWeights = [1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5];
+        $difficultyWeights = [
+            'easy', 'easy', 'easy', // 30%
+            'okay', 'okay', 'okay', 'okay', 'okay', // 50%
+            'hard', 'hard', // 20%
+        ];
+        $now = Carbon::now();
         $reviewBatch = [];
         $batchLimit = 5000;
         $totalInserted = 0;
-        $now = Carbon::now();
-        $ratingWeights = [1, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5];
 
-        // Get books
-        Book::select('id')->orderBy('id')->chunk($chunkSize, function ($books) use (
-            &$reviewBatch, &$totalInserted, $batchLimit,
-            $studentIds, $studentData, $titles, $descriptions, $now, $ratingWeights
-        ) {
-            // Loop through each book and add reviews
-            foreach ($books as $book) {
-                $numReviews = rand(5, 10);
+        DB::table('book_reviews')->truncate();
 
-                $shuffled = $studentIds;
-                shuffle($shuffled);
-                $reviewerIds = array_slice($shuffled, 0, min($numReviews, count($shuffled)));
+        $students = DB::table('students')->select('id', 'school_id')->get();
+        $bookIds = DB::table('books')->pluck('id');
 
-                // Loop through each reviewer and fill in table
-                foreach ($reviewerIds as $studentId) {
-                    $rating = $ratingWeights[array_rand($ratingWeights)];
+        // chunk student books
+        DB::table('book_student')
+            ->select('student_id', 'book_id', 'school_id', 'status')
+            ->whereIn('status', ['reading', 'completed'])
+            ->orderBy('id')
+            ->chunk(2000, function ($assignments) use (
+                &$reviewBatch,
+                &$totalInserted,
+                $batchLimit,
+                $titles,
+                $descriptions,
+                $ratingWeights,
+                $difficultyWeights,
+                $now
+            ) {
+                foreach ($assignments as $assignment) {
+                    // 10% of reviews dont get reviewed
+                    if (rand(1, 100) > 90) {
+                        continue;
+                    }
+
                     $daysAgo = rand(1, 365);
                     $createdAt = $now->copy()->subDays($daysAgo)->format('Y-m-d H:i:s');
 
                     $reviewBatch[] = [
-                        'rating' => $rating,
+                        'rating' => $ratingWeights[array_rand($ratingWeights)],
+                        'difficulty' => $difficultyWeights[array_rand($difficultyWeights)],
                         'title' => $titles[array_rand($titles)],
                         'description' => $descriptions[array_rand($descriptions)],
                         'upvotes' => rand(0, 25),
-                        'student_id' => $studentId,
-                        'book_id' => $book->id,
-                        'school_id' => $studentData[$studentId]['school_id'],
+                        'student_id' => $assignment->student_id,
+                        'book_id' => $assignment->book_id,
+                        'school_id' => $assignment->school_id,
                         'created_at' => $createdAt,
                         'updated_at' => $createdAt,
                     ];
                 }
-            }
 
-            // Fill review batch
-            if (count($reviewBatch) >= $batchLimit) {
-                foreach (array_chunk($reviewBatch, 2000) as $chunk) {
-                    DB::table('book_reviews')->insert($chunk);
+                if (count($reviewBatch) >= $batchLimit) {
+                    foreach (array_chunk($reviewBatch, 2000) as $chunk) {
+                        DB::table('book_reviews')->insert($chunk);
+                    }
+
+                    $totalInserted += count($reviewBatch);
+                    $reviewBatch = [];
                 }
-                $totalInserted += count($reviewBatch);
-                $reviewBatch = [];
-            }
-        });
+            });
 
-        // If its empty
         if (!empty($reviewBatch)) {
             foreach (array_chunk($reviewBatch, 2000) as $chunk) {
                 DB::table('book_reviews')->insert($chunk);
             }
+
             $totalInserted += count($reviewBatch);
         }
 
-        $this->command->info("Added {$totalInserted} reviews across {$totalBooks} books");
+        $this->command->info("Added {$totalInserted} reviews from assigned student books");
     }
 }

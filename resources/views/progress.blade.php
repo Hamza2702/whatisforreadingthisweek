@@ -54,8 +54,8 @@
 
             <!-- Total books read this month -->
             <div class="bg-white border border-primary/10 rounded-3xl p-6 flex flex-col justify-center items-center text-center shadow-sm">
-                <span class="text-4xl md:text-5xl lg:text-6xl font-black text-primary mb-2">{{ $booksThisWeek }}</span>
-                <span class="text-[10px] md:text-xs font-bold text-primary/70 tracking-widest">THIS MONTH</span>
+                <span class="text-4xl md:text-5xl lg:text-6xl font-black text-primary mb-2">You found books {{ $avgDifficulty }}.</span>
+                <span class="text-[10px] md:text-xs font-bold text-primary/70 tracking-widest">AVERAGE DIFFICULTY</span>
             </div>
 
             <!-- Average rating -->

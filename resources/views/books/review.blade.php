@@ -107,11 +107,45 @@
                         <a href="#" class="text-primary/60 hover:text-primary text-xs font-black tracking-widest transition" id="clear-rating">RESET</a>
                     </div>
                 </div>
-
                 <!-- Form -->
                 <form action="{{ url('/books/' . $book->id . '/review') }}" method="POST" class="space-y-6">
                     @csrf
                     <input type="hidden" id="rating-input" name="rating" value="{{ old('rating', $existingReview->rating ?? 1) }}">
+
+                    <!-- Difficulty -->
+                    <div class="bg-[#755f540a] border border-[#755f5420] rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xs font-black text-primary/60 tracking-widest">HOW DIFFICULT WAS IT?</h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-3">
+                            @php
+                                $currentDifficulty = old('difficulty', $existingReview->difficulty ?? 'okay');
+                                $difficulties = [
+                                    'easy' => ['emoji' => '😊', 'label' => 'Easy', 'desc' => 'A breeze'],
+                                    'okay' => ['emoji' => '🙂', 'label' => 'Okay', 'desc' => 'Just right'],
+                                    'hard' => ['emoji' => '😅', 'label' => 'Hard', 'desc' => 'A challenge'],
+                                ];
+                            @endphp
+
+                            @foreach($difficulties as $value => $info)
+                                <label class="difficulty-option cursor-pointer">
+                                    <input 
+                                        type="radio" 
+                                        name="difficulty" 
+                                        value="{{ $value }}" 
+                                        class="peer sr-only"
+                                        {{ $currentDifficulty === $value ? 'checked' : '' }}
+                                    >
+                                    <div class="bg-white border-2 border-[#755f5420] rounded-xl p-4 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:shadow-md">
+                                        <div class="text-3xl mb-2">{{ $info['emoji'] }}</div>
+                                        <p class="text-xs font-black text-primary tracking-widest uppercase">{{ $info['label'] }}</p>
+                                        <p class="text-[10px] font-bold text-primary/40 mt-1">{{ $info['desc'] }}</p>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
 
                     <!-- Title -->
                     <div>
@@ -132,7 +166,7 @@
                             CANCEL
                         </a>
                         <button type="submit" class="flex-1 bg-primary hover:bg-primary/90 text-white font-black text-xs tracking-widest py-4 px-6 rounded-xl shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                            {{ $existingReview ? '✏️ UPDATE REVIEW' : '⭐ SUBMIT REVIEW' }}
+                            {{ $existingReview ? 'UPDATE REVIEW' : 'SUBMIT REVIEW' }}
                         </button>
                     </div>
                 </form>

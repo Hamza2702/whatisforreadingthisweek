@@ -20,7 +20,7 @@ class Student extends Model
         'date_of_birth',
         'active',
         'pfp',
-        'is_special',
+        'is_exceptional',
         'classroom_id',
     ];
 

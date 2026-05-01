@@ -64,6 +64,45 @@ class AssignmentController extends Controller
                 'updated_at' => Carbon::now()
             ]);
 
+        // check if student has met their weekly goal
+        $weeklyGoal = DB::table('student_weekly_goals')
+            ->where('student_id', $student->id)
+            ->first();
+
+        if ($weeklyGoal) {
+            // count how many books the student has completed this week
+            $booksCompletedThisWeek = DB::table('book_student')
+                ->where('student_id', $student->id)
+                ->where('status', 'completed')
+                ->whereBetween('updated_at', [
+                    Carbon::now()->startOfWeek(),
+                    Carbon::now()->endOfWeek(),
+                ])
+                ->count();
+
+            // only update streak if theyve hit their target
+            if ($booksCompletedThisWeek >= $weeklyGoal->target) {
+                $streakRecord = DB::table('student_streaks')
+                    ->where('student_id', $student->id)
+                    ->first();
+
+                if ($streakRecord) {
+                    $lastReadDate = $streakRecord->last_read_at ? Carbon::parse($streakRecord->last_read_at) : null;
+
+                    // only increment once per week
+                    if (!$lastReadDate || !$lastReadDate->isSameWeek(Carbon::now())) {
+                        DB::table('student_streaks')
+                            ->where('student_id', $student->id)
+                            ->update([
+                                'last_read_at' => Carbon::now(),
+                                'streak_count' => DB::raw('streak_count + 1'),
+                                'updated_at' => Carbon::now(),
+                            ]);
+                    }
+                }
+            }
+        }
+
         return redirect('/books/' . $bookId . '/review')->with('success', 'Good job reading! Write a review for your logbook!');
     }
 
@@ -88,11 +127,12 @@ class AssignmentController extends Controller
             return redirect()->back()->with('error', 'Could not find a teacher to notify');
         }
 
-        // check db for a notification in the past day to stop spam
+        // check db for a notification in the past day to stop spam - BAD CODE VERY BAD BUT I CBA TO MAKE A TYPE SO IM GOING WEITH IT
         $recentNotification = DB::table('announcements')
             ->where('student_id', $student->id)
             ->where('classroom_id', $student->classroom_id)
-            ->where('created_at', '>=', Carbon::now()->subHours(24))
+            ->where('message', 'like', '%has completed their books and is waiting to be assigned another%')
+            ->where('created_at', '>=', Carbon::now()->subHours(48))
             ->first();
 
         // if already notified

@@ -14,7 +14,7 @@ class Book extends Model
         'author', 
         'cover_id', 
         'ort_level', 
-        'ort_color', 
+        'ort_colour', 
         'description'
     ];
 

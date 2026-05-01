@@ -22,6 +22,20 @@
             </div>
         @endif
 
+        @if($errors->any())
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl font-bold text-sm shadow-sm">
+                @foreach($errors->all() as $error)
+                    <p>{{ $error }}</p>
+                @endforeach
+            </div>
+        @endif
+
+        @if($editMode)
+        <form id="edit-book-form" action="{{ route('explore.updateBook', $book->id) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            @method('PUT')
+        @endif
+
         <!-- Book card -->
         <div class="bg-white border border-[#755f5420] rounded-3xl p-6 md:p-10 shadow-sm flex flex-col md:flex-row gap-8 lg:gap-12 relative overflow-hidden">
             
@@ -52,10 +66,25 @@
                         $bgClass = 'bg-level-' . str_replace(' ', '', $book->ort_level);
                         $textClass = 'text-level-' . str_replace(' ', '', $book->ort_level);
                     @endphp
-                    <div class="absolute top-4 right-4 {{ $bgClass }} {{ $textClass }} text-black text-xs font-black px-4 py-2 rounded-full border-2 border-white shadow-sm" style="background-color: {{ $book->ort_colour ?? '' }}">
+                    <div class="absolute top-2.5 right-2.5 {{ $bgClass }} {{ $textClass }} text-[9px] sm:text-[10px] font-black px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 border-white flex items-center gap-1 z-10">
                         LVL {{ $book->ort_level }}
                     </div>
                 </div>
+
+                @if($editMode)
+                    <div class="mt-4 space-y-3">
+                        <div>
+                            <label class="text-[10px] font-black text-primary/60 tracking-widest mb-1 block">REPLACE COVER</label>
+                            <input type="file" name="cover_image" accept="image/jpeg,image/png,image/jpg,image/webp" class="w-full text-xs text-primary file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border file:border-[#755f5420] file:text-xs file:font-bold file:bg-white file:text-primary hover:file:bg-[#755f540a] file:cursor-pointer file:transition-colors">
+                        </div>
+                        @if($book->cover_id && !str_starts_with($book->cover_id, 'PLACEHOLDER_'))
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox" name="remove_cover" value="1" class="w-4 h-4 rounded border-[#755f5420] text-red-500 focus:ring-red-500/20">
+                                <span class="text-xs font-bold text-red-500 group-hover:text-red-600 transition-colors">Remove current cover</span>
+                            </label>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             <!-- book details -->
@@ -63,11 +92,25 @@
                 
                 <!-- title and auth -->
                 <div>
-                    <!-- title and author -->
-                    <div class="flex md:text-left items-center gap-6">
-                        <h1 class="text-3xl md:text-5xl font-black text-primary leading-tight">{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}</h1>
-                        <p class="text-base md:text-lg font-bold text-primary/50 uppercase tracking-widest mt-2">{{ html_entity_decode($book->author ?? '', ENT_QUOTES) }}</p>
-                    </div>
+                    @if($editMode)
+                        <!-- title and author -->
+                        <div class="flex flex-col gap-4">
+                            <div>
+                                <label class="text-[10px] font-black text-primary/60 tracking-widest mb-1 block">TITLE</label>
+                                <input type="text" name="title" value="{{ old('title', $book->title) }}" class="w-full text-3xl md:text-5xl font-black text-primary leading-tight bg-[#755f540a] border border-[#755f5420] rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" required>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-primary/60 tracking-widest mb-1 block">AUTHOR</label>
+                                <input type="text" name="author" value="{{ old('author', $book->author) }}" class="w-full text-base md:text-lg font-bold text-primary/50 uppercase tracking-widest bg-[#755f540a] border border-[#755f5420] rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" required>
+                            </div>
+                        </div>
+                    @else
+                        <!-- title and author -->
+                        <div class="flex md:text-left items-center gap-6">
+                            <h1 class="text-3xl md:text-5xl font-black text-primary leading-tight">{{ html_entity_decode($book->title ?? '', ENT_QUOTES) }}</h1>
+                            <p class="text-base md:text-lg font-bold text-primary/50 uppercase tracking-widest mt-2">{{ html_entity_decode($book->author ?? '', ENT_QUOTES) }}</p>
+                        </div>
+                    @endif
                     <!-- current stock -->
                     <p class="text-base md:text-sm font-bold text-primary/50 uppercase tracking-widest mt-2">{{ $availableStock }} {{ Str::plural('COPY', $availableStock) }} AVAILABLE</p>
                     <p class="text-base md:text-sm font-bold text-primary/50 uppercase tracking-widest mt-2">{{ $readingCount }} {{ Str::plural('STUDENT', $readingCount) }} IS READING THIS BOOK</p>
@@ -96,38 +139,79 @@
                 <div class="bg-[#755f540a] border border-[#755f5420] rounded-2xl p-5 md:p-6 space-y-5">
                     <div>
                         <h3 class="text-[10px] font-black text-primary/60 tracking-widest mb-2">READING LEVEL</h3>
-                        <div class="flex items-center gap-3">
-                            <span class="w-5 h-5 rounded-full border-2 border-white shadow-sm {{ $bgClass }}" style="background-color: {{ $book->ort_colour ?? '' }}"></span>
-                            <span class="font-bold text-primary text-sm">Oxford Reading Tree: Level {{ $book->ort_level }} ({{ ucfirst($book->ort_colour ?? 'No') }} Band)</span>
-                        </div>
+                        @if($editMode)
+                            <div class="flex items-center gap-3">
+                                <span class="w-5 h-5 rounded-full border-2 border-white shadow-sm {{ $bgClass }}"></span>
+                                <label class="font-bold text-primary text-sm mr-2">Oxford Reading Tree: Level</label>
+                                <input type="number" name="ort_level" value="{{ old('ort_level', $book->ort_level) }}" min="1" max="20" class="w-20 font-bold text-primary text-sm bg-white border border-[#755f5420] rounded-xl px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" required>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-3">
+                                <span class="w-5 h-5 rounded-full border-2 border-white shadow-sm {{ $bgClass }}" ></span>
+                                <span class="font-bold text-primary text-sm">Oxford Reading Tree: Level {{ $book->ort_level }} ({{ $book->ort_colour ?? 'No' }} Band)</span>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- book desc -->
                     <div>
                         <h3 class="text-[10px] font-black text-primary/60 tracking-widest mb-2">DESCRIPTION</h3>
-                        <p class="text-sm font-medium text-primary leading-relaxed line-clamp-6">
-                            {{ $book->description }}
-                        </p>
+                        @if($editMode)
+                            <textarea name="description" rows="4" class="w-full text-sm font-medium text-primary leading-relaxed bg-white border border-[#755f5420] rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-y">{{ old('description', $book->description) }}</textarea>
+                        @else
+                            <p class="text-sm font-medium text-primary leading-relaxed line-clamp-6">
+                                {{ $book->description }}
+                            </p>
+                        @endif
                     </div>
 
                     <!-- phonics -->
-                    @if($book->phonics && $book->phonics->count() > 0)
+                    @if($editMode)
                         <div class="pt-2 border-t border-[#755f5415]">
                             <h3 class="text-[10px] font-black text-primary/60 tracking-widest mb-3 mt-2">PHONIC SOUNDS</h3>
-                            <div class="flex flex-wrap gap-2">
-                                @foreach($book->phonics as $phonic)
-                                    <span class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-[#755f5420] text-primary text-sm font-black shadow-sm">
-                                        {{ $phonic->sound }}
-                                    </span>
-                                @endforeach
+                            <div id="phonics-container" class="flex flex-wrap gap-2 mb-3">
+                                @if($book->phonics)
+                                    @foreach($book->phonics as $phonic)
+                                        <div class="flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm cursor-pointer hover:bg-red-500 transition-colors" onclick="this.remove()">
+                                            <span>{{ $phonic->sound }}</span>
+                                            <span class="text-sm leading-none ml-1">&times;</span>
+                                            <input type="hidden" name="new_phonics[]" value="{{ $phonic->sound }}">
+                                        </div>
+                                    @endforeach
+                                @endif
                             </div>
+                            <input type="text" id="phonic_input" placeholder="Type a phonic and press Enter..." class="w-full text-sm font-medium text-primary bg-white border border-[#755f5420] rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" maxlength="10">
+                            <p class="text-[10px] text-primary/40 mt-1">Press Enter to add. Click a tag to remove it.</p>
                         </div>
+                    @else
+                        @if($book->phonics && $book->phonics->count() > 0)
+                            <div class="pt-2 border-t border-[#755f5415]">
+                                <h3 class="text-[10px] font-black text-primary/60 tracking-widest mb-3 mt-2">PHONIC SOUNDS</h3>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($book->phonics as $phonic)
+                                        <span class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-[#755f5420] text-primary text-sm font-black shadow-sm">
+                                            {{ $phonic->sound }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     @endif
                 </div>
                 
                 <!-- Add book, read book, favourite -->
                 <div class="mt-auto pt-4 flex flex-col gap-3">
                     
+                    @if($editMode)
+                        <div class="flex flex-col sm:flex-row gap-4 w-full items-stretch">
+                            <button type="submit" class="flex-1 w-full bg-primary hover:bg-secondary border-2 border-primary hover:border-secondary text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer">
+                                SAVE CHANGES
+                            </button>
+                            <a href="{{ route('books.show', $book->id) }}" class="flex-1 w-full bg-white border-2 border-[#755f5420] hover:border-red-500 text-primary hover:text-red-500 font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                CANCEL
+                            </a>
+                        </div>
+                    @else
                     <!-- Buttons -->
                     <div class="flex flex-col sm:flex-row gap-4 w-full items-stretch"> 
                         
@@ -156,6 +240,16 @@
                                     </button>
                                 @endif
                             </form>
+                        @endif
+
+                        <!-- Edit book - teachers (custom only) AND admins (any book) -->
+                        @if((Auth::user()?->isTeacher() && str_starts_with($book->ol_key, 'NO_OL_CUSTOM_')) || Auth::user()?->isAdmin())
+                            <a href="{{ route('books.show', $book->id) }}?edit=true" class="flex-1 w-full bg-primary/95 hover:bg-secondary border-2 border-primary hover:border-primary/110 text-white font-black text-xs tracking-widest py-4 px-4 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 text-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                </svg>
+                                EDIT BOOK
+                            </a>
                         @endif
 
                         <!-- Read online openlibrary -->
@@ -207,10 +301,16 @@
                             Need help with borrowing books?<a href="https://help.archive.org/help/borrowing-from-the-lending-library/#:~:text=How%20do%20I%20get%20set%20up%20to%20borrow%20books%20through%20archive.org%3F" target="_blank" class="font-black underline-offset-4 underline ml-1 hover:text-secondary transition-colors">Check this out</a>
                         </p>
                     @endif
+                    @endif
 
                 </div>
             </div>
         </div>
+
+        @if($editMode)
+        </form>
+        @endif
+
         <!-- Student Reviews -->
         <div class="bg-white border border-[#755f5420] rounded-3xl p-6 md:p-10 shadow-sm">
             <h2 class="text-2xl font-black text-primary mb-8 flex items-center gap-3">
@@ -238,7 +338,7 @@
                                 @endfor
                             </div>
                             <!-- Ratings -->
-                            <p class="text-xs font-bold text-primary/40 tracking-widest mt-1">{{ $reviews->count() }} {{ Str::plural('RATING', $reviews->count()) }}</p>
+                            <p class="text-xs font-bold text-primary/40 tracking-widest mt-1">{{ $totalReviewCount }} {{ Str::plural('RATING', $totalReviewCount) }}</p>
                         </div>
                     </div>
 
@@ -323,6 +423,15 @@
                     </div>
 
                     <!-- Reviews -->
+                    @if($reviews->count() > 0 && ($currentSort ?? '') !== 'classroom' && $totalReviewCount > $reviews->count())
+                        <div class="flex items-center justify-between pb-3 border-b border-[#755f5415]">
+                            <p class="text-[10px] font-black text-primary/40 tracking-widest">
+                                SHOWING TOP {{ $reviews->count() }} OF {{ $totalReviewCount }} REVIEWS
+                            </p>
+                        </div>
+                    @endif
+
+                    <!-- Reviews -->
                     <div class="space-y-6 max-h-[500px] overflow-y-auto pr-2">
                         <!-- Loop through reviews -->
                         @if($reviews->count() > 0)
@@ -352,8 +461,8 @@
                                     </div>
 
                                     <div class="ml-[52px]">
-                                        <!-- Rating and Title -->
-                                        <div class="flex items-center gap-2 mb-1">
+                                        <!-- Rating, Title, and Difficulty -->
+                                        <div class="flex items-center gap-2 mb-1 flex-wrap">
                                             <h5 class="font-black text-primary text-sm">{{ $review->title }}</h5>
                                             <div class="flex">
                                                 @for ($i = 0; $i < $review->rating; $i++)
@@ -363,6 +472,23 @@
                                                     <span style="color: transparent; text-shadow: 0 0 #c4b5a4;">⭐</span>
                                                 @endfor
                                             </div>
+
+                                            <!-- Difficulty badge -->
+                                            @if($review->difficulty)
+                                                @php
+                                                    $difficultyConfig = [
+                                                        'easy' => ['emoji' => '😊', 'label' => 'Easy', 'classes' => 'bg-green-50 text-green-700 border-green-200'],
+                                                        'okay' => ['emoji' => '🙂', 'label' => 'Okay', 'classes' => 'bg-amber-50 text-amber-700 border-amber-200'],
+                                                        'hard' => ['emoji' => '😅', 'label' => 'Hard', 'classes' => 'bg-red-50 text-red-700 border-red-200'],
+                                                    ];
+                                                    $diff = $difficultyConfig[$review->difficulty] ?? null;
+                                                @endphp
+                                                @if($diff)
+                                                    <span class="text-[10px] font-black tracking-widest border px-2 py-1 rounded-lg {{ $diff['classes'] }}">
+                                                        {{ $diff['emoji'] }} {{ strtoupper($diff['label']) }}
+                                                    </span>
+                                                @endif
+                                            @endif
                                         </div>
 
                                         <!-- Description -->
@@ -576,6 +702,83 @@
                 xhr.send();
             });
         });
+
+        // PHONICS FOR EDITS
+        var phonicInput = document.getElementById('phonic_input');
+        var phonicsContainer = document.getElementById('phonics-container');
+
+        if (phonicInput && phonicsContainer) {
+            
+            // listen for enter key
+            phonicInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addPhonicTag(this.value);
+                }
+            });
+
+            // listen for user click away
+            phonicInput.addEventListener('blur', function() {
+                addPhonicTag(this.value);
+            });
+        }
+
+        // add phonic tag function
+        function addPhonicTag(value) {
+            var val = value.trim();
+            if (!val) return;
+
+            // only letters, 10 max characters
+            var regex = /^[A-Za-z]{1,10}$/;
+
+            if (!regex.test(val)) {
+                phonicInput.value = '';
+                return;
+            }
+
+            // check to avoid any duplicates
+            var existingInputs = Array.from(document.querySelectorAll('input[name="new_phonics[]"]')).map(function(el) {
+                return el.value.toLowerCase();
+            });
+            
+            if (existingInputs.includes(val.toLowerCase())) {
+                phonicInput.value = '';
+                return;
+            }
+
+            // create tag div
+            var tagDiv = document.createElement('div');
+            tagDiv.className = 'flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm cursor-pointer hover:bg-red-500 transition-colors';
+            
+            // text
+            var text = document.createElement('span');
+            text.textContent = val;
+            
+            // delete phonic tag
+            var closeBtn = document.createElement('span');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.className = 'text-sm leading-none ml-1';
+            
+            // hidden input to submit array value
+            var hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'new_phonics[]';
+            hiddenInput.value = val;
+
+            // add to tag div
+            tagDiv.appendChild(text);
+            tagDiv.appendChild(closeBtn);
+            tagDiv.appendChild(hiddenInput);
+
+            // add remove event listeners
+            tagDiv.addEventListener('click', function() {
+                tagDiv.remove();
+            });
+
+            // add to the container and set input to nothing
+            phonicsContainer.appendChild(tagDiv);
+            phonicInput.value = '';
+        }
     });
     </script>
 </x-layout>

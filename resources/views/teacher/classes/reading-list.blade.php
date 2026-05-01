@@ -7,12 +7,24 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         
         <!-- Auto assign all books -->
-        <form action="{{ route('teacher.reading.generateAll', $classroom->id) }}" method="POST">
-            @csrf
-            <button type="submit" class="bg-primary text-background rounded-lg px-4 py-2.5 hover:bg-orange-900 transition-colors flex items-center text-xs font-black tracking-widest gap-2">
-              AUTO ASSIGN ALL BOOKS
+        @if($generateAllUsedThisWeek ?? false)
+            @php
+                // calculate when the button unlocks end of sunday
+                $unlocksAt = now()->endOfWeek()->addSecond();
+            @endphp
+            <button type="button" disabled 
+                class="bg-[#755f5410] border border-[#755f5420] text-primary/40 rounded-lg px-4 py-2.5 cursor-not-allowed flex items-center text-xs font-black tracking-widest gap-2"
+                title="Books have already been assigned to this class this week">
+                ASSIGNABLE {{ $unlocksAt->diffForHumans(['parts' => 2]) }}
             </button>
-        </form>
+        @else
+            <form action="{{ route('teacher.reading.generateAll', $classroom->id) }}" method="POST">
+                @csrf
+                <button type="submit" class="bg-primary text-background rounded-lg px-4 py-2.5 hover:bg-orange-900 transition-colors flex items-center text-xs font-black tracking-widest gap-2">
+                    AUTO ASSIGN ALL BOOKS
+                </button>
+            </form>
+        @endif
 
         @if(session('error'))
             <div class="text-red-600 text-sm font-bold bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
@@ -40,7 +52,7 @@
       
       @forelse($students as $s)
         @php
-          $cardStyle = $s->is_special 
+          $cardStyle = $s->is_exceptional
               ? 'border-2 border-dashed border-green-400 bg-white' 
               : 'border border-[#755f5420] bg-white';
               
@@ -191,23 +203,31 @@
                         };
 
                         $badgeClass = match($book->ort_colour) {
-                          'Light Purple' => 'bg-purple-200 text-purple-900',
-                          'Pink' => 'bg-pink-400 text-white',
-                          'Red' => 'bg-red-500 text-white',
-                          'Yellow' => 'bg-yellow-300 text-yellow-900',
-                          'Light Blue' => 'bg-blue-300 text-blue-900',
-                          'Green' => 'bg-green-500 text-white',
-                          'Orange' => 'bg-orange-500 text-white',
-                          'Turquoise' => 'bg-teal-400 text-teal-900',
-                          'Purple' => 'bg-purple-500 text-white',
-                          'Gold' => 'bg-amber-400 text-amber-900',
-                          'White' => 'bg-gray-100 text-gray-800',
-                          'Lime', 'Lime+' => 'bg-lime-400 text-lime-900',
-                          'Grey' => 'bg-gray-400 text-gray-900',
-                          'Dark Blue' => 'bg-blue-800 text-white',
-                          'Dark Red' => 'bg-red-800 text-white',
-                          default => 'bg-white text-gray-800',
-                      };
+                            'Light Purple' => 'bg-purple-200 text-purple-900',
+                            'Pink' => 'bg-pink-400 text-white',
+                            'Red' => 'bg-red-500 text-white',
+                            'Yellow' => 'bg-yellow-300 text-yellow-900',
+                            'Light Blue' => 'bg-blue-300 text-blue-900',
+                            'Green' => 'bg-green-500 text-white',
+                            'Orange' => 'bg-orange-500 text-white',
+                            'Turquoise' => 'bg-teal-400 text-teal-900',
+                            'Purple' => 'bg-purple-500 text-white',
+                            'Gold' => 'bg-amber-400 text-amber-900',
+                            'White' => 'bg-gray-100 text-gray-800',
+                            'Lime', 'Lime+' => 'bg-lime-400 text-lime-900',
+                            'Grey' => 'bg-gray-400 text-gray-900',
+                            'Dark Blue' => 'bg-blue-800 text-white',
+                            'Dark Red' => 'bg-red-800 text-white',
+                            default => 'bg-white text-gray-800',
+                        };
+
+                        $peerDifficulty = $book->peer_difficulty ?? null;
+                        $peerBadge = match($peerDifficulty) {
+                            'easy' => ['emoji' => '😊', 'label' => 'EASY', 'classes' => 'bg-green-100 text-green-700 border-green-300'],
+                            'okay' => ['emoji' => '🙂', 'label' => 'OKAY', 'classes' => 'bg-amber-100 text-amber-700 border-amber-300'],
+                            'hard' => ['emoji' => '😅', 'label' => 'HARD', 'classes' => 'bg-red-100 text-red-700 border-red-300'],
+                            default => null,
+                        };
 
                         $bgHighlight = $isRequested ? 'bg-indigo-50/40 shadow-sm' : 'bg-white';
                       @endphp
@@ -248,6 +268,14 @@
                               
                               @else
                                   <span class="font-bold text-primary/30 text-[10px] tracking-widest -rotate-12">NO COVER</span>
+                              @endif
+
+                              <!-- peer difficulty badge -->
+                              @if($peerBadge)
+                                  <span class="absolute bottom-1 left-1 text-[7px] font-black px-1.5 py-0.5 rounded-md border z-20 shadow-sm {{ $peerBadge['classes'] }}" 
+                                        title="Other students rated this {{ strtolower($peerBadge['label']) }}">
+                                      {{ $peerBadge['emoji'] }} {{ $peerBadge['label'] }}
+                                  </span>
                               @endif
                           </div>
                           

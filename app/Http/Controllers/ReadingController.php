@@ -9,6 +9,7 @@ use App\Models\Book;
 use Illuminate\Support\Facades\DB;
 use App\Models\StudentReadingList;
 use App\Models\StudentFavouriteBook;
+use Illuminate\Support\Facades\Cache;
 
 class ReadingController extends Controller
 {
@@ -17,7 +18,7 @@ class ReadingController extends Controller
     {   
         $yearGroups = []; 
         // get students and genres and weekly goals and books
-        $students = $classroom->students()->with(['user', 'preferredGenres', 'weeklyGoal', 'books'])->get();
+        $students = $classroom->students()->wherePivot('active', 1)->with(['user', 'preferredGenres', 'weeklyGoal', 'books'])->get();
         // if no students
         if ($students->isEmpty()) {
             return view('teacher.classes.reading-list', compact('classroom', 'students', 'yearGroups'));
@@ -26,11 +27,28 @@ class ReadingController extends Controller
         $studentIds = $students->pluck('id')->toArray();
         $schoolId = $students->first()?->school_id;
 
+        // check if generate all has already been used this week for this classroom
+        $generateAllUsedThisWeek = $this->hasGenerateAllRunThisWeek($classroom->id, $studentIds);
+
         // load reading lists
         $allReadingListEntries = StudentReadingList::whereIn('student_id', $studentIds)
             ->with(['book.genres', 'book.phonics'])
             ->get()
             ->groupBy('student_id');
+
+        // load 5 last reviews of recent difficulty feedback for each student
+        $recentDifficulties = DB::table('book_reviews')
+            ->whereIn('student_id', $studentIds)
+            ->select('student_id', 'difficulty', 'created_at')
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('student_id')
+            ->map(function ($reviews) {
+                return $this->calculateDifficultyBias($reviews->take(5));
+            });
+
+        // load every books difficulty based off student reviews
+        $bookDifficultyMap = $this->buildBookDifficultyMap();
 
         // colours
         $colourBands = [
@@ -73,13 +91,14 @@ class ReadingController extends Controller
                 $query->whereNotIn('books.id', $bannedBookIds);
             }
 
-            // chunk books with id
-            $query->with('genres:id')->chunkById(1000, function ($books) use (&$availableBooks) {
+            // chunk books with id, also tag each book with its peer reviewed difficulty if known
+            $query->with('genres:id')->chunkById(1000, function ($books) use (&$availableBooks, $bookDifficultyMap) {
                 foreach ($books as $book) {
                     $availableBooks[$book->ort_colour][] = [
                         'id' => $book->id,
                         'colour' => $book->ort_colour,
-                        'genres' => $book->genres->pluck('id')->toArray()
+                        'genres' => $book->genres->pluck('id')->toArray(),
+                        'peer_difficulty' => $bookDifficultyMap[$book->id] ?? null, // easy/okay/hard or null if not enough reviews
                     ];
                 }
             }, 'books.id', 'id'); // use book's id and use id as an alias
@@ -107,6 +126,12 @@ class ReadingController extends Controller
             $currentIndex = array_search($student->ort_colour, $colourBands);
             if ($currentIndex === false) $currentIndex = 1; 
 
+            // get students difficulty bias: -1 = wants easier, 0 = neutral, +1 = wants harder
+            $difficultyBias = $recentDifficulties->get($student->id, 0);
+
+            // find out which peer difficulty to prefer for student
+            $preferredPeerDifficulty = $this->mapBiasToPeerDifficulty($difficultyBias);
+
             // colour bands
             $canGoBelow = $currentIndex > 1;
             $belowColour = $canGoBelow ? $colourBands[$currentIndex - 1] : null;
@@ -122,11 +147,25 @@ class ReadingController extends Controller
                 'above_unliked' => 2,
             ];
 
+            // adjust limits based on difficulty bias from feedback
+            // if student finds books too hard, give them more books from below + same colour
+            if ($difficultyBias < 0 && $canGoBelow) {
+                $limits['below_liked']   += 2; 
+                $limits['above_liked']   = max(0, $limits['above_liked'] - 1);
+                $limits['above_unliked'] = max(0, $limits['above_unliked'] - 1);
+            }
+            // if student finds books too easy, give them more books from above colour
+            elseif ($difficultyBias > 0) {
+                $limits['above_liked']   += 1;
+                $limits['above_unliked'] += 1;
+                $limits['below_liked']   = max(0, $limits['below_liked'] - 1);
+            }
+
             // array to hold selected book ids for this specific student
             $selectedIdsForStudent = [];
 
             // fetch books based on filters
-            $fetchBooks = function($targetColour, $isLiked, $limit) use ($likedGenresIds, &$selectedIdsForStudent, $availableBooks, $alreadyReadOrReadingIds) {
+            $fetchBooks = function($targetColour, $isLiked, $limit) use ($likedGenresIds, &$selectedIdsForStudent, $availableBooks, $alreadyReadOrReadingIds, $preferredPeerDifficulty) {
                 if ($limit <= 0 || !$targetColour || empty($availableBooks[$targetColour])) return;
 
                 $available = collect($availableBooks[$targetColour])->reject(function($book) use ($selectedIdsForStudent, $alreadyReadOrReadingIds) {
@@ -140,7 +179,24 @@ class ReadingController extends Controller
                     });
                 }
 
-                $picked = $available->shuffle()->take($limit)->pluck('id')->toArray();
+                // prioritise books that match the students preferred peer difficulty
+                // books with no peer reviews are kept as a neutral fallback
+                $matching = $available->filter(function($book) use ($preferredPeerDifficulty) {
+                    return $book['peer_difficulty'] === $preferredPeerDifficulty;
+                });
+                $unrated = $available->filter(function($book) {
+                    return $book['peer_difficulty'] === null;
+                });
+                $other = $available->filter(function($book) use ($preferredPeerDifficulty) {
+                    return $book['peer_difficulty'] !== null && $book['peer_difficulty'] !== $preferredPeerDifficulty;
+                });
+
+                // take from matching first, then fall back to unrated, then anything else
+                $ordered = $matching->shuffle()
+                    ->concat($unrated->shuffle())
+                    ->concat($other->shuffle());
+
+                $picked = $ordered->take($limit)->pluck('id')->toArray();
                 $selectedIdsForStudent = array_merge($selectedIdsForStudent, $picked);
             };
 
@@ -192,23 +248,47 @@ class ReadingController extends Controller
         foreach ($students as $student) {
             $assignedIds = $studentSelections[$student->id] ?? [];
             
-            $student->recommendedBooks = collect($assignedIds)->map(function($id) use ($finalLoadedBooks) {
-                return $finalLoadedBooks->get($id);
+            $student->recommendedBooks = collect($assignedIds)->map(function($id) use ($finalLoadedBooks, $bookDifficultyMap) {
+                $book = $finalLoadedBooks->get($id);
+                // attach the peer difficulty so the view can show the easy/okay/hard badge
+                if ($book) {
+                    $book->peer_difficulty = $bookDifficultyMap[$book->id] ?? null;
+                }
+                return $book;
             })->filter();
         }
 
-        return view('teacher.classes.reading-list', compact('classroom', 'students', 'yearGroups'));
+        return view('teacher.classes.reading-list', compact('classroom', 'students', 'yearGroups', 'generateAllUsedThisWeek'));
     }
 
     // Generate books for all students
     public function generateAll(Request $request, Classroom $classroom)
     {
         // get students with genres and current books
-        $students = $classroom->students()->with(['preferredGenres', 'books', 'weeklyGoal'])->get();
+        $students = $classroom->students()->wherePivot('active', 1)->with(['preferredGenres', 'books', 'weeklyGoal'])->get();
         if ($students->isEmpty()) return back()->with('success', 'No students in classroom.');
 
         $schoolId = $students->first()?->school_id;
         $studentIds = $students->pluck('id')->toArray();
+
+        // block generate all if its already been used this week for this classroom
+        if ($this->hasGenerateAllRunThisWeek($classroom->id, $studentIds)) {
+            return back()->with('error', 'Books have already been assigned to this class this week. Use manual assignment for individual students who need more books.');
+        }
+
+        // load 5 last reviews of recent difficulty feedback for each student
+        $recentDifficulties = DB::table('book_reviews')
+            ->whereIn('student_id', $studentIds)
+            ->select('student_id', 'difficulty', 'created_at')
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('student_id')
+            ->map(function ($reviews) {
+                return $this->calculateDifficultyBias($reviews->take(5));
+            });
+
+       // load every books difficulty based off student reviews
+        $bookDifficultyMap = $this->buildBookDifficultyMap();
 
         // colours
         $colourBands = [
@@ -257,7 +337,7 @@ class ReadingController extends Controller
             ->get()
             ->groupBy('student_id');
 
-        // create available books
+        // create available books, also tag each book with its peer reviewed difficulty
         $availableBooks = [];
         if ($schoolId && !empty($neededColours)) {
             $query = Book::select('books.id', 'books.ort_colour')
@@ -270,11 +350,12 @@ class ReadingController extends Controller
                 $query->whereNotIn('books.id', $unavailableBookIds);
             }
 
-            $query->with('genres:id')->chunkById(1000, function($books) use (&$availableBooks) {
+            $query->with('genres:id')->chunkById(1000, function($books) use (&$availableBooks, $bookDifficultyMap) {
                 foreach($books as $book) {
                     $availableBooks[$book->ort_colour][] = [
                         'id' => $book->id,
-                        'genres' => $book->genres->pluck('id')->toArray()
+                        'genres' => $book->genres->pluck('id')->toArray(),
+                        'peer_difficulty' => $bookDifficultyMap[$book->id] ?? null,
                     ];
                 }
             }, 'books.id', 'id');
@@ -296,6 +377,21 @@ class ReadingController extends Controller
             $ortColour = $this->getOxfordColour($student->level);
             $studentColourIndex = array_search($ortColour, $colourBands);
             if ($studentColourIndex === false) $studentColourIndex = 1;
+
+            // get students difficulty bias: -1 = wants easier, 0 = neutral, +1 = wants harder
+            $difficultyBias = $recentDifficulties->get($student->id, 0);
+
+            /// find out which peer difficulty to prefer for student
+            $preferredPeerDifficulty = $this->mapBiasToPeerDifficulty($difficultyBias);
+
+            // change target colour based on difficulty feedback
+            $targetColourIndex = $studentColourIndex;
+            if ($difficultyBias < 0 && $studentColourIndex > 1) {
+                $targetColourIndex = $studentColourIndex - 1; // give them easier book
+            } elseif ($difficultyBias > 0 && $studentColourIndex < count($colourBands) - 1) {
+                $targetColourIndex = $studentColourIndex + 1; // give them harder book
+            }
+            $targetColour = $colourBands[$targetColourIndex];
 
             // try matching a book from reading list first
             if ($readingLists->has($student->id)) {
@@ -359,20 +455,48 @@ class ReadingController extends Controller
             while (count($assignedToThisStudent) < $target) {
                 $selectedBookData = null;
 
-                if (!empty($availableBooks[$ortColour])) {
-                    $availableForStudent = collect($availableBooks[$ortColour])->reject(function($book) use ($alreadyReadIds, $unavailableBookIds) {
-                        return in_array($book['id'], $alreadyReadIds) || in_array($book['id'], $unavailableBookIds);
-                    });
+                // try the difficulty adjusted colour first, then fall back to the original colour
+                $colourPriority = $targetColour !== $ortColour 
+                    ? [$targetColour, $ortColour] 
+                    : [$ortColour];
 
-                    if ($availableForStudent->isEmpty()) break; 
+                foreach ($colourPriority as $tryColour) {
+                    if (!empty($availableBooks[$tryColour])) {
+                        $availableForStudent = collect($availableBooks[$tryColour])->reject(function($book) use ($alreadyReadIds, $unavailableBookIds) {
+                            return in_array($book['id'], $alreadyReadIds) || in_array($book['id'], $unavailableBookIds);
+                        });
 
-                    $preferredBooks = $availableForStudent->filter(function($book) use ($likedGenresIds) {
-                        return !empty(array_intersect($book['genres'], $likedGenresIds));
-                    });
+                        if ($availableForStudent->isEmpty()) continue;
 
-                    $selectedBookData = $preferredBooks->isNotEmpty() 
-                        ? $preferredBooks->shuffle()->first() 
-                        : $availableForStudent->shuffle()->first();
+                        $preferredBooks = $availableForStudent->filter(function($book) use ($likedGenresIds) {
+                            return !empty(array_intersect($book['genres'], $likedGenresIds));
+                        });
+
+                        // start with genre matched pool first, otherwise fall back to all available
+                        $pool = $preferredBooks->isNotEmpty() ? $preferredBooks : $availableForStudent;
+
+                        // prefer books with peer difficulty matching the students preferred difficulty
+                        $matching = $pool->filter(function($book) use ($preferredPeerDifficulty) {
+                            return $book['peer_difficulty'] === $preferredPeerDifficulty;
+                        });
+                        $unrated = $pool->filter(function($book) {
+                            return $book['peer_difficulty'] === null;
+                        });
+                        $other = $pool->filter(function($book) use ($preferredPeerDifficulty) {
+                            return $book['peer_difficulty'] !== null && $book['peer_difficulty'] !== $preferredPeerDifficulty;
+                        });
+
+                        // pick matching first, then unrated, then anything else
+                        if ($matching->isNotEmpty()) {
+                            $selectedBookData = $matching->shuffle()->first();
+                        } elseif ($unrated->isNotEmpty()) {
+                            $selectedBookData = $unrated->shuffle()->first();
+                        } elseif ($other->isNotEmpty()) {
+                            $selectedBookData = $other->shuffle()->first();
+                        }
+
+                        if ($selectedBookData) break;
+                    }
                 }
 
                 if ($selectedBookData) {
@@ -443,6 +567,9 @@ class ReadingController extends Controller
                 }
             }
         }
+
+        // mark generate all as used for this week so the button locks until next week
+        $this->markGenerateAllAsUsed($classroom->id);
         
         return back()->with('success', 'Books have been assigned to all students!');
     }
@@ -483,6 +610,35 @@ class ReadingController extends Controller
             return back()->with('error', 'All selected books have already been read or are currently being read by ' . $student->first_name . '.');
         }
 
+        // get students recent difficulty feedback
+        $recentReviews = DB::table('book_reviews')
+            ->where('student_id', $student->id)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+        $difficultyBias = $this->calculateDifficultyBias($recentReviews);
+        $preferredPeerDifficulty = $this->mapBiasToPeerDifficulty($difficultyBias);
+
+        // get peer difficulty for the books being assigned
+        $bookDifficultyMap = $this->buildBookDifficultyMap($newBookIds);
+
+        // check the colour of the books being assigned vs students recommended colour
+        $studentColour = $this->getOxfordColour($student->level);
+        $colourBands = [
+            'Light Purple', 'Pink', 'Red', 'Yellow', 'Light Blue', 'Green', 'Orange', 
+            'Turquoise', 'Purple', 'Gold', 'White', 'Lime', 'Lime+', 'Grey', 'Dark Blue', 'Dark Red'
+        ];
+        $studentColourIndex = array_search($studentColour, $colourBands);
+        if ($studentColourIndex === false) $studentColourIndex = 1;
+
+        // recommended colour change based on the bias
+        $recommendedColourIndex = $studentColourIndex;
+        if ($difficultyBias < 0 && $studentColourIndex > 1) {
+            $recommendedColourIndex = $studentColourIndex - 1;
+        } elseif ($difficultyBias > 0 && $studentColourIndex < count($colourBands) - 1) {
+            $recommendedColourIndex = $studentColourIndex + 1;
+        }
+
         // mark currently reading book as completed
         $currentBooks = $student->books()->wherePivot('status', 'reading')->get();
         foreach ($currentBooks as $cb) {
@@ -493,6 +649,8 @@ class ReadingController extends Controller
 
         $attachData = [];
         $genreSyncData = [];
+        $mismatchWarning = false;
+        $peerMismatchWarning = false;
 
         // assign new book
         foreach ($books as $book) {
@@ -500,6 +658,29 @@ class ReadingController extends Controller
                 'status' => 'reading',
                 'school_id' => $student->school_id
             ];
+
+            // check if the books colour matches the recommended difficulty
+            $bookColourIndex = array_search($book->ort_colour, $colourBands);
+            if ($bookColourIndex !== false && $recommendedColourIndex !== $studentColourIndex) {
+                if ($difficultyBias < 0 && $bookColourIndex > $recommendedColourIndex) {
+                    $mismatchWarning = true; 
+                } elseif ($difficultyBias > 0 && $bookColourIndex < $recommendedColourIndex) {
+                    $mismatchWarning = true; 
+                }
+            }
+
+            // check if the books peer reviewd difficulty conflicts with student preference
+            $peerDifficulty = $bookDifficultyMap[$book->id] ?? null;
+            if ($peerDifficulty !== null && $preferredPeerDifficulty !== null) {
+                // student needs asier and book is rated hard by peers
+                if ($difficultyBias < 0 && $peerDifficulty === 'hard') {
+                    $peerMismatchWarning = true;
+                }
+                // student needs harder and book is rated easy by peers
+                elseif ($difficultyBias > 0 && $peerDifficulty === 'easy') {
+                    $peerMismatchWarning = true;
+                }
+            }
 
             // add genres with schoolid to pivot table to track preferred genres
             foreach ($book->genres->pluck('id') as $genreId) {
@@ -521,6 +702,188 @@ class ReadingController extends Controller
         $bookWord = $count === 1 ? 'Book' : 'Books';
 
         return back()->with('success', $count . ' ' . $bookWord . ' successfully assigned to ' . $student->first_name);
+    }
+
+    // Calculcate difficulty bias from recent reviews
+    private function calculateDifficultyBias($reviews)
+    {
+        if ($reviews->isEmpty()) return 0;
+
+        $score = 0;
+        // loop through reviews
+        foreach ($reviews as $review) {
+            // hard = books too hard, student wants easier - negative bias
+            // easy = books too easy, student wants harder - positive bias
+            $score += match ($review->difficulty) {
+                'easy' => 1,   
+                'hard' => -1,  
+                default => 0,  
+            };
+        }
+
+        $average = $score / $reviews->count();
+
+        // strong bias if more than half lean a way
+        if ($average <= -0.5) return -1; 
+        if ($average >= 0.5) return 1;   
+        return 0; 
+    }
+
+    // Map bias to peer difficulty
+    // bias < 0 = student wants easier
+    // bias = 0 = student wants okay
+    // bias > 0 = student wants harder
+    private function mapBiasToPeerDifficulty(int $bias): string
+    {
+        return match ($bias) {
+            -1 => 'easy',
+            1 => 'hard',
+            default => 'okay',
+        };
+    }
+
+    // build map of book_id = easy/okay/hard on aggregated student reviews
+    // only books within minimum reviews, others are null
+    private function buildBookDifficultyMap(?array $bookIds = null): array
+    {
+        // need at least 3 reviews
+        $minReviews = 3;
+
+        $query = DB::table('book_reviews')
+            ->select('book_id', 'difficulty', DB::raw('count(*) as count'))
+            ->groupBy('book_id', 'difficulty');
+
+        // skip cache when looking up specific books since theyre usually new requests
+        if ($bookIds !== null) {
+            return $this->computeBookDifficultyMap($bookIds);
+        }
+
+
+        $rows = $query->get();
+
+        // group results by book id, counter each difficukty
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row->book_id][$row->difficulty] = $row->count;
+        }
+
+        // classify each book based on weighted avg
+        $map = [];
+        foreach ($grouped as $bookId => $counts) {
+            $easy = $counts['easy'] ?? 0;
+            $okay = $counts['okay'] ?? 0;
+            $hard = $counts['hard'] ?? 0;
+            $total = $easy + $okay + $hard;
+
+            // skip books with few reviews
+            if ($total < $minReviews) continue;
+
+            // weight easy = 1, okay = 2, hard = 3 then take the average
+            $score = (($easy * 1) + ($okay * 2) + ($hard * 3)) / $total;
+
+            // get equal thirds of 1 to 3 range
+            if ($score < 1.67) {
+                $map[$bookId] = 'easy';
+            } elseif ($score < 2.34) {
+                $map[$bookId] = 'okay';
+            } else {
+                $map[$bookId] = 'hard';
+            }
+        }
+
+        return $map;
+    }
+
+    // Compute book difficulty map, separated out so the cache wrapper stays clean
+    private function computeBookDifficultyMap(?array $bookIds = null): array
+    {
+        // need at least 3 reviews
+        $minReviews = 3;
+
+        $query = DB::table('book_reviews')
+            ->select('book_id', 'difficulty', DB::raw('count(*) as count'))
+            ->groupBy('book_id', 'difficulty');
+        
+        // filter by ids if subset is requested, used in assignbook for efficiency
+        if ($bookIds !== null) {
+            if (empty($bookIds)) return [];
+            $query->whereIn('book_id', $bookIds);
+        }
+
+        $rows = $query->get();
+
+        // group results by book id, counter each difficukty
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row->book_id][$row->difficulty] = $row->count;
+        }
+
+        // classify each book based on weighted avg
+        $map = [];
+        foreach ($grouped as $bookId => $counts) {
+            $easy = $counts['easy'] ?? 0;
+            $okay = $counts['okay'] ?? 0;
+            $hard = $counts['hard'] ?? 0;
+            $total = $easy + $okay + $hard;
+
+            // skip books with few reviews
+            if ($total < $minReviews) continue;
+
+            // weight easy = 1, okay = 2, hard = 3 then take the average
+            $score = (($easy * 1) + ($okay * 2) + ($hard * 3)) / $total;
+
+            // get equal thirds of 1 to 3 range
+            if ($score < 1.67) {
+                $map[$bookId] = 'easy';
+            } elseif ($score < 2.34) {
+                $map[$bookId] = 'okay';
+            } else {
+                $map[$bookId] = 'hard';
+            }
+        }
+
+        return $map;
+    }
+
+    // check if generateall has been used for this classroom this week - checks both cache flag and bookstudent records JUST INCASE
+    private function hasGenerateAllRunThisWeek(int $classroomId, array $studentIds): bool
+    {
+        // check cache flag first since its quicker
+        if (Cache::has($this->generateAllCacheKey($classroomId))) {
+            return true;
+        }
+
+        // check if any books were assigned to multiple students this week
+        // if more than half the class got a book this week, it is already generated this week
+        if (empty($studentIds)) return false;
+
+        $startOfWeek = now()->startOfWeek();
+        $assignedThisWeek = DB::table('book_student')
+            ->whereIn('student_id', $studentIds)
+            ->where('status', 'reading')
+            ->where('created_at', '>=', $startOfWeek)
+            ->distinct('student_id')
+            ->count('student_id');
+
+        // assume generate all was used if more than half the class got a new book this week
+        return $assignedThisWeek >= ceil(count($studentIds) / 2);
+    }
+
+    // mark generateall has been used
+    private function markGenerateAllAsUsed(int $classroomId): void
+    {
+        // store flag until the end of current week so the lock auto resets
+        Cache::put(
+            $this->generateAllCacheKey($classroomId),
+            true,
+            now()->endOfWeek()
+        );
+    }
+
+    // build cache key for the classroom generatea all lock
+    private function generateAllCacheKey(int $classroomId): string
+    {
+        return "classroom:{$classroomId}:generate_all_used:" . now()->startOfWeek()->format('Y_W');
     }
 
     // Convert ort to colour

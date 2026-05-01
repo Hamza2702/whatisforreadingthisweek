@@ -15,28 +15,38 @@
 <body class="z-50 bg-background flex flex-col min-h-full overflow-x-hidden">
 
   <!-- Navigation Bar ============== DESKTOP -->
-  <nav class="z-50 sticky top-0 justify-between items-center px-7 desktop-nav hidden lg:flex border-b-4 border-orange-900 p-1 bg-background">
+  <nav class=" justify-between items-center px-7 desktop-nav hidden lg:flex border-b-2 border-orange-900 p-1 py-4 bg-background">
     <div class="flex items-center gap-3">
-      <a href="/" class="flex-shrink-0">
-        <img src="/images/Logo.png" alt="Logo" class="bookwormLogo max-w-20">
+      <a href="/" class="flex items-center gap-3">
+        <img src="{{ asset('images/logo.png') }}" alt="Bookworms" class="h-10 md:h-12 drop-shadow-sm" draggable="false">
+        <span class="text-2xl md:text-3xl font-display font-black tracking-tight text-[#e87a90]">Bookworms</span>
       </a>
-      <div class="flex flex-col">
-        <h1 class="font-display text-pink-400 text-2xl tracking-wider">BOOKWORMS</h1>
-      </div>
     </div>
 
     <div class="flex items-center space-x-5">
       @if (Auth::check() && Auth::user()->isAdmin())
         <x-nav-link href='/admin/index' class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
       @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
-        <x-nav-link href="{{ route('teacher.index') }} " class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
+        <x-nav-link href="{{ route('teacher.index') }}" class="px-2 text-red-700 font-black"> Dashboard </x-nav-link>
       @else 
         <x-nav-link href='/dashboard'> Dashboard </x-nav-link>
       @endif
       <x-nav-link href='/explore'> Explore </x-nav-link>
-      <x-nav-link href='/assignments'> Assignments </x-nav-link>
-      <x-nav-link href='/progress'> Progress </x-nav-link>
-      <x-nav-link href='/leaderboard'> Leaderboard </x-nav-link>
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <x-nav-link href='/assignments'> Assignments </x-nav-link>
+      @endif
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <x-nav-link href='/progress'> Progress </x-nav-link>
+      @endif
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <x-nav-link href='/leaderboard'> Leaderboard </x-nav-link>
+      @endif
       <div class="flex items-center space-x-3">
         @guest
         <x-nav-link href="{{ route('login') }}"> Login </x-nav-link>
@@ -66,10 +76,10 @@
   <!-- Navigation Bar ============== MOBILE -->
   <nav class="lg:hidden z-50 sticky top-0 flex justify-between items-center px-4 h-[76px] border-b-4 border-orange-900 bg-background">
     <div class="flex items-center gap-2">
-      <a href="/" class="flex-shrink-0">
-        <img src="/images/Logo.png" alt="Logo" class="bookwormLogo w-12 h-auto">
+      <a href="/" class="flex items-center gap-3">
+        <img src="{{ asset('images/logo.png') }}" alt="Bookworms" class="h-10 md:h-12 drop-shadow-sm" draggable="false">
+        <span class="text-2xl md:text-3xl font-display font-black tracking-tight text-[#e87a90]">Bookworms</span>
       </a>
-      <h1 class="font-display text-pink-400 text-lg tracking-wider font-bold">BOOKWORMS</h1>
     </div>
 
     <!-- Hamburger button -->
@@ -93,10 +103,22 @@
       @endif
       
       <a href='/explore' class="text-lg text-gray-800 font-medium hover:text-primary"> Explore </a>
-      <a href='/assignments' class="text-lg text-gray-800 font-medium hover:text-primary"> Assignments </a>
-      <a href='/progress' class="text-lg text-gray-800 font-medium hover:text-primary"> Progress </a>
-      <a href='/leaderboard' class="text-lg text-gray-800 font-medium hover:text-primary"> Leaderboard </a>
-      
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <a href='/assignments' class="text-lg text-gray-800 font-medium hover:text-primary"> Assignments </a>
+      @endif
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <a href='/progress' class="text-lg text-gray-800 font-medium hover:text-primary"> Progress </a>
+      @endif
+      @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+      @else
+        <a href='/leaderboard' class="text-lg text-gray-800 font-medium hover:text-primary"> Leaderboard </a>
+      @endif
+
       @guest
       <div class="mt-4 w-full border-t border-gray-200 pt-4 text-right">
         <a href="{{ route('login') }}" class="text-lg text-primary font-bold"> Login </a>
@@ -135,64 +157,69 @@
   </main>
 
   <!-- FOOTER -->
-  <footer class="bg-primary w-full p-6 text-white">
-    <div class="flex flex-wrap justify-center space-y-6 md:space-y-0 md:flex-nowrap">
-      <div class="w-full md:w-1/3 text-center flex flex-col items-center">
-        <ul class="space-y-1">
-          <div class="flex justify-between space-x-3"></div>
-          <li class="font-semibold">Pages</li>
-          <li>
-            @if (Auth::check() && Auth::user()->isAdmin())
-              <a href='/admin/index' class="hover:underline"> Dashboard </a>
-            @elseif (Auth::check() && Auth::user()->role === 'teacher' || Auth::check() && Auth::user()->role === 'headteacher')
-              <a href="{{ route('teacher.index') }} " class="hover:underline"> Dashboard </a>
-            @else 
-              <a href='/dashboard' class="hover:underline text-white"> Dashboard </a>
-            @endif
-          </li>
-          <li><a href="/explore" class="hover:underline text-white">Explore</a></li>
-          <li><a href="/assignments" class="hover:underline">Assignments</a></li>
-          <li><a href="/progress" class="hover:underline">Progress</a></li>
-          <li><a href="/leaderboard" class="hover:underline">Leaderboard</a></li>
-          @guest
-          <li><a href="/login" class="hover:underline">Login</a></li>
-          <li><a href="/register" class="hover:underline">Register</a></li>
-          @endguest
-          @auth
-          <li><a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="hover:underline">Manage Account</a></li>
-          <form method="POST" action="/logout">
+<footer class="bg-white w-full pt-16 pb-8 mt-auto">
+  <div class="px-6 md:px-12 flex flex-col md:flex-row justify-center md:justify-around items-center md:items-start gap-12 max-w-4xl mx-auto">
+    
+    <!-- Pages -->
+    <div class="w-full md:w-1/2 flex flex-col items-center">
+      <ul class="space-y-3 text-center">
+        <li class="font-system text-[#e87a90] font-bold tracking-[0.2em] text-xs mb-4">PAGES</li>
+        
+        <!-- Dashboard -->
+        @if (Auth::check() && Auth::user()->isAdmin())
+          <li><a href='/admin/index' class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Dashboard</a></li>
+        @elseif (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+          <li><a href="{{ route('teacher.index') }}" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Dashboard</a></li>
+        @else 
+          <li><a href='/dashboard' class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Dashboard</a></li>
+        @endif
+        
+        <!-- Main-->
+        <li><a href="/explore" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Explore</a></li>
+        @if (Auth::check() && (Auth::user()->role === 'teacher' || Auth::user()->role === 'headteacher'))
+        
+        @else
+          <li><a href="/assignments" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Assignments</a></li>
+          <li><a href="/progress" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Progress</a></li>
+          <li><a href="/leaderboard" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Leaderboard</a></li>
+        @endif
+        
+        <!-- Guest-->
+        @guest
+        <li><a href="/login" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Login</a></li>
+        @endguest
+        
+        <!-- Auth -->
+        @auth
+        <li><a href='{{ route("user.show", ["id" => Auth::id()]) }}' class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors">Manage Account</a></li>
+        <li>
+          <form method="POST" action="/logout" class="m-0 p-0 inline-block">
             @csrf
-            <li><button class="hover:underline">Log Out</button></li>
+            <button type="submit" class="text-[#755f54] hover:text-[#e87a90] font-medium transition-colors bg-transparent border-none p-0 cursor-pointer">Log Out</button>
           </form>          
-          @endauth
-        </ul>
-      </div>
-      
-      <div class="w-full md:w-1/3 text-center flex flex-col items-center">
-        <ul class="space-y-1">
-          <li class="font-semibold">Legal</li>
-          <li><a href="/tmc" class="hover:underline">Terms and Conditions</a></li>
-          <li><a href="/pnc" class="hover:underline">Privacy and Cookies</a></li>
-          <li><a href="https://www.gov.uk/data-protection" class="hover:underline">GDPA</a></li>
-          <li><a href="https://www.ifrs.org/groups/international-sustainability-standards-board/" class="hover:underline">ISSB</a></li>
-          <li><a href="https://www.modernslavery.gov.uk/start" class="hover:underline">Modern Slavery Report</a></li>
-          <li><a href="https://www.fca.org.uk/" class="hover:underline">UK FCA</a></li>
-          <li><a href="/contact" class="hover:underline">Contact Us</a></li>
-        </ul>
-      </div>
-      
-      <div class="w-full md:w-1/3 text-center flex flex-col items-center space-y-4">
-        <div class="flex flex-col items-center">
-          <h3 class="text-base md:text-lg font-semibold">Subscribe to our Newsletter</h3>
-          <button class="px-8 py-1 mt-3 bg-text text-white rounded-lg hover:opacity-75">Join</button>
-        </div>
-      </div>
+        </li>
+        @endauth
+      </ul>
+    </div>
+    
+    <!-- legal and content -->
+    <div class="w-full md:w-1/2 flex flex-col items-center">
+      <ul class="space-y-3 text-center">
+        <li class="font-system text-[#ffb84d] font-bold tracking-[0.2em] text-xs mb-4">LEGAL & SUPPORT</li>
+        <li><a href="https://www.gov.uk/data-protection" class="text-[#755f54] hover:text-[#ffb84d] font-medium transition-colors" target="_blank">GDPR / Data Protection</a></li>
+        <li><a href="{{ url('/#contact') }}" class="text-[#755f54] hover:text-[#ffb84d] font-medium transition-colors">Contact Us</a></li>
+      </ul>
     </div>
 
-    <div class="text-center py-4 border-t border-gray-200 mt-4">
-      <p class="text-xs md:text-base">&copy; 2025 What is for reading this week? All rights reserved.</p>
-    </div>
-  </footer>
+  </div>
+
+  <!-- footer stuff -->
+  <div class="text-center pt-10 mt-12 border-t border-[#755f5420] w-full">
+    <p class="text-xs font-bold text-[#755f54]/60 tracking-[0.2em]">
+        &copy; {{ date('Y') }} BOOKWORMS
+    </p>
+  </div>
+</footer>
 
   <script src="{{ asset('js/bookwormLogo.js') }}"></script>
   
