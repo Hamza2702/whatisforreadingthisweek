@@ -137,7 +137,7 @@
                                 data-input="value_confirmation"
                                 class="w-full px-3 py-2 border-2 border-primary/30 rounded-lg font-bold text-primary focus:outline-none focus:border-primary">
                             <p class="text-[11px] text-primary/50 mt-2 leading-snug">
-                                Must be at least 8 characters and include uppercase, lowercase, a number, and a symbol.
+                                Must be at least 8 characters and include uppercase, lowercase, a number, and a symbol. Be sure to write this down somewhere!
                             </p>
                         </div>
                         <div class="flex items-center gap-1 flex-shrink-0">

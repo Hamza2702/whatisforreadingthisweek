@@ -231,6 +231,29 @@ class SchoolAdminController extends Controller
             abort(403, 'Unauthorised action');
         }
 
+        // check if teacher has any classrooms assigned (active or inactive)
+        $classroomCount = Classroom::where('teacher_id', $teacher->id)->count();
+
+        if ($classroomCount > 0) {
+            // get classroom names for error message
+            $classroomNames = Classroom::where('teacher_id', $teacher->id)
+                ->pluck('name')
+                ->take(3)
+                ->implode(', ');
+
+            $extraCount = $classroomCount - 3;
+            $namesDisplay = $extraCount > 0 
+                ? $classroomNames . " and {$extraCount} more" 
+                : $classroomNames;
+
+            return redirect()->back()->with(
+                'error', 
+                "Cannot delete {$teacher->name} because they still have {$classroomCount} " 
+                . ($classroomCount === 1 ? 'classroom' : 'classrooms') 
+                . " assigned ({$namesDisplay}). Please delete or reassign their classrooms first."
+            );
+        }
+
         // if a custom pfp exists, delete from storage too
         if ($teacher->pfp && str_starts_with($teacher->pfp, '/storage/')) {
             $path = str_replace('/storage/', '', $teacher->pfp);
