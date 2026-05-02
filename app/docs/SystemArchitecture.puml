@@ -2,80 +2,74 @@
 
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName "Segoe UI"
-skinparam defaultFontSize 12
+skinparam defaultFontSize 11
 skinparam shadowing false
-skinparam roundCorner 15
-skinparam nodesep 15
-skinparam ranksep 20
+skinparam roundCorner 12
+skinparam nodesep 20
+skinparam ranksep 30
 skinparam rectangle {
     BorderThickness 2
 }
 
-title <b>System Architecture\nBookworms: What is for reading this week? - Full Project Structure
-' ══════════════════════════════════════
-' PRESENTATION LAYER
-' ══════════════════════════════════════
-rectangle "**PRESENTATION LAYER** (Blade Views, Tailwind CSS, Public Assets)\n\n**Core Views:** dashboard, explore, leaderboard, progress, assignments, book\n**Auth & Roles:** auth/, admin/, books/, headteacher/teachers/, teacher/classes/, user/show, Site/\n**Layouts:** components/ (layout, login-layout, site-layout, form-inputs...)\n**Public Assets:** images/home/ (wormMovement...), images/pfp/ (cat.png, dog.png...), Logo.png, Placeholder.jpeg\n**Storage:** storage/template/ (authors.txt, student_import_template.csv)" as PRES #B3E5FC
+title <b>System Architecture\nBookworms: What is for reading this week?\nFull Project Structure & Request Lifecycle
 
-' ══════════════════════════════════════
-' ROUTING LAYER
-' ══════════════════════════════════════
-rectangle "**ROUTING LAYER**\n<i>routes/web.php</i>  |  <i>routes/console.php</i>\nMaps URL endpoints to Controllers" as ROUTES #C8E6C9
+' ============= PRESENTATION =============
+rectangle "**PRESENTATION LAYER**\n<i>Blade Views - Tailwind - Public Assets</i>\n\n**Core:** dashboard, explore, leaderboard, progress, assignments, book\n**Auth:** login, register, forgot-password\n**Admin:** admin/index\n**SchoolAdmin:** banned-books, teachers\n**Teacher:** index, classes/*, user/manage\n**Books:** review   -   **Site:** index\n**Layouts:** layout, login-layout, site-layout\n**Components:** nav-link, form-input, form-error\n**Assets:** Logo, Placeholder, wordcloud, favicon, worm images, profile pics\n**Storage:** covers/, pfp/" as PRES #B3E5FC
 
-' ══════════════════════════════════════
-' MIDDLEWARE LAYER
-' ══════════════════════════════════════
-rectangle "**MIDDLEWARE LAYER** (Role-Based Access Control)\nisAdmin.php  |  IsHeadteacher.php  |  isTeacher.php" as MW #FFF9C4
+' ============= ROUTING / MIDDLEWARE =============
+together {
+  rectangle "**ROUTING LAYER**\n\nroutes/web.php\nroutes/console.php\n\nMaps requests → controllers,\ngroups by auth & role." as ROUTES #C8E6C9
 
-' ══════════════════════════════════════
-' CONTROLLER LAYER
-' ══════════════════════════════════════
-rectangle "**CONTROLLER LAYER** (Business Logic)\nAssignmentController | BookReviewController | ClassroomController | ExploreController\nHeadteacherController | LeaderboardController | ProgressController | ReadingController\nSessionController | SiteController | TeacherController | UserController | Controller" as CTRL #FFE0B2
+  rectangle "**MIDDLEWARE**\n<i>Role-Based Access</i>\n\nisAdmin\nIsSchoolAdmin\nisTeacher" as MW #FFF9C4
+}
 
-' ══════════════════════════════════════
-' MODEL LAYER
-' ══════════════════════════════════════
-rectangle "**MODEL LAYER** (Eloquent ORM)\nBook | BookReview | Classroom | Genre | LeaderboardHistory | Phonic\nSchool | Student | StudentFavouriteBook | StudentReadingList | StudentWeeklyGoal | User" as MODELS #E1BEE7
+' ============= CONTROLLERS =============
+rectangle "**CONTROLLER LAYER**\n<i>Request Handling & Business Logic</i>\n\nAssignment - BookReview - Classroom - Explore - FavouriteBook\nLeaderboard - Manage - Progress - Reading - SchoolAdmin\nSession - Site - Teacher - User - UserManage - (base) Controller" as CTRL #FFE0B2
 
-' ══════════════════════════════════════
-' DATABASE LAYER
-' ══════════════════════════════════════
-rectangle "**DATABASE LAYER** (SQLite: <i>database.sqlite</i>)\n\n**Users & Auth:** users, sessions, password_reset_tokens\n**Schools & Classes:** schools, classrooms, classroom_student, archive_classrooms, announcements, hidden_announcements\n**Students & Goals:** students, student_streaks, student_weekly_goals, student_reading_lists, student_favourite_books\n**Books & Tracking:** books, book_reviews, book_review_upvotes, book_student, book_school_ban, book_school_stocks, book_genre, book_phonic\n**Reference:** genres, genre_student, phonics, leaderboard_histories\n**System:** migrations, cache, cache_locks, failed_jobs, job_batches, jobs" as DB #FFCDD2
+' ============= MODELS =============
+rectangle "**MODEL LAYER**  <i>Eloquent ORM</i>\n\nBook - BookReview - Classroom - Genre - LeaderboardHistory\nPhonic - School - Student - StudentFavouriteBook\nStudentReadingList - StudentWeeklyGoal - User" as MODELS #E1BEE7
 
-' ══════════════════════════════════════
-' CONSOLE / DB TOOLS
-' ══════════════════════════════════════
-rectangle "**ARTISAN COMMANDS, SEEDERS & FACTORIES**\n**Commands:** BackupBooks | FixBookData | FixBookGenres | ImportSchools | SyncBooks\n**Seeders:** DatabaseSeeder | SchoolSeeder | BookBackupSeeder | BookReviewSeeder | SyntheticSeeder\n**Factories:** UserFactory | StudentFactory" as CMD #D7CCC8
+' ============= DATABASE =============
+rectangle "**DATABASE LAYER**  <i>SQLite: database.sqlite</i>\n\n**Auth:** users, sessions, password_reset_tokens\n**Schools/Classes:** schools, classrooms, classroom_student, archive_classrooms\n**Announcements:** announcements, hidden_announcements\n**Students:** students, student_weekly_goals, student_streaks\n**Reading:** student_reading_lists, student_favourite_books\n**Books:** books, book_reviews, book_review_upvotes, book_student\n**Availability:** book_school_stocks, book_school_ban\n**Pivots:** genres, phonics, book_genre, book_phonic, genre_student\n**Leaderboard:** leaderboard_histories\n**System:** migrations, cache, jobs, failed_jobs" as DB #FFCDD2
 
-' ══════════════════════════════════════
-' MAIN FLOW (Top → Bottom)
-' ══════════════════════════════════════
-PRES -[#1565C0,bold]down-> ROUTES : **1** HTTP Request
-ROUTES -[#2E7D32,bold]down-> MW : **2** Route Matched
-MW -[#F9A825,bold]down-> CTRL : **3** Auth Passed
-CTRL -[#E65100,bold]down-> MODELS : **4** Query Data
-MODELS -[#6A1B9A,bold]down-> DB : **5** Eloquent SQL
+' ============= SIDE NODES =============
+together {
+  rectangle "**CSV IMPORT FILES**\n\nbooks.csv\nbook_genre.csv\nbook_phonic.csv\ngenres.csv\nphonics.csv\nAllStateFunded.csv\nAuthors.csv" as CSV #DCEDC8
 
-' ── Return flow ──
-DB -[#B71C1C,dashed]up-> MODELS : Data returned
-MODELS -[#6A1B9A,dashed]up-> CTRL : Model objects
-CTRL -[#E65100,dashed]up-> PRES : **6** Blade View rendered
+  rectangle "**ARTISAN / SEEDERS / FACTORIES**\n\n**Commands:** BackupBooks, FixBookData,\nFixBookGenres, ImportSchools, SyncBooks\n**Seeders:** Database, School, BookBackup,\nBookReview, Synthetic\n**Factories:** Book, Student, User" as CMD #D7CCC8
 
-' ── Side connections ──
-CMD -[#5D4037,dotted]up-> DB : Modifies & Seeds\nDatabase directly
+  rectangle "**TESTING LAYER**\n<i>PHPUnit / Feature Tests</i>\n\nReadingControllerTest\nRouteTest\n\nCovers: recommendations,\nweekly lockout, route\nregistration, guest redirects." as TESTS #CFD8DC
+}
 
-' ══════════════════════════════════════
-' LEGEND
-' ══════════════════════════════════════
+' ============= REQUEST FLOW (downwards) =============
+PRES   -[#1565C0,bold]down->   ROUTES : **1** HTTP Request
+ROUTES -[#2E7D32,bold]down->   MW     : **2** Route Matched
+MW     -[#F9A825,bold]down->   CTRL   : **3** Auth Passed
+CTRL   -[#E65100,bold]down->   MODELS : **4** Business Logic
+MODELS -[#6A1B9A,bold]down->   DB     : **5** Eloquent SQL
+
+' ============= RESPONSE FLOW (dashed) =============
+DB     -[#B71C1C,dashed]up-> MODELS : Rows
+MODELS -[#6A1B9A,dashed]up-> CTRL   : Models
+CTRL   -[#E65100,dashed]up-> PRES   : **6** View / Redirect
+
+' ============= SIDE FLOWS =============
+CSV   -[#33691E,dotted]-> CMD : feeds
+CMD   -[#5D4037,dotted]-> DB  : seeds / imports
+TESTS -[#455A64,dotted]-> CTRL : tests
+TESTS -[#455A64,dotted]-> ROUTES : verifies
+
+' ============= LEGEND =============
 legend bottom right
   |= Colour |= Layer |
-  |<#B3E5FC> | Presentation (Views, CSS, Assets) |
-  |<#C8E6C9> | Routing |
-  |<#FFF9C4> | Middleware (Auth & Role Checks) |
-  |<#FFE0B2> | Controllers (Business Logic) |
-  |<#E1BEE7> | Models (Eloquent ORM) |
-  |<#FFCDD2> | Database (SQLite: 32 Tables) |
-  |<#D7CCC8> | CLI Commands, Seeders & Factories |
+  |<#B3E5FC>     | Presentation |
+  |<#C8E6C9>     | Routing |
+  |<#FFF9C4>     | Middleware |
+  |<#FFE0B2>     | Controllers |
+  |<#E1BEE7>     | Models |
+  |<#FFCDD2>     | Database |
+  |<#DCEDC8>     | CSV Imports |
+  |<#D7CCC8>     | Commands/Seeders |
+  |<#CFD8DC>     | Tests |
 end legend
-
 @enduml

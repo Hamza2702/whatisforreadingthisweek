@@ -1,0 +1,213 @@
+@startuml ControllersOverview
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam nodesep 22
+skinparam ranksep 28
+
+skinparam class {
+    BackgroundColor #FFE0B2
+    BorderColor #E65100
+    BorderThickness 1.5
+    HeaderBackgroundColor #FFB74D
+}
+
+skinparam package {
+    BackgroundColor #FFF8E1
+    BorderColor #E65100
+    FontStyle bold
+}
+
+title <b>Controllers Overview of Bookworms</b>\n<size:11>All HTTP Controllers at once!</size>
+
+' ============= AUTH & PUBLIC =============
+package "Auth & Public" {
+    class SessionController {
+        + show()
+        + create()
+        + destroy()
+    }
+    class SiteController {
+        + index()
+    }
+    class UserController {
+        + create()
+        + store()
+        + dashboard()
+        + show(id)
+        + profile()
+        + showForgotPassword()
+        + submitForgotPassword(req)
+    }
+    class UserManageController {
+        + edit(user)
+        + updateField(req, user)
+        - authorizeUser(user)
+    }
+}
+
+' ============= STUDENT EXPERIENCE =============
+package "Student Experience" {
+    class ProgressController {
+        + index()
+    }
+    class AssignmentController {
+        + index()
+        + markCompleted(req, bookId)
+        + notifyTeacher(req)
+    }
+    class FavouriteBookController {
+        + store(req, bookId)
+        + destroy(bookId)
+    }
+    class BookReviewController {
+        + create(id)
+        + store(req, id)
+        + destroy(bookId, reviewId)
+        + upvote(reviewId)
+    }
+    class LeaderboardController {
+        + show(req, classroomId?)
+    }
+}
+
+' ============= BOOK BROWSING =============
+package "Book Browsing" {
+    class ExploreController {
+        + index(req)
+        + show(id, req)
+        + addBook(req)
+        + updateBook(req, book)
+        + deleteBook(book)
+        + requestBook(req, book)
+        + toggleFavourite(book)
+        + updateStock(req, book)
+    }
+}
+
+' ============= TEACHER WORKFLOWS =============
+package "Teacher Workflows" {
+    class TeacherController {
+        + index()
+        + classStudents(c)
+        + classReadingList(c)
+        + createClass()
+        + storeClass(req)
+        + addStudents(c)
+        + storeStudents(req, c)
+        + showImportForm(c)
+        + importStudents(req, c)
+        + exportStudents(c)
+        + removeStudent(c, id)
+        + transferStudent(c, id)
+        # createStudent(c, data)
+        # createStudentUsername()
+        # createStudentPassword(f, l)
+        # downloadKittenPfp(u)
+    }
+    class ClassroomController {
+        + removeClassroom(c)
+        + archiveClassroom(req, id)
+        + restoreClassroom(req, id)
+        + progressClassroom(req, id)
+        + classView(c)
+        + showStatistics(req, id)
+        + exportStatistics(id)
+        + createAnnouncement(c)
+        + storeAnnouncement(req, c)
+        + hideAnnouncement(req, id)
+        + restoreAnnouncements(req)
+        + deleteAnnouncement(id)
+        - buildClassroomStatistics(c)
+    }
+    class ManageController {
+        + show(userId)
+        + updateField(req, userId)
+        + exportStatistics(userId)
+        - buildStudentStatistics(s, c)
+    }
+    class ReadingController {
+        + generateList(c)
+        + generateAll(req, c)
+        + assignBook(req, c, s)
+        + saveWeeklyLog(req, c)
+        - calculateDifficultyBias(reviews)
+        - mapBiasToPeerDifficulty(bias)
+        - buildBookDifficultyMap(ids?)
+        - getOxfordColour(level)
+    }
+}
+
+' ============= SCHOOL ADMIN =============
+package "School Admin" {
+    class SchoolAdminController {
+        + bannedBooks(req)
+        + toggleBan(req, book)
+        + createTeacher()
+        + storeTeacher(req)
+        + destroyTeacher(id)
+    }
+}
+
+' ============= BASE =============
+package "Base" {
+    abstract class Controller {
+        <<Laravel base>>
+    }
+}
+
+' ============= INHERITANCE =============
+SessionController        --|> Controller
+SiteController           --|> Controller
+UserController           --|> Controller
+UserManageController     --|> Controller
+ProgressController       --|> Controller
+AssignmentController     --|> Controller
+FavouriteBookController  --|> Controller
+BookReviewController     --|> Controller
+LeaderboardController    --|> Controller
+ExploreController        --|> Controller
+TeacherController        --|> Controller
+ClassroomController      --|> Controller
+ManageController         --|> Controller
+ReadingController        --|> Controller
+SchoolAdminController    --|> Controller
+
+' ============= MIDDLEWARE GUARDS =============
+package "Middleware Guards" #FFF9C4 {
+    class isAdmin <<middleware>>
+    class IsSchoolAdmin <<middleware>>
+    class isTeacher <<middleware>>
+}
+
+isAdmin       ..> SchoolAdminController : protects
+IsSchoolAdmin ..> SchoolAdminController : protects
+isTeacher     ..> TeacherController : protects
+isTeacher     ..> ClassroomController : protects
+isTeacher     ..> ManageController : protects
+isTeacher     ..> ReadingController : protects
+
+' ============= CROSS-CONTROLLER FLOWS =============
+note "NOTE:\n  + public route action\n  # protected helper\n  - private helper" as N1
+N1 .. Controller
+
+AssignmentController ..> BookReviewController : redirect to\n/books/{id}/review
+ExploreController ..> BookReviewController : show() loads reviews
+ReadingController ..> AssignmentController : auto-completes\nin-progress books
+ClassroomController ..> ManageController : drill-down\nper student
+
+legend bottom right
+  |= Group |= Purpose |
+  | Auth & Public         | Login, main site, registration |
+  | Student Experience    | Reading progress, assignments, reviews, leaderboard |
+  | Book Browsing         | Explore, view, request, favourite, edit/add books |
+  | Teacher Workflows     | Classes, students, statistics, recommendations |
+  | School Admin          | School wide bans & teacher provisioning |
+  | Base / Middleware     | Laravel structuring & route protection |
+end legend
+
+@enduml

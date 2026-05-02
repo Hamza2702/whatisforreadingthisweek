@@ -1,0 +1,293 @@
+@startuml DomainModel
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam nodesep 22
+skinparam ranksep 30
+skinparam linetype ortho
+
+skinparam class {
+    BorderThickness 1.5
+}
+
+title <b>Models - Bookworms</b>\n<size:11>All Eloquent Models, Relationships & Pivot Tables</size>
+
+' ============= CORE =============
+class School #FFE0B2 {
+    + id : int
+    + urn : string
+    + name : string
+    + town : string
+    + postcode : string
+    --
+    + users() : HasMany
+    + classrooms() : HasMany
+    + teachers() : HasMany
+    + students() : HasMany
+    + bannedBooks() : BelongsToMany
+}
+
+' ============= USERS / AUTH =============
+class User #B3E5FC {
+    + id : int
+    + school_id : ?int
+    + name : string
+    + username : string
+    + email : ?string
+    + phone : ?string
+    + password : string
+    + role : string
+    + pfp : ?string
+    + isAdmin : bool
+    --
+    + school() : BelongsTo
+    + student() : HasOne
+    + classrooms() : HasMany
+    + upvotedReviews() : BelongsToMany
+    + isAdmin() : bool
+    + isTeacher() : bool
+}
+
+class Student #B3E5FC {
+    + id : int
+    + user_id : int
+    + school_id : int
+    + classroom_id : ?int
+    + first_name : string
+    + last_name : string
+    + level : int
+    + date_of_birth : date
+    + active : bool
+    + pfp : ?string
+    + is_exceptional : bool
+    --
+    + user() : BelongsTo
+    + school() : BelongsTo
+    + classrooms() : BelongsToMany
+    + reviews() : HasMany
+    + bookReviews() : HasMany
+    + books() : BelongsToMany
+    + currentBook()
+    + preferredGenres() : BelongsToMany
+    + upvotedReviews() : BelongsToMany
+    + readingListEntries() : HasMany
+    + weeklyGoal() : HasOne
+}
+
+' ============= CLASSROOMS =============
+class Classroom #C8E6C9 {
+    + id : int
+    + school_id : int
+    + teacher_id : int
+    + name : string
+    + year_group : int
+    + stage : string
+    + academic_year : string
+    + academic_start : int
+    + academic_end : int
+    + active : bool
+    + is_progressed : bool
+    --
+    + school() : BelongsTo
+    + teacher() : BelongsTo
+    + students() : BelongsToMany
+    + activeStudents() : BelongsToMany
+}
+
+' ============= BOOKS =============
+class Book #FFCDD2 {
+    + id : int
+    + ol_key : string
+    + title : string
+    + author : string
+    + cover_id : ?string
+    + ort_level : int
+    + ort_colour : string
+    + description : ?string
+    --
+    + genres() : BelongsToMany
+    + phonics() : BelongsToMany
+    + reviews() : HasMany
+    + bannedBySchools() : BelongsToMany
+    + schoolStocks() : BelongsToMany
+    + scopeInStockForSchool()
+}
+
+class BookReview #FFCDD2 {
+    + id : int
+    + school_id : int
+    + student_id : int
+    + book_id : int
+    + rating : int
+    + difficulty : enum
+    + title : string
+    + description : ?string
+    + upvotes : int
+    --
+    + student() : BelongsTo
+    + book() : BelongsTo
+    + upvotedBy() : BelongsToMany
+}
+
+class Genre #E1BEE7 {
+    + id : int
+    + name : string
+    + slug : string
+    --
+    + books() : BelongsToMany
+}
+
+class Phonic #E1BEE7 {
+    + id : int
+    + sound : string
+    --
+    + books() : BelongsToMany
+}
+
+' ============= STUDENT DATA =============
+class StudentReadingList #FFF9C4 {
+    + id : int
+    + school_id : int
+    + classroom_id : int
+    + student_id : int
+    + book_id : int
+    + status : enum
+    --
+    + book() : BelongsTo
+    + student() : BelongsTo
+    + classroom() : BelongsTo
+}
+
+class StudentFavouriteBook #FFF9C4 {
+    + id : int
+    + school_id : int
+    + classroom_id : int
+    + student_id : int
+    + book_id : int
+    --
+    + student() : BelongsTo
+    + book() : BelongsTo
+}
+
+class StudentWeeklyGoal #FFF9C4 {
+    + id : int
+    + school_id : int
+    + classroom_id : int
+    + student_id : int
+    + target : int
+    --
+    + student() : BelongsTo
+    + classroom() : BelongsTo
+    + school() : BelongsTo
+}
+
+class LeaderboardHistory #DCEDC8 {
+    + id : int
+    + school_id : int
+    + classroom_id : int
+    + student_id : int
+    + books_read : int
+    + month : int
+    + year : int
+    --
+    + student() : BelongsTo
+    + classroom() : BelongsTo
+}
+
+' ============= PIVOT / JOIN TABLES =============
+class "<<pivot>>\nbook_genre" as BG #D7CCC8
+class "<<pivot>>\nbook_phonic" as BP #D7CCC8
+class "<<pivot>>\nbook_student\n+ status\n+ school_id" as BS #D7CCC8
+class "<<pivot>>\nclassroom_student\n+ school_id\n+ starts_on / ends_on\n+ active" as CS #D7CCC8
+class "<<pivot>>\nbook_school_ban\n+ ban_type" as BSB #D7CCC8
+class "<<pivot>>\nbook_school_stocks\n+ stock" as BSS #D7CCC8
+class "<<pivot>>\ngenre_student\n+ school_id" as GS #D7CCC8
+class "<<pivot>>\nbook_review_upvotes\n+ school_id\n+ book_id" as BRU #D7CCC8
+
+' ============= NO MODE CLASSES =============
+class "<<table>>\nstudent_streaks\n+ streak_count\n+ last_read_at" as SS #CFD8DC
+class "<<table>>\nannouncements\n+ message\n+ school_id\n+ classroom_id\n+ student_id" as ANN #CFD8DC
+class "<<table>>\nhidden_announcements" as HA #CFD8DC
+class "<<table>>\narchive_classrooms\n+ student_ids (json)\n+ academic_year" as AC #CFD8DC
+
+' ============= RELATIONSHIPS - School hub =============
+School "1" --> "*" User : users
+School "1" --> "*" Classroom : classrooms
+School "1" --> "*" Student : students
+
+' ============= RELATIONSHIPS - User / Student =============
+User "1" --> "0..1" Student : student
+Student "1" --> "1" User : user
+
+' ============= RELATIONSHIPS - Classroom =============
+Classroom "*" --> "1" School : school
+Classroom "*" --> "1" User : teacher
+Classroom "*" -- "*" Student
+(Classroom, Student) .. CS
+
+' ============= RELATIONSHIPS - Books =============
+Book "*" -- "*" Genre
+(Book, Genre) .. BG
+
+Book "*" -- "*" Phonic
+(Book, Phonic) .. BP
+
+Book "*" -- "*" Student : assigned
+(Book, Student) .. BS
+
+Book "*" -- "*" School : banned\nstocked
+(Book, School) .. BSB
+(Book, School) .. BSS
+
+' ============= RELATIONSHIPS - Reviews =============
+Book "1" --> "*" BookReview : reviews
+Student "1" --> "*" BookReview : reviews
+BookReview "*" -- "*" User : upvoted by
+(BookReview, User) .. BRU
+
+' ============= RELATIONSHIPS - Genre preferences =============
+Student "*" -- "*" Genre : preferredGenres
+(Student, Genre) .. GS
+
+' ============= RELATIONSHIPS - Lists / Goals / Favourites =============
+Student "1" --> "*" StudentReadingList
+Book "1" --> "*" StudentReadingList
+Classroom "1" --> "*" StudentReadingList
+
+Student "1" --> "*" StudentFavouriteBook
+Book "1" --> "*" StudentFavouriteBook
+
+Student "1" --> "1" StudentWeeklyGoal
+Classroom "1" --> "*" StudentWeeklyGoal
+School "1" --> "*" StudentWeeklyGoal
+
+' ============= RELATIONSHIPS - Leaderboard =============
+Classroom "1" --> "*" LeaderboardHistory
+Student "1" --> "*" LeaderboardHistory
+
+' ============= No model classes relations =============
+Student ..> SS : streak record
+Classroom ..> ANN : announcements
+Student ..> ANN : authored / addressed
+Student ..> HA : hides
+ANN ..> HA
+Classroom ..> AC : snapshot when archived
+
+legend bottom right
+  |= Colour |= Group |
+  |<#FFE0B2> | School (root) |
+  |<#B3E5FC> | Identity (User / Student) |
+  |<#C8E6C9> | Classroom |
+  |<#FFCDD2> | Books and Reviews |
+  |<#E1BEE7> | Reference (Genre / Phonic) |
+  |<#FFF9C4> | Student data |
+  |<#DCEDC8> | Historical / Leaderboard |
+  |<#D7CCC8> | Pivot tables |
+  |<#CFD8DC> | No model tables |
+end legend
+
+@enduml
