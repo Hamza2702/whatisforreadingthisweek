@@ -2,6 +2,11 @@
 
 <!-- schooladmin SECTION -->
   @if(auth()->user()->role === 'schooladmin' && isset($schooladminStats))
+    @if(session('error'))
+    <div class="bg-red-100 border border-red-300 text-red-800 rounded-2xl p-4 mb-6 font-semibold">
+      {{ session('error') }}
+    </div>
+  @endif
   <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-red-900/10 mb-8 space-y-6 relative overflow-hidden">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
       <div>
