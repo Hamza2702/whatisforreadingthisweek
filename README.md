@@ -68,6 +68,24 @@ If it is needed, start the Laravel backend on another terminal:
 php artisan serve
 ```
 ---
+# Details
+There are seeded accounts to use.
+### Seeded Accounts
+```bash
+TEACHER
+Username: montgomeryteacher
+Password: password
+
+SCHOOL ADMINISTRATOR
+Username: montgomeryschooladmin
+Password: password
+```
+All pupil accounts have a set password of 'password' and any new pupil creation follow the password rule of:
+First 3 letters of first and last name and the year they joined, such as "John Doe" in 2026 would be -
+```bash
+Johdoe26
+```
+---
 # Features
 ## Personalised Reading Recommendation Algorithm
 - Multi-factor recommendation algorithm using Oxford Reading Tree (ORT) colour bands, reading history, peer-difficulty classification and pupil genre preferences
@@ -117,4 +135,4 @@ php artisan serve
 - APIs: Google Books API, RoboHash, Internet Archive
 - Testing: PHPUnit
 
-Many more features coming in the future!1 :3
+Many more features coming in the future!! :3
